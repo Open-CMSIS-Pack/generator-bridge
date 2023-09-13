@@ -1,0 +1,153 @@
+name: Test
+
+on:
+  workflow_dispatch:
+  push: 
+    branches: [main]
+  pull_request:
+    paths:
+      - '.github/workflows/test.yml'
+      - '**/*.go'
+      - 'makefile'
+      - 'go.mod'
+      - 'go.sum'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  program: "cbridge"
+
+jobs:
+  lint:
+    name: Lint
+    timeout-minutes: 10
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
+
+      - name: Install Go
+        uses: actions/setup-go@v4
+        with:
+          go-version-file: go.mod
+          check-latest: true
+
+      - name: Lint with golangci-lint
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: latest
+
+  format:
+    name: Format
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
+
+      - name: Install Go
+        uses: actions/setup-go@v4
+        with:
+          go-version-file: go.mod
+          check-latest: true
+
+      - name: Check formatting
+        run: make format-check
+
+  vulnerability-check:
+    name: "Vulnerability check"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Scan for Vulnerabilities
+        uses: golang/govulncheck-action@v1
+        with:
+          go-version-input: 1.20.6
+          go-package: ./...
+
+  test:
+    strategy:
+      matrix:
+        platform: [ubuntu-latest, windows-latest, macos-latest]
+        arch: [amd64, arm64]
+        include:
+          - platform: ubuntu-latest
+            target: linux
+          - platform: windows-latest
+            target: windows
+          - platform: macos-latest
+            target: darwin
+    name: 'Test (${{ matrix.target }}, ${{ matrix.arch }})'
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Install go-junit-report
+        run: go install github.com/jstemmer/go-junit-report/v2@latest
+
+      - name: Run tests
+        run: |
+          mkdir -p build
+          set GOOS=${{ matrix.target }} && set GOARCH=${{ matrix.arch }} && go test -v ./... > build/${{ env.program }}-${{ matrix.target }}-${{ matrix.arch }}.txt
+
+      - name: Generate HTML report
+        if: success() || failure()
+        run: |
+          go-junit-report -set-exit-code -in build/${{ env.program }}-${{ matrix.target }}-${{ matrix.arch }}.txt -iocopy -out build/${{ env.program }}-testreport-${{ matrix.target }}-${{ matrix.arch }}.xml
+
+      - name: Archive test results
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ env.program }}-test-result-${{ matrix.target }}-${{ matrix.arch }}
+          path: ./build/${{ env.program }}-testreport-*.xml
+          retention-days: 1
+          if-no-files-found: error
+  
+  publish-test-results:
+    if: github.event_name != 'release'
+    name: "Publish Tests Results"
+    needs: [ test ]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Artifacts
+        uses: actions/download-artifact@v3
+        with:
+          path: artifacts
+
+      - name: publish test results
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        with:
+          files: "artifacts/**/${{ env.program }}-testreport-*.xml"
+          report_individual_runs: true
+
+  coverage:
+    if: github.event_name != 'release'
+    needs: [ test ]
+    name: 'Coverage check'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
+
+      - name: Install Go
+        uses: actions/setup-go@v4
+        with:
+          go-version-file: go.mod
+          check-latest: true
+
+      - name: Unit testing
+        run: |
+          make coverage-check
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./cover.out
+          fail_ci_if_error: true
+          functionalities: fix
