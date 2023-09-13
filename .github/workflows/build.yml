@@ -1,0 +1,58 @@
+name: Build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    paths:
+      - '.github/workflows/build.yml'
+      - '**/*.go'
+      - 'makefile'
+      - 'go.mod'
+      - 'go.sum'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        goos: [windows, linux, darwin]
+        arch: [amd64, arm64]
+
+    name: "${{ matrix.goos }} | ${{ matrix.arch }}"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Go
+        uses: actions/setup-go@v4
+        with:
+          go-version-file: go.mod
+          check-latest: true
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v2
+        with:
+          languages: go
+          queries: security-and-quality
+
+      - name: Build
+        run: |
+          make OS=${{ matrix.goos }} ARCH=${{ matrix.arch }} build
+
+      - name: Upload binary
+        uses: actions/upload-artifact@v3
+        with:
+          name: cbridge-${{ matrix.goos }}-${{ matrix.arch }}
+          path: build/cbridge*
+          retention-days: 1
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v2
