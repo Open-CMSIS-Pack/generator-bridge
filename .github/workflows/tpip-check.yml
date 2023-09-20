@@ -58,7 +58,7 @@ jobs:
     # Running this job only on specific event
     # in order to have workaround for issue
     # related to deletion of GH checks/status data
-    if: ${{ github.event_name == 'workflow_dispatch' }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.ref_type == 'tag' }}
     needs: [ check-licenses ]
     runs-on: ubuntu-latest
     timeout-minutes: 5
