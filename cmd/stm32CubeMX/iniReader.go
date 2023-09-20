@@ -8,8 +8,6 @@ package stm32CubeMX
 
 import (
 	"fmt"
-	"os"
-	"strconv"
 
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/ini.v1"
@@ -17,6 +15,13 @@ import (
 
 func PrintKeyValStr(key, val string) {
 	fmt.Printf("\n%v : %v", key, val)
+}
+
+func PrintKeyValStrs(key string, vals []string) {
+	fmt.Printf("\n%v", key)
+	for i := range vals {
+		fmt.Printf("\n%d: %v", i, vals[i])
+	}
 }
 
 func PrintKeyValInt(key string, val int) {
@@ -29,31 +34,37 @@ func IniReader(path string) error {
 	inidata, err := ini.Load(path)
 	if err != nil {
 		log.Errorf("Fail to read file: %v", err)
-		os.Exit(1)
-	}
-	section := inidata.Section("CortexM33S:PreviousGenFiles")
-
-	key := "AdvancedFolderStructure"
-	valStr := section.Key(key).String()
-	PrintKeyValStr(key, valStr)
-
-	key = "HeaderFileListSize"
-	valInt, err := section.Key(key).Int()
-	if err == nil {
-		PrintKeyValInt(key, valInt)
+		return nil
 	}
 
-	cnt := 0
-	key = "HeaderFiles#"
-	for {
-		keyN := key + strconv.Itoa(cnt)
-		valStr = section.Key(keyN).String()
-		if valStr == "" {
-			break
-		}
-		fmt.Printf("\n%v : %v", keyN, valStr)
-		cnt++
+	section := inidata.Section("PreviousUsedKeilFiles")
+	if section != nil {
+		key := "SourceFiles"
+		valStr := section.Key(key).Strings(";")
+		PrintKeyValStrs(key, valStr)
+
+		key = "HeaderPath"
+		valStr = section.Key(key).Strings(";")
+		PrintKeyValStrs(key, valStr)
+
+		key = "CDefines"
+		valStr = section.Key(key).Strings(";")
+		PrintKeyValStrs(key, valStr)
 	}
 
 	return nil
 }
+
+/*
+cnt := 0
+key = "HeaderFiles#"
+for {
+	keyN := key + strconv.Itoa(cnt)
+	valStr = section.Key(keyN).String()
+	if valStr == "" {
+		break
+	}
+	fmt.Printf("\n%v : %v", keyN, valStr)
+	cnt++
+}
+*/

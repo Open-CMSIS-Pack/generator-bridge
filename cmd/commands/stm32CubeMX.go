@@ -11,29 +11,29 @@ import (
 
 var stm32CubeMXCmdFlags struct {
 	// Reports encoded progress for files and download when used by other tools
-	path string
+	path struct {
+		cubeMx    string
+		cbuildYml string
+	}
 	args *[]string
 }
 
 var STM32CubeMXCmd = &cobra.Command{
 	Use:               "STM32CubeMX",
 	Short:             "Launch STM32CubeMX",
-	Long:              getLongUpdateDescription(),
+	Long:              `Launch STM32CubeMX Command`,
 	PersistentPreRunE: nil,
 	Args:              cobra.ExactArgs(0),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		log.Infof("Launch STM32CubeMX")
-		err := stm32CubeMX.Launch(stm32CubeMXCmdFlags.path, stm32CubeMXCmdFlags.args)
+		err := stm32CubeMX.Process(stm32CubeMXCmdFlags.path.cbuildYml, stm32CubeMXCmdFlags.path.cubeMx)
 
 		return err
 	},
 }
 
-func getLongUpdateDescription() string {
-	return `Launch STM32CubeMX Command`
-}
-
 func init() {
-	STM32CubeMXCmd.Flags().StringVar(&stm32CubeMXCmdFlags.path, "launch", "", "Cube-MX input file .mxproject")
+	STM32CubeMXCmd.Flags().StringVar(&stm32CubeMXCmdFlags.path.cubeMx, "launch", "", "Cube-MX input file .mxproject")
+	STM32CubeMXCmd.Flags().StringVar(&stm32CubeMXCmdFlags.path.cbuildYml, "cbuildYml", "", "CBuild YAML input file")
 	stm32CubeMXCmdFlags.args = STM32CubeMXCmd.Flags().StringArray("args", []string{}, "Arguments for CubeMX launch")
 }

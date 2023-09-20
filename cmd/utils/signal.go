@@ -14,6 +14,10 @@ import (
 // sigs holds signals to be monitored
 var sigs chan os.Signal
 
+// ShouldAbortFunction is a function that determines whether early termination was requested
+// by the user
+var ShouldAbortFunction func() bool
+
 // terminationRequested is a boolean flag that needs to be checked on
 // long operationgs. The monitoring thread will use this to notify the
 // main thread about a termination request.

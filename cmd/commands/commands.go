@@ -11,7 +11,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	viperType "github.com/spf13/viper"
+	"github.com/spf13/pflag"
 )
 
 // AllCommands contains all available commands for generator-bridge
@@ -19,11 +19,16 @@ var AllCommands = []*cobra.Command{
 	STM32CubeMXCmd,
 }
 
-var viper *viperType.Viper
+var rootCommand *cobra.Command = nil
 
-func configureInstallerGlobalCmd(cmd *cobra.Command, args []string) error {
-	verbosiness := viper.GetBool("verbose")
-	quiet := viper.GetBool("quiet")
+func GetConfig() *pflag.FlagSet {
+	return rootCommand.PersistentFlags()
+}
+
+// configureInstaller configures generator-bridge installer for adding or removing pack/pdsc
+func configureGlobalCmd(cmd *cobra.Command, args []string) error {
+	verbosiness, _ := GetConfig().GetBool("verbose")
+	quiet, _ := GetConfig().GetBool("quiet")
 	if quiet && verbosiness {
 		return errors.New("both \"-q\" and \"-v\" were specified, please pick only one verboseness option")
 	}
@@ -37,16 +42,6 @@ func configureInstallerGlobalCmd(cmd *cobra.Command, args []string) error {
 
 	if verbosiness {
 		log.SetLevel(log.DebugLevel)
-	}
-
-	return nil
-}
-
-// configureInstaller configures generator-bridge installer for adding or removing pack/pdsc
-func configureInstaller(cmd *cobra.Command, args []string) error {
-	err := configureInstallerGlobalCmd(cmd, args)
-	if err != nil {
-		return err
 	}
 
 	return nil
@@ -90,11 +85,12 @@ Use "{{.CommandPath}} [command] --help" for more information about a command.{{e
 
 func NewCli() *cobra.Command {
 	rootCmd := &cobra.Command{
-		Use:           "generator-bridge [command] [flags]",
-		Short:         "This utility is a bridge to Vendor tools, e.g. STCube",
-		Long:          "Please refer to the upstream repository for further information: https://github.com/Open-CMSIS-Pack/generator-bridge.",
-		SilenceUsage:  true,
-		SilenceErrors: true,
+		Use:               "generator-bridge [command] [flags]",
+		Short:             "This utility is a bridge to Vendor tools, e.g. STCube",
+		Long:              "Please refer to the upstream repository for further information: https://github.com/Open-CMSIS-Pack/generator-bridge.",
+		SilenceUsage:      true,
+		SilenceErrors:     true,
+		PersistentPreRunE: configureGlobalCmd,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if flags.version {
 				printVersionAndLicense(cmd.OutOrStdout())
@@ -107,17 +103,15 @@ func NewCli() *cobra.Command {
 
 	rootCmd.SetUsageTemplate(usageTemplate)
 
-	viper = viperType.New()
-
 	rootCmd.Flags().BoolVarP(&flags.version, "version", "V", false, "Prints the version number of generator-bridge and exit")
 	rootCmd.PersistentFlags().BoolP("quiet", "q", false, "Run generator-bridge silently, printing only error messages")
 	rootCmd.PersistentFlags().BoolP("verbose", "v", false, "Sets verboseness level: None (Errors + Info + Warnings), -v (all + Debugging). Specify \"-q\" for no messages")
-	_ = viper.BindPFlag("verbose", rootCmd.PersistentFlags().Lookup("verbose"))
-	_ = viper.BindPFlag("quiet", rootCmd.PersistentFlags().Lookup("quiet"))
 
 	for _, cmd := range AllCommands {
 		rootCmd.AddCommand(cmd)
 	}
+
+	rootCommand = rootCmd
 
 	return rootCmd
 }
