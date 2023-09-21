@@ -10,11 +10,11 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  update-tpip-report:
+  tpip-check:
     uses: Open-CMSIS-Pack/generator-bridge/.github/workflows/tpip-check.yml@main
 
   goreleaser:
-    needs: [ update-tpip-report ]
+    needs: [ tpip-check ]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
