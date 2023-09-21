@@ -1,0 +1,35 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "*"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  update-tpip-report:
+    uses: Open-CMSIS-Pack/generator-bridge/.github/workflows/tpip-check.yml@main
+
+  goreleaser:
+    needs: [ update-tpip-report ]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Go
+        uses: actions/setup-go@v4
+        with:
+          go-version-file: go.mod
+          check-latest: true
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v5
+        with:
+          version: latest
+          args: release --rm-dist
+        env:
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}

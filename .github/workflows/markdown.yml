@@ -7,6 +7,11 @@ on:
       - '.github/markdownlint.json'
       - '.github/markdownlint.jsonc'
       - '**/*.md'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   markdown-lint:
     name: Lint markdown files
