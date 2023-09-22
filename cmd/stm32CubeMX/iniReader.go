@@ -8,6 +8,7 @@ package stm32CubeMX
 
 import (
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -84,9 +85,9 @@ func StoreDataArray(data *[]string, values ...string) {
 	for id := range values {
 		value := values[id]
 		if value != "" {
-			//if slices.Contains(data, value) {
-			*data = append(*data, value)
-			//}
+			if !slices.Contains(*data, value) {
+				*data = append(*data, value)
+			}
 		}
 	}
 }
