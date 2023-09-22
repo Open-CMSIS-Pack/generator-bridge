@@ -7,10 +7,9 @@ on:
       - "**/go.mod"
       - "**/go.sum"
       - "configs/**"
-  workflow_call:
   workflow_dispatch:
   schedule:
-    - cron: '0 0 * * 0'
+    - cron: '0 0 * * *'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -41,7 +40,6 @@ jobs:
       - name: Generate TPIP Report
         run:  |
           go-licenses report . --ignore github.com/Open-CMSIS-Pack/generator-bridge --template ../configs/${{ env.report_name }}.template > ../${{ env.report_name }}
-          date +"%Y/%m/%d %T" >> ../${{ env.report_name }}
         working-directory: ./cmd
         
       - name: Archive tpip report
@@ -61,10 +59,7 @@ jobs:
     # Running this job only on specific event
     # in order to have workaround for issue
     # related to deletion of GH checks/status data
-    if: |
-      (github.event_name == 'schedule') ||
-      (github.event_name == 'workflow_dispatch') ||
-      (github.event_name == 'workflow_call')
+    if: (github.event_name == 'schedule') || (github.event_name == 'workflow_dispatch')
     needs: [ check-licenses ]
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -83,10 +78,10 @@ jobs:
         uses: peter-evans/create-pull-request@v5
         with:
           commit-message: Update TPIP report
-          title: '[TPIP] Update report'
+          title: ':robot: [TPIP] Automated report updates'
           body: |
-            - Third-party IP report updates
+            Third party IP report updates
           branch: update-tpip
           delete-branch: true
           labels: TPIP
-      
+          reviewers: soumeh01
