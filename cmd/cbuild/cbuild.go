@@ -7,47 +7,51 @@
 package cbuild
 
 import (
-	"strings"
+	"path"
 
 	"github.com/open-cmsis-pack/generator-bridge/cmd/common"
+	log "github.com/sirupsen/logrus"
 )
 
 type Params_s struct {
 	Board  string
 	Device string
-	Packs  []struct {
-		Pack string
-		Path string
-	}
+	//Packs  []struct {
+	//	Pack string
+	//	Path string
+	//}
 }
 
 // https://zhwt.github.io/yaml-to-go/
-type Conf_s struct {
-	Build struct {
+
+type CbuildGenIdx_s struct {
+	BuildGenIdx struct {
+		GeneratedBy string `yaml:"generated-by"`
+		Generators  []struct {
+			ID          string `yaml:"id"`
+			Device      string `yaml:"device"`
+			ProjectType string `yaml:"project-type"`
+			CbuildGens  []struct {
+				CbuildGen     string `yaml:"cbuild-gen"`
+				Project       string `yaml:"project"`
+				Configuration string `yaml:"configuration"`
+			} `yaml:"cbuild-gens"`
+		} `yaml:"generators"`
+	} `yaml:"build-gen-idx"`
+}
+
+type CbuildGen_S struct {
+	BuildGen struct {
 		GeneratedBy string `yaml:"generated-by"`
 		Solution    string `yaml:"solution"`
 		Project     string `yaml:"project"`
 		Context     string `yaml:"context"`
 		Compiler    string `yaml:"compiler"`
-		Board       string `yaml:"board"`
 		Device      string `yaml:"device"`
-		Processor   struct {
-			Fpu       string `yaml:"fpu"`
-			Endian    string `yaml:"endian"`
-			Trustzone string `yaml:"trustzone"`
-		} `yaml:"processor"`
-		Packs []struct {
+		Packs       []struct {
 			Pack string `yaml:"pack"`
 			Path string `yaml:"path"`
 		} `yaml:"packs"`
-		Optimize string `yaml:"optimize"`
-		Debug    string `yaml:"debug"`
-		Misc     struct {
-			ASM  []string `yaml:"ASM"`
-			C    []string `yaml:"C"`
-			CPP  []string `yaml:"CPP"`
-			Link []string `yaml:"Link"`
-		} `yaml:"misc"`
 		Define     []string `yaml:"define"`
 		AddPath    []string `yaml:"add-path"`
 		OutputDirs struct {
@@ -61,40 +65,9 @@ type Conf_s struct {
 		} `yaml:"output"`
 		Components []struct {
 			Component  string `yaml:"component"`
-			Condition  string `yaml:"condition"`
 			FromPack   string `yaml:"from-pack"`
 			SelectedBy string `yaml:"selected-by"`
-			Files      []struct {
-				File     string `yaml:"file"`
-				Category string `yaml:"category"`
-			} `yaml:"files"`
-			Generator struct {
-				ID string `yaml:"id"`
-			} `yaml:"generator"`
 		} `yaml:"components"`
-		Generators []struct {
-			Generator string `yaml:"generator"`
-			Path      string `yaml:"path"`
-			Gpdsc     string `yaml:"gpdsc"`
-			Command   struct {
-				Win struct {
-					File      string   `yaml:"file"`
-					Arguments []string `yaml:"arguments"`
-				} `yaml:"win"`
-				Linux struct {
-					File      string   `yaml:"file"`
-					Arguments []string `yaml:"arguments"`
-				} `yaml:"linux"`
-				Mac struct {
-					File      string   `yaml:"file"`
-					Arguments []string `yaml:"arguments"`
-				} `yaml:"mac"`
-				Other struct {
-					File      string   `yaml:"file"`
-					Arguments []string `yaml:"arguments"`
-				} `yaml:"other"`
-			} `yaml:"command"`
-		} `yaml:"generators"`
 		Linker struct {
 			Script  string `yaml:"script"`
 			Regions string `yaml:"regions"`
@@ -103,28 +76,62 @@ type Conf_s struct {
 			File     string `yaml:"file"`
 			Category string `yaml:"category"`
 		} `yaml:"constructed-files"`
-	} `yaml:"build"`
+		Licenses []struct {
+			License string `yaml:"license"`
+			Packs   []struct {
+				Pack string `yaml:"pack"`
+			} `yaml:"packs"`
+			Components []struct {
+				Component string `yaml:"component"`
+			} `yaml:"components"`
+		} `yaml:"licenses"`
+	} `yaml:"build-gen"`
 }
 
-func Read(path string, params *Params_s) error {
-	var conf Conf_s
+func Read(name string, params *Params_s) error {
+	var cbuildGenIdx CbuildGenIdx_s
 
-	common.ReadYml(path, &conf)
-	split := strings.SplitAfter(conf.Build.Board, "::")
+	common.ReadYml(name, &cbuildGenIdx)
 
-	if len(split) == 2 {
-		params.Board = split[1]
-	} else {
-		params.Board = conf.Build.Board
+	for idGen := range cbuildGenIdx.BuildGenIdx.Generators {
+		generator := cbuildGenIdx.BuildGenIdx.Generators[idGen]
+		genId := generator.ID
+		genDevice := generator.Device
+		genType := generator.ProjectType
+
+		log.Infof("Found Generator: id: %v, device: %v, type: %v", genId, genDevice, genType)
+
+		params.Board = ""
+		params.Device = genDevice
+		//split := strings.SplitAfter(cbuildGen.BuildGen.Board, "::")
+		//if len(split) == 2 {
+		//	params.Board = split[1]
+		//} else {
+		//	params.Board = cbuildGen.Build.Board
+		//}
+
+		for idSub := range generator.CbuildGens {
+			cbuildGen := generator.CbuildGens[idSub]
+			fileName := cbuildGen.CbuildGen
+			subPath := path.Join(path.Dir(name), fileName)
+			ReadCore(subPath, params)
+		}
 	}
-	params.Device = conf.Build.Device
 
-	for p := range conf.Build.Packs {
-		params.Packs = append(params.Packs, struct {
-			Pack string
-			Path string
-		}(conf.Build.Packs[p]))
-	}
+	return nil
+}
+
+func ReadCore(name string, params *Params_s) error {
+	var cbuildGen CbuildGen_S
+
+	common.ReadYml(name, &cbuildGen)
+
+	//for p := range cbuildGen.BuildGen.Packs {
+	//	params.Packs = append(params.Packs, struct {
+	//		Pack string
+	//		Path string
+	//	}(cbuildGen.BuildGen.Packs[p]))
+	//}
 
 	return nil
 }

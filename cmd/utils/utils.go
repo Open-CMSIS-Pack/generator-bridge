@@ -19,7 +19,7 @@ func AddQuotes(text string) string {
 
 func (t *TextBuilder) AddLine(args ...string) {
 	for _, arg := range args {
-		if t.text != "" {
+		if t.text != "" && t.text[len(t.text)-1] != '\n' {
 			t.text += " "
 		}
 		t.text += arg
