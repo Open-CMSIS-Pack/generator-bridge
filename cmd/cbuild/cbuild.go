@@ -8,18 +8,29 @@ package cbuild
 
 import (
 	"path"
+	"strings"
 
 	"github.com/open-cmsis-pack/generator-bridge/cmd/common"
 	log "github.com/sirupsen/logrus"
 )
 
+type Pack_s struct {
+	Pack string
+	Path string
+}
+
+type Core_s struct {
+	Board    string
+	Device   string
+	Project  string
+	Compiler string
+	Packs    []Pack_s
+}
+
 type Params_s struct {
 	Board  string
 	Device string
-	//Packs  []struct {
-	//	Pack string
-	//	Path string
-	//}
+	Core   []Core_s
 }
 
 // https://zhwt.github.io/yaml-to-go/
@@ -30,6 +41,7 @@ type CbuildGenIdx_s struct {
 		Generators  []struct {
 			ID          string `yaml:"id"`
 			Device      string `yaml:"device"`
+			Board       string `yaml:"board"`
 			ProjectType string `yaml:"project-type"`
 			CbuildGens  []struct {
 				CbuildGen     string `yaml:"cbuild-gen"`
@@ -47,6 +59,7 @@ type CbuildGen_S struct {
 		Project     string `yaml:"project"`
 		Context     string `yaml:"context"`
 		Compiler    string `yaml:"compiler"`
+		Board       string `yaml:"board"`
 		Device      string `yaml:"device"`
 		Packs       []struct {
 			Pack string `yaml:"pack"`
@@ -89,49 +102,70 @@ type CbuildGen_S struct {
 }
 
 func Read(name string, params *Params_s) error {
+	return ReadCbuildgenIdx(name, params)
+}
+
+func ReadCbuildgenIdx(name string, params *Params_s) error {
 	var cbuildGenIdx CbuildGenIdx_s
 
 	common.ReadYml(name, &cbuildGenIdx)
 
 	for idGen := range cbuildGenIdx.BuildGenIdx.Generators {
-		generator := cbuildGenIdx.BuildGenIdx.Generators[idGen]
-		genId := generator.ID
-		genDevice := generator.Device
-		genType := generator.ProjectType
+		cbuildGenIdx := cbuildGenIdx.BuildGenIdx.Generators[idGen]
+		genId := cbuildGenIdx.ID
+		genBoard := cbuildGenIdx.Board
+		genDevice := cbuildGenIdx.Device
+		genType := cbuildGenIdx.ProjectType
 
-		log.Infof("Found Generator: id: %v, device: %v, type: %v", genId, genDevice, genType)
+		log.Infof("Found CBuildGenIdx: #%v Id: %v, board: %v, device: %v, type: %v", idGen, genId, genBoard, genDevice, genType)
 
-		params.Board = ""
 		params.Device = genDevice
-		//split := strings.SplitAfter(cbuildGen.BuildGen.Board, "::")
-		//if len(split) == 2 {
-		//	params.Board = split[1]
-		//} else {
-		//	params.Board = cbuildGen.Build.Board
-		//}
+		split := strings.SplitAfter(cbuildGenIdx.Board, "::")
+		if len(split) == 2 {
+			params.Board = split[1]
+		} else {
+			params.Board = cbuildGenIdx.Board
+		}
 
-		for idSub := range generator.CbuildGens {
-			cbuildGen := generator.CbuildGens[idSub]
+		for idSub := range cbuildGenIdx.CbuildGens {
+			cbuildGen := cbuildGenIdx.CbuildGens[idSub]
 			fileName := cbuildGen.CbuildGen
 			subPath := path.Join(path.Dir(name), fileName)
-			ReadCore(subPath, params)
+			ReadCbuildgen(subPath, params)
 		}
 	}
 
 	return nil
 }
 
-func ReadCore(name string, params *Params_s) error {
+func ReadCbuildgen(name string, params *Params_s) error {
 	var cbuildGen CbuildGen_S
 
 	common.ReadYml(name, &cbuildGen)
+	var core Core_s
 
-	//for p := range cbuildGen.BuildGen.Packs {
-	//	params.Packs = append(params.Packs, struct {
-	//		Pack string
-	//		Path string
-	//	}(cbuildGen.BuildGen.Packs[p]))
-	//}
+	split := strings.SplitAfter(cbuildGen.BuildGen.Board, "::")
+	if len(split) == 2 {
+		core.Board = split[1]
+	} else {
+		core.Board = cbuildGen.BuildGen.Board
+	}
+	core.Device = cbuildGen.BuildGen.Device
+	core.Compiler = cbuildGen.BuildGen.Compiler
+	core.Project = cbuildGen.BuildGen.Project
+
+	log.Infof("Found CBuildGen: board: %v, device: %v, compiler: %v, project: %v", core.Board, core.Device, core.Compiler, core.Project)
+
+	for id := range cbuildGen.BuildGen.Packs {
+		genPack := cbuildGen.BuildGen.Packs[id]
+		var pack Pack_s
+		pack.Pack = genPack.Pack
+		pack.Path = genPack.Path
+		log.Infof("Found Pack: #%v Pack: %v, Path: %v", id, pack.Pack, pack.Path)
+		core.Packs = append(core.Packs, pack)
+	}
+
+	params.Core = append(params.Core, core)
 
 	return nil
 }

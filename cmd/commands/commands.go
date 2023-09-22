@@ -9,6 +9,7 @@ import (
 	"io"
 	"strings"
 
+	"github.com/open-cmsis-pack/generator-bridge/cmd/readFile"
 	"github.com/open-cmsis-pack/generator-bridge/cmd/stm32CubeMX"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -49,6 +50,7 @@ func configureGlobalCmd(cmd *cobra.Command, args []string) error {
 var flags struct {
 	version bool
 	help    bool
+	inFile  string
 }
 
 var Version string
@@ -101,6 +103,10 @@ func NewCli() *cobra.Command {
 				return cmd.Help()
 			}
 
+			if flags.inFile != "" {
+				return readFile.Read(flags.inFile)
+			}
+
 			if len(args) == 1 {
 				cbuildYmlPath := args[0]
 				return stm32CubeMX.Process(cbuildYmlPath, "")
@@ -114,6 +120,7 @@ func NewCli() *cobra.Command {
 
 	rootCmd.Flags().BoolVarP(&flags.version, "version", "V", false, "Prints the version number of generator-bridge and exit")
 	rootCmd.Flags().BoolVarP(&flags.help, "help", "h", false, "Show help")
+	rootCmd.Flags().StringVarP(&flags.inFile, "read", "r", "", "Reads an input file and writes the corresponding out file")
 	rootCmd.PersistentFlags().BoolP("quiet", "q", false, "Run generator-bridge silently, printing only error messages")
 	rootCmd.PersistentFlags().BoolP("verbose", "v", false, "Sets verboseness level: None (Errors + Info + Warnings), -v (all + Debugging). Specify \"-q\" for no messages")
 

@@ -34,7 +34,7 @@ func Process(cbuildYmlPath, cubeMxPath string) error {
 	}
 
 	mxprojectPath := path.Join(path.Dir(cbuildYmlPath), "STM32CubeMX", ".mxproject")
-	IniReader(mxprojectPath)
+	IniReader(mxprojectPath, false)
 
 	return nil
 }
@@ -57,9 +57,6 @@ func Launch(iocFile, projectFile string) error {
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	log.Info("Press ENTER to continue...")
-	os.Stdin.Read([]byte{0})
 
 	return nil
 }
