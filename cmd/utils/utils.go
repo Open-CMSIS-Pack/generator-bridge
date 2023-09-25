@@ -27,6 +27,14 @@ func (t *TextBuilder) AddLine(args ...string) {
 	t.text += "\n"
 }
 
+func (t *TextBuilder) AddSpaces(num, tabWidth int) {
+	for i := int(0); i < num; i++ {
+		for j := int(0); j < tabWidth; j++ {
+			t.text += " "
+		}
+	}
+}
+
 func (t *TextBuilder) GetLine() string {
 	return t.text
 }

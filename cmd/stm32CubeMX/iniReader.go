@@ -8,6 +8,7 @@ package stm32CubeMX
 
 import (
 	"fmt"
+	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
@@ -76,6 +77,8 @@ func PrintItemIterator(section *ini.Section, key, iterator string) {
 }
 
 func StoreData(data *string, value string) {
+	value = filepath.ToSlash(value)
+
 	if value != "" {
 		*data = value
 	}
@@ -84,6 +87,7 @@ func StoreData(data *string, value string) {
 func StoreDataArray(data *[]string, values ...string) {
 	for id := range values {
 		value := values[id]
+		value = filepath.ToSlash(value)
 		if value != "" {
 			if !slices.Contains(*data, value) {
 				*data = append(*data, value)
@@ -114,16 +118,15 @@ func StoreItemIterator(data *[]string, section *ini.Section, key, iterator strin
 	}
 }
 
-func IniReader(path string, trustzone bool) error {
+func IniReader(path string, trustzone bool) (Mxproject_s, error) {
 	log.Infof("\nReading CubeMX config file: %v", path)
 
+	var mxproject Mxproject_s
 	inidata, err := ini.Load(path)
 	if err != nil {
 		log.Errorf("Fail to read file: %v", err)
-		return nil
+		return mxproject, nil
 	}
-
-	var mxproject Mxproject_s
 
 	section := inidata.Section("PreviousLibFiles")
 	if section != nil {
@@ -163,19 +166,5 @@ func IniReader(path string, trustzone bool) error {
 		PrintItem(section, "SourceFiles")
 	}
 
-	return nil
+	return mxproject, nil
 }
-
-/*
-cnt := 0
-key = "HeaderFiles#"
-for {
-	keyN := key + strconv.Itoa(cnt)
-	valStr = section.Key(keyN).String()
-	if valStr == "" {
-		break
-	}
-	fmt.Printf("\n%v : %v", keyN, valStr)
-	cnt++
-}
-*/

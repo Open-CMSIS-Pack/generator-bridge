@@ -51,6 +51,7 @@ var flags struct {
 	version bool
 	help    bool
 	inFile  string
+	outPath string
 }
 
 var Version string
@@ -104,7 +105,7 @@ func NewCli() *cobra.Command {
 			}
 
 			if flags.inFile != "" {
-				return readFile.Read(flags.inFile)
+				return readFile.Process(flags.inFile, flags.outPath)
 			}
 
 			if len(args) == 1 {
@@ -120,7 +121,8 @@ func NewCli() *cobra.Command {
 
 	rootCmd.Flags().BoolVarP(&flags.version, "version", "V", false, "Prints the version number of generator-bridge and exit")
 	rootCmd.Flags().BoolVarP(&flags.help, "help", "h", false, "Show help")
-	rootCmd.Flags().StringVarP(&flags.inFile, "read", "r", "", "Reads an input file and writes the corresponding out file")
+	rootCmd.Flags().StringVarP(&flags.inFile, "read", "r", "", "Reads an input file")
+	rootCmd.Flags().StringVarP(&flags.outPath, "write", "w", "", "Output path for file corresponding to the read file")
 	rootCmd.PersistentFlags().BoolP("quiet", "q", false, "Run generator-bridge silently, printing only error messages")
 	rootCmd.PersistentFlags().BoolP("verbose", "v", false, "Sets verboseness level: None (Errors + Info + Warnings), -v (all + Debugging). Specify \"-q\" for no messages")
 

@@ -101,6 +101,29 @@ type CbuildGen_S struct {
 	} `yaml:"build-gen"`
 }
 
+type Cgen_s struct {
+	Generator CgenGenerator_s `yaml:"Generator"`
+}
+type CgenPacks_s struct {
+	Pack string `yaml:"pack"`
+}
+type CgenFiles_s struct {
+	File string `yaml:"file"`
+}
+type CgenGroups_s struct {
+	Group string        `yaml:"group"`
+	Files []CgenFiles_s `yaml:"files"`
+}
+type CgenGenerator_s struct {
+	GeneratedBy string         `yaml:"generated-by"`
+	ForDevice   string         `yaml:"for-device"`
+	ForBoard    string         `yaml:"for-board"`
+	Packs       []CgenPacks_s  `yaml:"packs"`
+	Define      []string       `yaml:"define"`
+	AddPath     []string       `yaml:"add-path"`
+	Groups      []CgenGroups_s `yaml:"groups"`
+}
+
 func Read(name string, params *Params_s) error {
 	return ReadCbuildgenIdx(name, params)
 }

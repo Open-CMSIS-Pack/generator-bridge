@@ -8,8 +8,10 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
+	"strings"
 
 	"github.com/open-cmsis-pack/generator-bridge/cmd/cbuild"
+	"github.com/open-cmsis-pack/generator-bridge/cmd/common"
 	"github.com/open-cmsis-pack/generator-bridge/cmd/utils"
 	log "github.com/sirupsen/logrus"
 )
@@ -90,4 +92,45 @@ func ReadCbuildYmlFile(path string, parms *cbuild.Params_s) error {
 	cbuild.Read(path, parms)
 
 	return nil
+}
+
+const header string = `#
+# File Name   : STM32CubeMX.cgen.yml
+# Date        : 29/08/2023 07:05:15
+# Description : Generator layer
+#
+`
+
+func WriteCgenYml(outPath string, mxproject Mxproject_s) error {
+	outFile := path.Join(outPath, "STM32CubeMX.cgen.yml")
+	var cgen cbuild.Cgen_s
+
+	cgen.Generator.ForBoard = ""
+	cgen.Generator.ForDevice = "STM32"
+	cgen.Generator.GeneratedBy = "STM32CubeMX bridge"
+	cgen.Generator.Define = append(cgen.Generator.Define, mxproject.PreviousUsedKeilFiles.CDefines...)
+	cgen.Generator.AddPath = append(cgen.Generator.AddPath, mxproject.PreviousUsedKeilFiles.HeaderPath...)
+
+	var groupSrc cbuild.CgenGroups_s
+	var groupHalDriver cbuild.CgenGroups_s
+	groupSrc.Group = "STM32CubeMX"
+	groupHalDriver.Group = "HAL_Driver"
+
+	for id := range mxproject.PreviousUsedKeilFiles.SourceFiles {
+		file := mxproject.PreviousUsedKeilFiles.SourceFiles[id]
+		if !strings.Contains(file, "HAL_Driver") {
+			var cgenFile cbuild.CgenFiles_s
+			cgenFile.File = file
+			groupSrc.Files = append(groupSrc.Files, cgenFile)
+		} else {
+			var cgenFile cbuild.CgenFiles_s
+			cgenFile.File = file
+			groupHalDriver.Files = append(groupSrc.Files, cgenFile)
+		}
+	}
+
+	cgen.Generator.Groups = append(cgen.Generator.Groups, groupSrc)
+	cgen.Generator.Groups = append(cgen.Generator.Groups, groupHalDriver)
+
+	return common.WriteYml(outFile, header, &cgen)
 }

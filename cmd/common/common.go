@@ -7,7 +7,6 @@
 package common
 
 import (
-	"fmt"
 	"os"
 
 	log "github.com/sirupsen/logrus"
@@ -28,15 +27,16 @@ func ReadYml(path string, out interface{}) error {
 	return nil
 }
 
-func WriteYml() {
-	fruits := [...]string{"apple", "orange", "mango", "strawberry"}
-	data, err := yaml.Marshal(fruits)
+func WriteYml(path, header string, out interface{}) error {
+	data, err := yaml.Marshal(out)
 	if err != nil {
 		log.Fatal(err)
 	}
-	err1 := os.WriteFile("fruits.yaml", data, 0644)
+
+	err1 := os.WriteFile(path, data, 0644)
 	if err1 != nil {
 		log.Fatal(err1)
 	}
-	fmt.Println("Success!")
+
+	return nil
 }
