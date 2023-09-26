@@ -110,7 +110,7 @@ func NewCli() *cobra.Command {
 
 			if len(args) == 1 {
 				cbuildYmlPath := args[0]
-				return stm32CubeMX.Process(cbuildYmlPath, "")
+				return stm32CubeMX.Process(cbuildYmlPath, flags.outPath, "")
 			}
 
 			return cmd.Help()

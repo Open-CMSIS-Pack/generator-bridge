@@ -28,13 +28,15 @@ type Core_s struct {
 }
 
 type Params_s struct {
-	Board  string
-	Device string
-	Core   []Core_s
+	Board   string
+	Device  string
+	OutPath string
+	Core    []Core_s
 }
 
 // https://zhwt.github.io/yaml-to-go/
 
+// IDX input file
 type CbuildGenIdx_s struct {
 	BuildGenIdx struct {
 		GeneratedBy string `yaml:"generated-by"`
@@ -47,11 +49,13 @@ type CbuildGenIdx_s struct {
 				CbuildGen     string `yaml:"cbuild-gen"`
 				Project       string `yaml:"project"`
 				Configuration string `yaml:"configuration"`
+				Output        string `yaml:"output"`
 			} `yaml:"cbuild-gens"`
 		} `yaml:"generators"`
 	} `yaml:"build-gen-idx"`
 }
 
+// Sub input file
 type CbuildGen_S struct {
 	BuildGen struct {
 		GeneratedBy string `yaml:"generated-by"`
@@ -85,6 +89,13 @@ type CbuildGen_S struct {
 			Script  string `yaml:"script"`
 			Regions string `yaml:"regions"`
 		} `yaml:"linker"`
+		Groups []struct {
+			Group string `yaml:"group"`
+			Files []struct {
+				File     string `yaml:"file"`
+				Category string `yaml:"category"`
+			} `yaml:"files"`
+		} `yaml:"groups"`
 		ConstructedFiles []struct {
 			File     string `yaml:"file"`
 			Category string `yaml:"category"`
@@ -101,8 +112,9 @@ type CbuildGen_S struct {
 	} `yaml:"build-gen"`
 }
 
+// bridge generator output file
 type Cgen_s struct {
-	Generator CgenGenerator_s `yaml:"Generator"`
+	Layer Layer_s `yaml:"layer"`
 }
 type CgenPacks_s struct {
 	Pack string `yaml:"pack"`
@@ -114,21 +126,20 @@ type CgenGroups_s struct {
 	Group string        `yaml:"group"`
 	Files []CgenFiles_s `yaml:"files"`
 }
-type CgenGenerator_s struct {
-	GeneratedBy string         `yaml:"generated-by"`
-	ForDevice   string         `yaml:"for-device"`
-	ForBoard    string         `yaml:"for-board"`
-	Packs       []CgenPacks_s  `yaml:"packs"`
-	Define      []string       `yaml:"define"`
-	AddPath     []string       `yaml:"add-path"`
-	Groups      []CgenGroups_s `yaml:"groups"`
+type Layer_s struct {
+	ForDevice string         `yaml:"for-device,omitempty"`
+	ForBoard  string         `yaml:"for-board,omitempty"`
+	Packs     []CgenPacks_s  `yaml:"packs,omitempty"` // do not set if no new packs
+	Define    []string       `yaml:"define,omitempty"`
+	AddPath   []string       `yaml:"add-path,omitempty"`
+	Groups    []CgenGroups_s `yaml:"groups"`
 }
 
-func Read(name string, params *Params_s) error {
-	return ReadCbuildgenIdx(name, params)
+func Read(name, outPath string, params *Params_s) error {
+	return ReadCbuildgenIdx(name, outPath, params)
 }
 
-func ReadCbuildgenIdx(name string, params *Params_s) error {
+func ReadCbuildgenIdx(name, outPath string, params *Params_s) error {
 	var cbuildGenIdx CbuildGenIdx_s
 
 	common.ReadYml(name, &cbuildGenIdx)
@@ -154,7 +165,15 @@ func ReadCbuildgenIdx(name string, params *Params_s) error {
 			cbuildGen := cbuildGenIdx.CbuildGens[idSub]
 			fileName := cbuildGen.CbuildGen
 			subPath := path.Join(path.Dir(name), fileName)
-			ReadCbuildgen(subPath, params)
+
+			var outputPath string
+			if cbuildGen.Output != "" {
+				params.OutPath = cbuildGen.Output
+			} else {
+				params.OutPath = outputPath
+			}
+
+			ReadCbuildgen(subPath, params) // use copy, do not override for next instance
 		}
 	}
 
