@@ -115,7 +115,10 @@ func WriteProjectFile(workDir string, parms *cbuild.ParamsType) (string, error) 
 
 func ReadCbuildYmlFile(path, outPath string, parms *cbuild.ParamsType) error {
 	log.Infof("Reading cbuild.yml file: '%v'", path)
-	cbuild.Read(path, outPath, parms)
+	err := cbuild.Read(path, outPath, parms)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

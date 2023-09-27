@@ -13,10 +13,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func testAddLine(t *testing.T, pid int) {
+func TestAddLine(t *testing.T) {
 	var text utils.TextBuilder
 	text.AddLine("A line")
-	assert.Equal(t, text.GetLine(), "A line")
+	assert.Equal(t, "A line\n", text.GetLine())
 	text.AddLine("A second line")
-	assert.Equal(t, text.GetLine(), "A line\nA second line")
+	assert.Equal(t, "A line\nA second line\n", text.GetLine())
 }

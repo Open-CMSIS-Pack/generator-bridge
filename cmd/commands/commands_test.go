@@ -5,6 +5,3 @@
  */
 
 package commands_test
-
-func init() {
-}
