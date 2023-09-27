@@ -4,14 +4,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package readFile
+package readfile
 
 import (
 	"errors"
 	"strings"
 
 	"github.com/open-cmsis-pack/generator-bridge/internal/cbuild"
-	"github.com/open-cmsis-pack/generator-bridge/internal/stm32CubeMX"
+	stm32cubemx "github.com/open-cmsis-pack/generator-bridge/internal/stm32CubeMX"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -26,14 +26,14 @@ func Process(inFile, outPath string) error {
 		params.OutPath = outPath
 		cbuild.ReadCbuildgen(inFile, &params)
 	} else if strings.Contains(inFile, ".mxproject") {
-		mxproject, _ := stm32CubeMX.IniReader(inFile, false)
+		mxproject, _ := stm32cubemx.IniReader(inFile, false)
 
 		var inParms cbuild.ParamsType
 		inParms.Board = "Test Board"
 		inParms.Device = "Test Device"
 
 		if outPath != "" {
-			stm32CubeMX.WriteCgenYml(outPath, mxproject, inParms)
+			stm32cubemx.WriteCgenYml(outPath, mxproject, inParms)
 		}
 	} else {
 		return errors.New("input file not supported")

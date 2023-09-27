@@ -37,9 +37,12 @@ func WriteYml(path, header string, out interface{}) error {
 	var data bytes.Buffer
 	yamlEncoder := yaml.NewEncoder(&data)
 	yamlEncoder.SetIndent(2) // this is what you're looking for
-	yamlEncoder.Encode(&out)
+	err := yamlEncoder.Encode(&out)
+	if err != nil {
+		return err
+	}
 
-	err1 := os.WriteFile(path, data.Bytes(), 0664)
+	err1 := os.WriteFile(path, data.Bytes(), 0600)
 	if err1 != nil {
 		log.Fatal(err1)
 	}

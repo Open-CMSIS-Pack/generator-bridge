@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package stm32CubeMX
+package stm32cubemx
 
 import (
 	"os"
@@ -105,7 +105,7 @@ func WriteProjectFile(workDir string, parms *cbuild.ParamsType) (string, error) 
 		os.Remove(filePath)
 	}
 
-	os.WriteFile(filePath, []byte(text.GetLine()), 0777)
+	os.WriteFile(filePath, []byte(text.GetLine()), 0600)
 
 	return filePath, nil
 }

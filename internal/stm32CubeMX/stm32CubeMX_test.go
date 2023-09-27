@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package stm32CubeMX_test
+package stm32cubemx_test
 
 import (
 	"testing"

@@ -12,8 +12,8 @@ import (
 	"io"
 	"strings"
 
-	"github.com/open-cmsis-pack/generator-bridge/internal/readFile"
-	"github.com/open-cmsis-pack/generator-bridge/internal/stm32CubeMX"
+	readfile "github.com/open-cmsis-pack/generator-bridge/internal/readFile"
+	stm32cubemx "github.com/open-cmsis-pack/generator-bridge/internal/stm32CubeMX"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -108,12 +108,12 @@ func NewCli() *cobra.Command {
 			}
 
 			if flags.inFile != "" {
-				return readFile.Process(flags.inFile, flags.outPath)
+				return readfile.Process(flags.inFile, flags.outPath)
 			}
 
 			if len(args) == 1 {
 				cbuildYmlPath := args[0]
-				return stm32CubeMX.Process(cbuildYmlPath, flags.outPath, "")
+				return stm32cubemx.Process(cbuildYmlPath, flags.outPath, "")
 			}
 
 			return cmd.Help()

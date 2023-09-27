@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package readFile_test
+package readfile_test
 
 import "testing"
 
