@@ -176,7 +176,10 @@ func ReadCbuildgenIdx(name, outPath string, params *ParamsType) error {
 				params.OutPath = outputPath
 			}
 
-			ReadCbuildgen(subPath, params) // use copy, do not override for next instance
+			err := ReadCbuildgen(subPath, params) // use copy, do not override for next instance
+			if err != nil {
+				return err
+			}
 		}
 	}
 

@@ -23,7 +23,10 @@ func Process(cbuildYmlPath, outPath, cubeMxPath string) error {
 	var projectFile string
 	var parms cbuild.ParamsType
 
-	ReadCbuildYmlFile(cbuildYmlPath, outPath, &parms)
+	err := ReadCbuildYmlFile(cbuildYmlPath, outPath, &parms)
+	if err != nil {
+		return err
+	}
 
 	workDir := path.Dir(cbuildYmlPath)
 	if parms.OutPath != "" {
@@ -34,7 +37,7 @@ func Process(cbuildYmlPath, outPath, cubeMxPath string) error {
 	workDir = filepath.Clean(workDir)
 	workDir = filepath.ToSlash(workDir)
 
-	err := os.MkdirAll(workDir, os.ModePerm)
+	err = os.MkdirAll(workDir, os.ModePerm)
 	if err != nil {
 		return err
 	}
