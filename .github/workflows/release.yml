@@ -5,16 +5,8 @@ on:
     tags:
       - "*"
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
-  tpip-check:
-    uses: Open-CMSIS-Pack/generator-bridge/.github/workflows/tpip-check.yml@main
-
   goreleaser:
-    needs: [ tpip-check ]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
