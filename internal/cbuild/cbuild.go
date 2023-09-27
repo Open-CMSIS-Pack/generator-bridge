@@ -14,30 +14,30 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type Pack_s struct {
+type PackType struct {
 	Pack string
 	Path string
 }
 
-type Core_s struct {
+type CoreType struct {
 	Board    string
 	Device   string
 	Project  string
 	Compiler string
-	Packs    []Pack_s
+	Packs    []PackType
 }
 
-type Params_s struct {
+type ParamsType struct {
 	Board   string
 	Device  string
 	OutPath string
-	Core    []Core_s
+	Core    []CoreType
 }
 
 // https://zhwt.github.io/yaml-to-go/
 
 // IDX input file
-type CbuildGenIdx_s struct {
+type CbuildGenIdxType struct {
 	BuildGenIdx struct {
 		GeneratedBy string `yaml:"generated-by"`
 		Generators  []struct {
@@ -56,7 +56,7 @@ type CbuildGenIdx_s struct {
 }
 
 // Sub input file
-type CbuildGen_S struct {
+type CbuildGenType struct {
 	BuildGen struct {
 		GeneratedBy string `yaml:"generated-by"`
 		Solution    string `yaml:"solution"`
@@ -113,47 +113,47 @@ type CbuildGen_S struct {
 }
 
 // bridge generator output file
-type Cgen_s struct {
-	Layer Layer_s `yaml:"layer"`
+type CgenType struct {
+	Layer LayerType `yaml:"layer"`
 }
-type CgenPacks_s struct {
+type CgenPacksType struct {
 	Pack string `yaml:"pack"`
 }
-type CgenFiles_s struct {
+type CgenFilesType struct {
 	File string `yaml:"file"`
 }
-type CgenGroups_s struct {
-	Group string        `yaml:"group"`
-	Files []CgenFiles_s `yaml:"files"`
+type CgenGroupsType struct {
+	Group string          `yaml:"group"`
+	Files []CgenFilesType `yaml:"files"`
 }
-type Layer_s struct {
-	ForDevice string         `yaml:"for-device,omitempty"`
-	ForBoard  string         `yaml:"for-board,omitempty"`
-	Packs     []CgenPacks_s  `yaml:"packs,omitempty"` // do not set if no new packs
-	Define    []string       `yaml:"define,omitempty"`
-	AddPath   []string       `yaml:"add-path,omitempty"`
-	Groups    []CgenGroups_s `yaml:"groups"`
+type LayerType struct {
+	ForDevice string           `yaml:"for-device,omitempty"`
+	ForBoard  string           `yaml:"for-board,omitempty"`
+	Packs     []CgenPacksType  `yaml:"packs,omitempty"` // do not set if no new packs
+	Define    []string         `yaml:"define,omitempty"`
+	AddPath   []string         `yaml:"add-path,omitempty"`
+	Groups    []CgenGroupsType `yaml:"groups"`
 }
 
-func Read(name, outPath string, params *Params_s) error {
+func Read(name, outPath string, params *ParamsType) error {
 	return ReadCbuildgenIdx(name, outPath, params)
 }
 
-func ReadCbuildgenIdx(name, outPath string, params *Params_s) error {
-	var cbuildGenIdx CbuildGenIdx_s
+func ReadCbuildgenIdx(name, outPath string, params *ParamsType) error {
+	var cbuildGenIdx CbuildGenIdxType
 
 	common.ReadYml(name, &cbuildGenIdx)
 
 	for idGen := range cbuildGenIdx.BuildGenIdx.Generators {
 		cbuildGenIdx := cbuildGenIdx.BuildGenIdx.Generators[idGen]
-		genId := cbuildGenIdx.ID
-		genBoard := cbuildGenIdx.Board
-		genDevice := cbuildGenIdx.Device
-		genType := cbuildGenIdx.ProjectType
+		cbuildGenIdxId := cbuildGenIdx.ID
+		cbuildGenIdxBoard := cbuildGenIdx.Board
+		cbuildGenIdxDevice := cbuildGenIdx.Device
+		cbuildGenIdxType := cbuildGenIdx.ProjectType
 
-		log.Infof("Found CBuildGenIdx: #%v Id: %v, board: %v, device: %v, type: %v", idGen, genId, genBoard, genDevice, genType)
+		log.Infof("Found CBuildGenIdx: #%v Id: %v, board: %v, device: %v, type: %v", idGen, cbuildGenIdxId, cbuildGenIdxBoard, cbuildGenIdxDevice, cbuildGenIdxType)
 
-		params.Device = genDevice
+		params.Device = cbuildGenIdxDevice
 		split := strings.SplitAfter(cbuildGenIdx.Board, "::")
 		if len(split) == 2 {
 			params.Board = split[1]
@@ -180,11 +180,11 @@ func ReadCbuildgenIdx(name, outPath string, params *Params_s) error {
 	return nil
 }
 
-func ReadCbuildgen(name string, params *Params_s) error {
-	var cbuildGen CbuildGen_S
+func ReadCbuildgen(name string, params *ParamsType) error {
+	var cbuildGen CbuildGenType
 
 	common.ReadYml(name, &cbuildGen)
-	var core Core_s
+	var core CoreType
 
 	split := strings.SplitAfter(cbuildGen.BuildGen.Board, "::")
 	if len(split) == 2 {
@@ -200,7 +200,7 @@ func ReadCbuildgen(name string, params *Params_s) error {
 
 	for id := range cbuildGen.BuildGen.Packs {
 		genPack := cbuildGen.BuildGen.Packs[id]
-		var pack Pack_s
+		var pack PackType
 		pack.Pack = genPack.Pack
 		pack.Path = genPack.Path
 		log.Infof("Found Pack: #%v Pack: %v, Path: %v", id, pack.Pack, pack.Path)

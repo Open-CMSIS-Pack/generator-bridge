@@ -21,7 +21,7 @@ import (
 
 func Process(cbuildYmlPath, outPath, cubeMxPath string) error {
 	var projectFile string
-	var parms cbuild.Params_s
+	var parms cbuild.ParamsType
 
 	ReadCbuildYmlFile(cbuildYmlPath, outPath, &parms)
 
@@ -86,7 +86,7 @@ func Launch(iocFile, projectFile string) error {
 	return nil
 }
 
-func WriteProjectFile(workDir string, parms *cbuild.Params_s) (string, error) {
+func WriteProjectFile(workDir string, parms *cbuild.ParamsType) (string, error) {
 	filePath := filepath.Join(workDir, "project.script")
 	log.Infof("Writing CubeMX project file %v", filePath)
 
@@ -110,24 +110,24 @@ func WriteProjectFile(workDir string, parms *cbuild.Params_s) (string, error) {
 	return filePath, nil
 }
 
-func ReadCbuildYmlFile(path, outPath string, parms *cbuild.Params_s) error {
+func ReadCbuildYmlFile(path, outPath string, parms *cbuild.ParamsType) error {
 	log.Infof("Reading cbuild.yml file: '%v'", path)
 	cbuild.Read(path, outPath, parms)
 
 	return nil
 }
 
-func WriteCgenYml(outPath string, mxproject Mxproject_s, inParms cbuild.Params_s) error {
+func WriteCgenYml(outPath string, mxproject Mxproject_s, inParms cbuild.ParamsType) error {
 	outFile := path.Join(outPath, "STM32CubeMX.cgen.yml")
-	var cgen cbuild.Cgen_s
+	var cgen cbuild.CgenType
 
 	cgen.Layer.ForBoard = inParms.Board
 	cgen.Layer.ForDevice = inParms.Device
 	cgen.Layer.Define = append(cgen.Layer.Define, mxproject.PreviousUsedKeilFiles.CDefines...)
 	cgen.Layer.AddPath = append(cgen.Layer.AddPath, mxproject.PreviousUsedKeilFiles.HeaderPath...)
 
-	var groupSrc cbuild.CgenGroups_s
-	var groupHalDriver cbuild.CgenGroups_s
+	var groupSrc cbuild.CgenGroupsType
+	var groupHalDriver cbuild.CgenGroupsType
 	groupSrc.Group = "STM32CubeMX"
 	groupHalDriver.Group = "HAL_Driver"
 
@@ -137,7 +137,7 @@ func WriteCgenYml(outPath string, mxproject Mxproject_s, inParms cbuild.Params_s
 
 		for id2 := range packs {
 			pack := packs[id2]
-			var cgenPack cbuild.CgenPacks_s
+			var cgenPack cbuild.CgenPacksType
 			cgenPack.Pack = pack.Pack
 			cgen.Layer.Packs = append(cgen.Layer.Packs, cgenPack)
 		}
@@ -146,11 +146,11 @@ func WriteCgenYml(outPath string, mxproject Mxproject_s, inParms cbuild.Params_s
 	for id := range mxproject.PreviousUsedKeilFiles.SourceFiles {
 		file := mxproject.PreviousUsedKeilFiles.SourceFiles[id]
 		if strings.Contains(file, "HAL_Driver") {
-			var cgenFile cbuild.CgenFiles_s
+			var cgenFile cbuild.CgenFilesType
 			cgenFile.File = file
 			groupHalDriver.Files = append(groupHalDriver.Files, cgenFile)
 		} else {
-			var cgenFile cbuild.CgenFiles_s
+			var cgenFile cbuild.CgenFilesType
 			cgenFile.File = file
 			groupSrc.Files = append(groupSrc.Files, cgenFile)
 		}

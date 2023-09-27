@@ -19,16 +19,16 @@ func Process(inFile, outPath string) error {
 	log.Infof("Reading file: %v", inFile)
 
 	if strings.Contains(inFile, "cbuild-gen-idx.yml") {
-		var params cbuild.Params_s
+		var params cbuild.ParamsType
 		cbuild.Read(inFile, outPath, &params)
 	} else if strings.Contains(inFile, "cbuild-gen.yml") || strings.Contains(inFile, "cbuild.yml") {
-		var params cbuild.Params_s
+		var params cbuild.ParamsType
 		params.OutPath = outPath
 		cbuild.ReadCbuildgen(inFile, &params)
 	} else if strings.Contains(inFile, ".mxproject") {
 		mxproject, _ := stm32CubeMX.IniReader(inFile, false)
 
-		var inParms cbuild.Params_s
+		var inParms cbuild.ParamsType
 		inParms.Board = "Test Board"
 		inParms.Device = "Test Device"
 
