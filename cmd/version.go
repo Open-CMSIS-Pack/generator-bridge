@@ -1,8 +1,11 @@
-/* SPDX-License-Identifier: Apache-2.0 */
-/* Copyright Contributors to the generator-bridge project. */
+/*
+ * Copyright (c) 2023 Arm Limited. All rights reserved.
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
 
 package main
 
 var version string
 
-const copyRight = "(C) 2021-2023 Linaro, 2023 Arm Ltd."
+const copyRight = "(C) 2023 Arm Ltd."
