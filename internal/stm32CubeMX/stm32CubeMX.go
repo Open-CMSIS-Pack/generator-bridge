@@ -45,7 +45,10 @@ func Process(cbuildYmlPath, outPath, cubeMxPath string) error {
 	cubeIocPath := path.Join(workDir, "STM32CubeMX", "STM32CubeMX.ioc")
 
 	if utils.FileExists(cubeIocPath) {
-		Launch(cubeIocPath, "")
+		err := Launch(cubeIocPath, "")
+		if err != nil {
+			return err
+		}
 	} else {
 		projectFile, err = WriteProjectFile(workDir, &parms)
 		if err != nil {
@@ -53,7 +56,10 @@ func Process(cbuildYmlPath, outPath, cubeMxPath string) error {
 		}
 		log.Infof("Generated file: %v", projectFile)
 
-		Launch("", projectFile)
+		err := Launch("", projectFile)
+		if err != nil {
+			return err
+		}
 	}
 
 	mxprojectPath := path.Join(workDir, "STM32CubeMX", ".mxproject")
@@ -62,7 +68,10 @@ func Process(cbuildYmlPath, outPath, cubeMxPath string) error {
 		return err
 	}
 
-	WriteCgenYml(workDir, mxproject, parms)
+	err = WriteCgenYml(workDir, mxproject, parms)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
