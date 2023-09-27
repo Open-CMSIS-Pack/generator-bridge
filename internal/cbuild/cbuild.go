@@ -142,16 +142,19 @@ func Read(name, outPath string, params *ParamsType) error {
 func ReadCbuildgenIdx(name, outPath string, params *ParamsType) error {
 	var cbuildGenIdx CbuildGenIdxType
 
-	common.ReadYml(name, &cbuildGenIdx)
+	err := common.ReadYml(name, &cbuildGenIdx)
+	if err != nil {
+		return err
+	}
 
 	for idGen := range cbuildGenIdx.BuildGenIdx.Generators {
 		cbuildGenIdx := cbuildGenIdx.BuildGenIdx.Generators[idGen]
-		cbuildGenIdxId := cbuildGenIdx.ID
+		cbuildGenIdxID := cbuildGenIdx.ID
 		cbuildGenIdxBoard := cbuildGenIdx.Board
 		cbuildGenIdxDevice := cbuildGenIdx.Device
 		cbuildGenIdxType := cbuildGenIdx.ProjectType
 
-		log.Infof("Found CBuildGenIdx: #%v Id: %v, board: %v, device: %v, type: %v", idGen, cbuildGenIdxId, cbuildGenIdxBoard, cbuildGenIdxDevice, cbuildGenIdxType)
+		log.Infof("Found CBuildGenIdx: #%v Id: %v, board: %v, device: %v, type: %v", idGen, cbuildGenIdxID, cbuildGenIdxBoard, cbuildGenIdxDevice, cbuildGenIdxType)
 
 		params.Device = cbuildGenIdxDevice
 		split := strings.SplitAfter(cbuildGenIdx.Board, "::")
@@ -183,7 +186,11 @@ func ReadCbuildgenIdx(name, outPath string, params *ParamsType) error {
 func ReadCbuildgen(name string, params *ParamsType) error {
 	var cbuildGen CbuildGenType
 
-	common.ReadYml(name, &cbuildGen)
+	err := common.ReadYml(name, &cbuildGen)
+	if err != nil {
+		return err
+	}
+
 	var core CoreType
 
 	split := strings.SplitAfter(cbuildGen.BuildGen.Board, "::")

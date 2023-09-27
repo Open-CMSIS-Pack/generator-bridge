@@ -105,7 +105,10 @@ func WriteProjectFile(workDir string, parms *cbuild.ParamsType) (string, error) 
 		os.Remove(filePath)
 	}
 
-	os.WriteFile(filePath, []byte(text.GetLine()), 0600)
+	err := os.WriteFile(filePath, []byte(text.GetLine()), 0600)
+	if err != nil {
+		return "", err
+	}
 
 	return filePath, nil
 }
@@ -117,7 +120,7 @@ func ReadCbuildYmlFile(path, outPath string, parms *cbuild.ParamsType) error {
 	return nil
 }
 
-func WriteCgenYml(outPath string, mxproject Mxproject_s, inParms cbuild.ParamsType) error {
+func WriteCgenYml(outPath string, mxproject MxprojectType, inParms cbuild.ParamsType) error {
 	outFile := path.Join(outPath, "STM32CubeMX.cgen.yml")
 	var cgen cbuild.CgenType
 

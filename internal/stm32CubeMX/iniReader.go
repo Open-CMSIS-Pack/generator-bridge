@@ -17,7 +17,7 @@ import (
 	"gopkg.in/ini.v1"
 )
 
-type Mxproject_s struct {
+type MxprojectType struct {
 	PreviousLibFiles struct {
 		LibFiles []string
 	}
@@ -118,10 +118,10 @@ func StoreItemIterator(data *[]string, section *ini.Section, key, iterator strin
 	}
 }
 
-func IniReader(path string, trustzone bool) (Mxproject_s, error) {
+func IniReader(path string, trustzone bool) (MxprojectType, error) {
 	log.Infof("\nReading CubeMX config file: %v", path)
 
-	var mxproject Mxproject_s
+	var mxproject MxprojectType
 	inidata, err := ini.Load(path)
 	if err != nil {
 		log.Errorf("Fail to read file: %v", err)

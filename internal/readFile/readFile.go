@@ -20,11 +20,17 @@ func Process(inFile, outPath string) error {
 
 	if strings.Contains(inFile, "cbuild-gen-idx.yml") {
 		var params cbuild.ParamsType
-		cbuild.Read(inFile, outPath, &params)
+		err := cbuild.Read(inFile, outPath, &params)
+		if err != nil {
+			return err
+		}
 	} else if strings.Contains(inFile, "cbuild-gen.yml") || strings.Contains(inFile, "cbuild.yml") {
 		var params cbuild.ParamsType
 		params.OutPath = outPath
-		cbuild.ReadCbuildgen(inFile, &params)
+		err := cbuild.ReadCbuildgen(inFile, &params)
+		if err != nil {
+			return err
+		}
 	} else if strings.Contains(inFile, ".mxproject") {
 		mxproject, _ := stm32cubemx.IniReader(inFile, false)
 
@@ -33,7 +39,10 @@ func Process(inFile, outPath string) error {
 		inParms.Device = "Test Device"
 
 		if outPath != "" {
-			stm32cubemx.WriteCgenYml(outPath, mxproject, inParms)
+			err := stm32cubemx.WriteCgenYml(outPath, mxproject, inParms)
+			if err != nil {
+				return err
+			}
 		}
 	} else {
 		return errors.New("input file not supported")
