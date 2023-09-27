@@ -10,8 +10,8 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/open-cmsis-pack/generator-bridge/cmd/cbuild"
-	"github.com/open-cmsis-pack/generator-bridge/cmd/stm32CubeMX"
+	"github.com/open-cmsis-pack/generator-bridge/internal/cbuild"
+	"github.com/open-cmsis-pack/generator-bridge/internal/stm32CubeMX"
 	log "github.com/sirupsen/logrus"
 )
 

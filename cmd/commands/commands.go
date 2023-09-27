@@ -9,8 +9,8 @@ import (
 	"io"
 	"strings"
 
-	"github.com/open-cmsis-pack/generator-bridge/cmd/readFile"
-	"github.com/open-cmsis-pack/generator-bridge/cmd/stm32CubeMX"
+	"github.com/open-cmsis-pack/generator-bridge/internal/readFile"
+	"github.com/open-cmsis-pack/generator-bridge/internal/stm32CubeMX"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"

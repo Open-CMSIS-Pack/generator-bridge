@@ -10,9 +10,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/open-cmsis-pack/generator-bridge/cmd/cbuild"
-	"github.com/open-cmsis-pack/generator-bridge/cmd/common"
-	"github.com/open-cmsis-pack/generator-bridge/cmd/utils"
+	"github.com/open-cmsis-pack/generator-bridge/internal/cbuild"
+	"github.com/open-cmsis-pack/generator-bridge/internal/common"
+	"github.com/open-cmsis-pack/generator-bridge/internal/utils"
 	log "github.com/sirupsen/logrus"
 )
 

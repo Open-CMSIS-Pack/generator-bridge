@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/open-cmsis-pack/generator-bridge/cmd/commands"
-	"github.com/open-cmsis-pack/generator-bridge/cmd/utils"
+	"github.com/open-cmsis-pack/generator-bridge/internal/utils"
 	log "github.com/sirupsen/logrus"
 )
 

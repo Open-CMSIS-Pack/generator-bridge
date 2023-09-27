@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/open-cmsis-pack/generator-bridge/cmd/utils"
+	"github.com/open-cmsis-pack/generator-bridge/internal/utils"
 	"github.com/stretchr/testify/assert"
 )
 

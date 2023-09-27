@@ -10,7 +10,7 @@ import (
 	"path"
 	"strings"
 
-	"github.com/open-cmsis-pack/generator-bridge/cmd/common"
+	"github.com/open-cmsis-pack/generator-bridge/internal/common"
 	log "github.com/sirupsen/logrus"
 )
 
