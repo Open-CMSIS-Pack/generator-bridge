@@ -8,6 +8,7 @@ package readfile
 
 import (
 	"errors"
+	"path/filepath"
 	"strings"
 
 	"github.com/open-cmsis-pack/generator-bridge/internal/cbuild"
@@ -17,6 +18,9 @@ import (
 
 func Process(inFile, outPath string) error {
 	log.Infof("Reading file: %v", inFile)
+	if outPath == "" {
+		outPath = filepath.Dir(inFile)
+	}
 
 	if strings.Contains(inFile, "cbuild-gen-idx.yml") {
 		var params cbuild.ParamsType
@@ -24,6 +28,12 @@ func Process(inFile, outPath string) error {
 		if err != nil {
 			return err
 		}
+		var mxFile string
+		mxFile, err = stm32cubemx.WriteProjectFile(outPath, &params)
+		if err != nil {
+			return err
+		}
+		log.Infof("Written CubeMX project file: %v", mxFile)
 	} else if strings.Contains(inFile, "cbuild-gen.yml") || strings.Contains(inFile, "cbuild.yml") {
 		var params cbuild.ParamsType
 		params.OutPath = outPath
@@ -38,11 +48,9 @@ func Process(inFile, outPath string) error {
 		inParms.Board = "Test Board"
 		inParms.Device = "Test Device"
 
-		if outPath != "" {
-			err := stm32cubemx.WriteCgenYml(outPath, mxproject, inParms)
-			if err != nil {
-				return err
-			}
+		err := stm32cubemx.WriteCgenYml(outPath, mxproject, inParms)
+		if err != nil {
+			return err
 		}
 	} else {
 		return errors.New("input file not supported")

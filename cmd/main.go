@@ -27,7 +27,7 @@ func main() {
 	cmd := commands.NewCli()
 	err := cmd.Execute()
 	if err != nil {
-		log.Errorf("Error: %v", err)
+		log.Errorf("Error : %v", err)
 		os.Exit(-1)
 	}
 

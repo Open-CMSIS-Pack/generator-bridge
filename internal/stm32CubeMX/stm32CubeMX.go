@@ -7,10 +7,12 @@
 package stm32cubemx
 
 import (
+	"errors"
 	"os"
 	"os/exec"
 	"path"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/open-cmsis-pack/generator-bridge/internal/cbuild"
@@ -79,8 +81,14 @@ func Process(cbuildYmlPath, outPath, cubeMxPath string) error {
 func Launch(iocFile, projectFile string) error {
 	log.Infof("Launching STM32CubeMX...")
 
-	pathJava := path.Join(os.Getenv("STM32CubeMX_PATH"), "jre", "bin", "java.exe")
-	pathCubeMx := path.Join(os.Getenv("STM32CubeMX_PATH"), "STM32CubeMX.exe")
+	const cubeEnvVar = "STM32CubeMX_PATH"
+	cubeEnv := os.Getenv(cubeEnvVar)
+	if cubeEnv == "" {
+		return errors.New("environment variable for CubeMX not set: " + cubeEnvVar)
+	}
+
+	pathJava := path.Join(cubeEnv, "jre", "bin", "java.exe")
+	pathCubeMx := path.Join(cubeEnv, "STM32CubeMX.exe")
 
 	var cmd *exec.Cmd
 	if iocFile != "" {
@@ -110,7 +118,11 @@ func WriteProjectFile(workDir string, parms *cbuild.ParamsType) (string, error) 
 	}
 	text.AddLine("project name", "STM32CubeMX")
 	text.AddLine("project toolchain", utils.AddQuotes("MDK-ARM V5"))
-	text.AddLine("project path", utils.AddQuotes(workDir))
+	cubeWorkDir := workDir
+	if runtime.GOOS == "windows" {
+		cubeWorkDir = filepath.FromSlash(cubeWorkDir)
+	}
+	text.AddLine("project path", utils.AddQuotes(cubeWorkDir))
 	text.AddLine("SetCopyLibrary", utils.AddQuotes("copy only"))
 
 	if utils.FileExists(filePath) {
@@ -135,6 +147,31 @@ func ReadCbuildYmlFile(path, outPath string, parms *cbuild.ParamsType) error {
 	return nil
 }
 
+func ConvertFilename(outPath, file string) (string, error) {
+	file = filepath.Clean(file)
+	file = filepath.ToSlash(file)
+
+	mdkarmPath := path.Join(outPath, "STM32CubeMX", "MDK-ARM") // create the path where STCube sets it's files relative to (STM32CubeMX/MDK-ARM/)
+	file = path.Join(mdkarmPath, file)
+
+	if _, err := os.Stat(file); errors.Is(err, os.ErrNotExist) {
+		log.Errorf("file or directory not found: %v", file)
+	}
+
+	var err error
+	origfilename := file
+	file, err = filepath.Rel(outPath, file)
+	if err != nil {
+		log.Errorf("path error found: %v", file)
+		return origfilename, errors.New("path error")
+	}
+
+	file = filepath.ToSlash(file)
+	file = "./" + file
+
+	return file, nil
+}
+
 func WriteCgenYml(outPath string, mxproject MxprojectType, inParms cbuild.ParamsType) error {
 	outFile := path.Join(outPath, "STM32CubeMX.cgen.yml")
 	var cgen cbuild.CgenType
@@ -142,16 +179,22 @@ func WriteCgenYml(outPath string, mxproject MxprojectType, inParms cbuild.Params
 	cgen.Layer.ForBoard = inParms.Board
 	cgen.Layer.ForDevice = inParms.Device
 	cgen.Layer.Define = append(cgen.Layer.Define, mxproject.PreviousUsedKeilFiles.CDefines...)
-	cgen.Layer.AddPath = append(cgen.Layer.AddPath, mxproject.PreviousUsedKeilFiles.HeaderPath...)
+
+	for id := range mxproject.PreviousUsedKeilFiles.HeaderPath {
+		headerPath := mxproject.PreviousUsedKeilFiles.HeaderPath[id]
+		headerPath, _ = ConvertFilename(outPath, headerPath)
+		cgen.Layer.AddPath = append(cgen.Layer.AddPath, headerPath)
+	}
 
 	var groupSrc cbuild.CgenGroupsType
 	var groupHalDriver cbuild.CgenGroupsType
-	groupSrc.Group = "STM32CubeMX"
-	groupHalDriver.Group = "HAL_Driver"
+	groupSrc.Group = "CubeMX"
+	groupHalDriver.Group = "HAL Driver"
+	groupHalFilter := "HAL_Driver"
 
-	for id := range inParms.Core {
-		core := inParms.Core[id]
-		packs := core.Packs
+	for id := range inParms.Subsystem {
+		subsystem := inParms.Subsystem[id]
+		packs := subsystem.Packs
 
 		for id2 := range packs {
 			pack := packs[id2]
@@ -163,7 +206,9 @@ func WriteCgenYml(outPath string, mxproject MxprojectType, inParms cbuild.Params
 
 	for id := range mxproject.PreviousUsedKeilFiles.SourceFiles {
 		file := mxproject.PreviousUsedKeilFiles.SourceFiles[id]
-		if strings.Contains(file, "HAL_Driver") {
+		file, _ = ConvertFilename(outPath, file)
+
+		if strings.Contains(file, groupHalFilter) {
 			var cgenFile cbuild.CgenFilesType
 			cgenFile.File = file
 			groupHalDriver.Files = append(groupHalDriver.Files, cgenFile)
@@ -177,12 +222,5 @@ func WriteCgenYml(outPath string, mxproject MxprojectType, inParms cbuild.Params
 	cgen.Layer.Groups = append(cgen.Layer.Groups, groupSrc)
 	cgen.Layer.Groups = append(cgen.Layer.Groups, groupHalDriver)
 
-	var header utils.TextBuilder
-	//header.AddLine("# File Name   :", filepath.Base(outFile))
-	//header.AddLine("# Date        :", utils.GetDateTimeString())
-	//header.AddLine("# Description :", "Generator layer")
-	//header.AddLine("#")
-	//header.AddLine("")
-
-	return common.WriteYml(outFile, header.GetLine(), &cgen)
+	return common.WriteYml(outFile, &cgen)
 }

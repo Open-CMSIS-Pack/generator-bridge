@@ -124,9 +124,9 @@ func NewCli() *cobra.Command {
 
 	rootCmd.Flags().BoolVarP(&flags.version, "version", "V", false, "Prints the version number of generator-bridge and exit")
 	rootCmd.Flags().BoolVarP(&flags.help, "help", "h", false, "Show help")
-	rootCmd.Flags().StringVarP(&flags.inFile, "read", "r", "", "Reads an input file")
-	rootCmd.Flags().StringVarP(&flags.outPath, "write", "w", "", "Output path for file corresponding to the read file")
-	rootCmd.PersistentFlags().BoolP("quiet", "q", false, "Run generator-bridge silently, printing only error messages")
+	rootCmd.Flags().StringVarP(&flags.inFile, "read", "r", "", "Reads an input file, type is auto determined")
+	rootCmd.Flags().StringVarP(&flags.outPath, "out", "o", "", "Output path for generated files")
+	rootCmd.PersistentFlags().BoolP("quiet", "q", false, "Run silently, printing only error messages")
 	rootCmd.PersistentFlags().BoolP("verbose", "v", false, "Sets verboseness level: None (Errors + Info + Warnings), -v (all + Debugging). Specify \"-q\" for no messages")
 
 	for _, cmd := range AllCommands {

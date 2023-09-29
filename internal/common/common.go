@@ -28,15 +28,10 @@ func ReadYml(path string, out interface{}) error {
 	return nil
 }
 
-func WriteYml(path, header string, out interface{}) error {
-	//data, err := yaml.Marshal(out)
-	//if err != nil {
-	//	log.Fatal(err)
-	//}
-
+func WriteYml(path string, out interface{}) error {
 	var data bytes.Buffer
 	yamlEncoder := yaml.NewEncoder(&data)
-	yamlEncoder.SetIndent(2) // this is what you're looking for
+	yamlEncoder.SetIndent(2)
 	err := yamlEncoder.Encode(&out)
 	if err != nil {
 		return err

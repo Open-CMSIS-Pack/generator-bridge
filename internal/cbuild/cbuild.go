@@ -19,19 +19,22 @@ type PackType struct {
 	Path string
 }
 
-type CoreType struct {
-	Board    string
-	Device   string
-	Project  string
-	Compiler string
-	Packs    []PackType
+type SubsystemType struct {
+	Board     string
+	Device    string
+	Project   string
+	Compiler  string
+	TrustZone string
+	CoreName  string
+	Packs     []PackType
 }
 
 type ParamsType struct {
-	Board   string
-	Device  string
-	OutPath string
-	Core    []CoreType
+	Board       string
+	Device      string
+	OutPath     string
+	ProjectType string
+	Subsystem   []SubsystemType
 }
 
 // https://zhwt.github.io/yaml-to-go/
@@ -46,10 +49,11 @@ type CbuildGenIdxType struct {
 			Board       string `yaml:"board"`
 			ProjectType string `yaml:"project-type"`
 			CbuildGens  []struct {
-				CbuildGen     string `yaml:"cbuild-gen"`
-				Project       string `yaml:"project"`
-				Configuration string `yaml:"configuration"`
-				Output        string `yaml:"output"`
+				CbuildGen      string `yaml:"cbuild-gen"`
+				Project        string `yaml:"project"`
+				Configuration  string `yaml:"configuration"`
+				ForProjectPart string `yaml:"for-project-part"`
+				Output         string `yaml:"output"`
 			} `yaml:"cbuild-gens"`
 		} `yaml:"generators"`
 	} `yaml:"build-gen-idx"`
@@ -65,10 +69,24 @@ type CbuildGenType struct {
 		Compiler    string `yaml:"compiler"`
 		Board       string `yaml:"board"`
 		Device      string `yaml:"device"`
-		Packs       []struct {
+		Processor   struct {
+			Fpu       string `yaml:"fpu"`
+			Endian    string `yaml:"endian"`
+			Trustzone string `yaml:"trustzone"`
+			Core      string `yaml:"core"` // Dcore aus pdsc
+		} `yaml:"processor"`
+		Packs []struct {
 			Pack string `yaml:"pack"`
 			Path string `yaml:"path"`
 		} `yaml:"packs"`
+		Optimize string `yaml:"optimize"`
+		Debug    string `yaml:"debug"`
+		Misc     struct {
+			ASM  []string `yaml:"ASM"`
+			C    []string `yaml:"C"`
+			CPP  []string `yaml:"CPP"`
+			Link []string `yaml:"Link"`
+		} `yaml:"misc"`
 		Define     []string `yaml:"define"`
 		AddPath    []string `yaml:"add-path"`
 		OutputDirs struct {
@@ -82,8 +100,15 @@ type CbuildGenType struct {
 		} `yaml:"output"`
 		Components []struct {
 			Component  string `yaml:"component"`
+			Condition  string `yaml:"condition,omitempty"`
 			FromPack   string `yaml:"from-pack"`
 			SelectedBy string `yaml:"selected-by"`
+			Files      []struct {
+				File     string `yaml:"file"`
+				Category string `yaml:"category"`
+				Attr     string `yaml:"attr"`
+				Version  string `yaml:"version"`
+			} `yaml:"files,omitempty"`
 		} `yaml:"components"`
 		Linker struct {
 			Script  string `yaml:"script"`
@@ -101,8 +126,9 @@ type CbuildGenType struct {
 			Category string `yaml:"category"`
 		} `yaml:"constructed-files"`
 		Licenses []struct {
-			License string `yaml:"license"`
-			Packs   []struct {
+			License          string `yaml:"license"`
+			LicenseAgreement string `yaml:"license-agreement,omitempty"`
+			Packs            []struct {
 				Pack string `yaml:"pack"`
 			} `yaml:"packs"`
 			Components []struct {
@@ -153,6 +179,7 @@ func ReadCbuildgenIdx(name, outPath string, params *ParamsType) error {
 		cbuildGenIdxBoard := cbuildGenIdx.Board
 		cbuildGenIdxDevice := cbuildGenIdx.Device
 		cbuildGenIdxType := cbuildGenIdx.ProjectType
+		cbuildGenIdxOutputPath := cbuildGenIdx.CbuildGens[0].Output
 
 		log.Infof("Found CBuildGenIdx: #%v Id: %v, board: %v, device: %v, type: %v", idGen, cbuildGenIdxID, cbuildGenIdxBoard, cbuildGenIdxDevice, cbuildGenIdxType)
 
@@ -163,6 +190,7 @@ func ReadCbuildgenIdx(name, outPath string, params *ParamsType) error {
 		} else {
 			params.Board = cbuildGenIdx.Board
 		}
+		params.OutPath = cbuildGenIdxOutputPath
 
 		for idSub := range cbuildGenIdx.CbuildGens {
 			cbuildGen := cbuildGenIdx.CbuildGens[idSub]
@@ -194,19 +222,22 @@ func ReadCbuildgen(name string, params *ParamsType) error {
 		return err
 	}
 
-	var core CoreType
+	var subsystem SubsystemType
 
 	split := strings.SplitAfter(cbuildGen.BuildGen.Board, "::")
 	if len(split) == 2 {
-		core.Board = split[1]
+		subsystem.Board = split[1]
 	} else {
-		core.Board = cbuildGen.BuildGen.Board
+		subsystem.Board = cbuildGen.BuildGen.Board
 	}
-	core.Device = cbuildGen.BuildGen.Device
-	core.Compiler = cbuildGen.BuildGen.Compiler
-	core.Project = cbuildGen.BuildGen.Project
+	subsystem.Device = cbuildGen.BuildGen.Device
+	subsystem.Compiler = cbuildGen.BuildGen.Compiler
+	subsystem.Project = cbuildGen.BuildGen.Project
+	subsystem.CoreName = cbuildGen.BuildGen.Processor.Core
+	subsystem.TrustZone = cbuildGen.BuildGen.Processor.Trustzone
 
-	log.Infof("Found CBuildGen: board: %v, device: %v, compiler: %v, project: %v", core.Board, core.Device, core.Compiler, core.Project)
+	log.Infof("Found CBuildGen: board: %v, device: %v, core: %v, TZ: %v, compiler: %v, project: %v",
+		subsystem.Board, subsystem.Device, subsystem.CoreName, subsystem.TrustZone, subsystem.Compiler, subsystem.Project)
 
 	for id := range cbuildGen.BuildGen.Packs {
 		genPack := cbuildGen.BuildGen.Packs[id]
@@ -214,10 +245,10 @@ func ReadCbuildgen(name string, params *ParamsType) error {
 		pack.Pack = genPack.Pack
 		pack.Path = genPack.Path
 		log.Infof("Found Pack: #%v Pack: %v, Path: %v", id, pack.Pack, pack.Path)
-		core.Packs = append(core.Packs, pack)
+		subsystem.Packs = append(subsystem.Packs, pack)
 	}
 
-	params.Core = append(params.Core, core)
+	params.Subsystem = append(params.Subsystem, subsystem)
 
 	return nil
 }
