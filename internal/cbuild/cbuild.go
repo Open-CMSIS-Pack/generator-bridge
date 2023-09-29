@@ -19,14 +19,21 @@ type PackType struct {
 	Path string
 }
 
+type SubsystemIdxType struct {
+	Project       string
+	CbuildGen     string
+	Configuration string
+}
+
 type SubsystemType struct {
-	Board     string
-	Device    string
-	Project   string
-	Compiler  string
-	TrustZone string
-	CoreName  string
-	Packs     []PackType
+	SubsystemIdx SubsystemIdxType
+	Board        string
+	Device       string
+	Project      string
+	Compiler     string
+	TrustZone    string
+	CoreName     string
+	Packs        []PackType
 }
 
 type ParamsType struct {
@@ -141,17 +148,17 @@ type CbuildGenType struct {
 
 // bridge generator output file
 type CgenType struct {
-	Layer LayerType `yaml:"layer"`
+	Layer LayerType `yaml:"layer,omitempty"`
 }
 type CgenPacksType struct {
-	Pack string `yaml:"pack"`
+	Pack string `yaml:"pack,omitempty"`
 }
 type CgenFilesType struct {
-	File string `yaml:"file"`
+	File string `yaml:"file,omitempty"`
 }
 type CgenGroupsType struct {
-	Group string          `yaml:"group"`
-	Files []CgenFilesType `yaml:"files"`
+	Group string          `yaml:"group,omitempty"`
+	Files []CgenFilesType `yaml:"files,omitempty"`
 }
 type LayerType struct {
 	ForDevice string           `yaml:"for-device,omitempty"`
@@ -159,7 +166,7 @@ type LayerType struct {
 	Packs     []CgenPacksType  `yaml:"packs,omitempty"` // do not set if no new packs
 	Define    []string         `yaml:"define,omitempty"`
 	AddPath   []string         `yaml:"add-path,omitempty"`
-	Groups    []CgenGroupsType `yaml:"groups"`
+	Groups    []CgenGroupsType `yaml:"groups,omitempty"`
 }
 
 func Read(name, outPath string, params *ParamsType) error {
@@ -200,25 +207,29 @@ func ReadCbuildgenIdx(name, outPath string, params *ParamsType) error {
 			fileName := cbuildGen.CbuildGen
 			subPath := path.Join(path.Dir(name), fileName)
 
-			err := ReadCbuildgen(subPath, params) // use copy, do not override for next instance
+			var subsystem SubsystemType
+			subsystem.SubsystemIdx.Project = cbuildGen.Project
+			subsystem.SubsystemIdx.Configuration = cbuildGen.Configuration
+			subsystem.SubsystemIdx.CbuildGen = cbuildGen.CbuildGen
+
+			err := ReadCbuildgen(subPath, &subsystem) // use copy, do not override for next instance
 			if err != nil {
 				return err
 			}
+			params.Subsystem = append(params.Subsystem, subsystem)
 		}
 	}
 
 	return nil
 }
 
-func ReadCbuildgen(name string, params *ParamsType) error {
+func ReadCbuildgen(name string, subsystem *SubsystemType) error {
 	var cbuildGen CbuildGenType
 
 	err := common.ReadYml(name, &cbuildGen)
 	if err != nil {
 		return err
 	}
-
-	var subsystem SubsystemType
 
 	split := strings.SplitAfter(cbuildGen.BuildGen.Board, "::")
 	if len(split) == 2 {
@@ -243,8 +254,6 @@ func ReadCbuildgen(name string, params *ParamsType) error {
 		log.Infof("Found Pack: #%v Pack: %v, Path: %v", id, pack.Pack, pack.Path)
 		subsystem.Packs = append(subsystem.Packs, pack)
 	}
-
-	params.Subsystem = append(params.Subsystem, subsystem)
 
 	return nil
 }

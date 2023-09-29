@@ -148,13 +148,43 @@ func ReadCbuildYmlFile(path, outPath string, parms *cbuild.ParamsType) error {
 	return nil
 }
 
+var filterFiles = map[string]string{
+	"system_":   "system_ file (delivered from elsewhere)",
+	"Templates": "Templates file (mostly not present)",
+}
+
+func FilterFile(file string) bool {
+	for key, value := range filterFiles {
+		if strings.Contains(file, key) {
+			log.Infof("ignoring %v: %v", value, file)
+			return true
+		}
+	}
+
+	return false
+}
+
 func WriteCgenYml(outPath string, mxproject MxprojectType, inParms cbuild.ParamsType) error {
-	outFile := path.Join(outPath, "STM32CubeMX.cgen.yml")
+	for id := range inParms.Subsystem {
+		subsystem := &inParms.Subsystem[id]
+		corename := subsystem.CoreName
+		_, corename, _ = strings.Cut(corename, "-")
+
+		WriteCgenYmlSub(outPath, corename, mxproject, subsystem)
+
+	}
+
+	return nil
+}
+
+func WriteCgenYmlSub(outPath, corename string, mxproject MxprojectType, subsystem *cbuild.SubsystemType) error {
+	outName := subsystem.SubsystemIdx.Project + ".cgen.yml"
+	outFile := path.Join(outPath, outName)
 	var cgen cbuild.CgenType
 	relativePathAdd := path.Join("STM32CubeMX", "MDK-ARM")
 
-	cgen.Layer.ForBoard = inParms.Board
-	cgen.Layer.ForDevice = inParms.Device
+	cgen.Layer.ForBoard = subsystem.Board
+	cgen.Layer.ForDevice = subsystem.Device
 	cgen.Layer.Define = append(cgen.Layer.Define, mxproject.PreviousUsedKeilFiles.CDefines...)
 
 	for id := range mxproject.PreviousUsedKeilFiles.HeaderPath {
@@ -169,26 +199,12 @@ func WriteCgenYml(outPath string, mxproject MxprojectType, inParms cbuild.Params
 	groupHalDriver.Group = "HAL Driver"
 	groupHalFilter := "HAL_Driver"
 
-	for id := range inParms.Subsystem {
-		subsystem := inParms.Subsystem[id]
-		packs := subsystem.Packs
-
-		for id2 := range packs {
-			pack := packs[id2]
-			var cgenPack cbuild.CgenPacksType
-			cgenPack.Pack = pack.Pack
-			cgen.Layer.Packs = append(cgen.Layer.Packs, cgenPack)
-		}
-	}
-
 	for id := range mxproject.PreviousUsedKeilFiles.SourceFiles {
 		file := mxproject.PreviousUsedKeilFiles.SourceFiles[id]
-		file, _ = utils.ConvertFilename(outPath, file, relativePathAdd)
-
-		if strings.Contains(file, "Templates") {
-			log.Infof("ignoring Templates file (mostly not present): %v", file)
+		if FilterFile(file) {
 			continue
 		}
+		file, _ = utils.ConvertFilename(outPath, file, relativePathAdd)
 
 		if strings.Contains(file, groupHalFilter) {
 			var cgenFile cbuild.CgenFilesType

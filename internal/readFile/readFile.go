@@ -28,19 +28,19 @@ func Process(inFile, outPath string) error {
 		if err != nil {
 			return err
 		}
-		var mxFile string
-		mxFile, err = stm32cubemx.WriteProjectFile(outPath, &params)
+		_, err = stm32cubemx.WriteProjectFile(outPath, &params)
 		if err != nil {
 			return err
 		}
-		log.Infof("Written CubeMX project file: %v", mxFile)
 	} else if strings.Contains(inFile, "cbuild-gen.yml") || strings.Contains(inFile, "cbuild.yml") {
 		var params cbuild.ParamsType
 		params.OutPath = outPath
-		err := cbuild.ReadCbuildgen(inFile, &params)
+		var subsystem cbuild.SubsystemType
+		err := cbuild.ReadCbuildgen(inFile, &subsystem)
 		if err != nil {
 			return err
 		}
+		params.Subsystem = append(params.Subsystem, subsystem)
 	} else if strings.Contains(inFile, ".mxproject") {
 		mxproject, _ := stm32cubemx.IniReader(inFile, false)
 
