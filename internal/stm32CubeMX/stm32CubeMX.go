@@ -208,6 +208,11 @@ func WriteCgenYml(outPath string, mxproject MxprojectType, inParms cbuild.Params
 		file := mxproject.PreviousUsedKeilFiles.SourceFiles[id]
 		file, _ = ConvertFilename(outPath, file)
 
+		if strings.Contains(file, "Templates") {
+			log.Infof("ignoring Templates file (mostly not present): %v", file)
+			continue
+		}
+
 		if strings.Contains(file, groupHalFilter) {
 			var cgenFile cbuild.CgenFilesType
 			cgenFile.File = file
