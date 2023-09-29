@@ -147,34 +147,10 @@ func ReadCbuildYmlFile(path, outPath string, parms *cbuild.ParamsType) error {
 	return nil
 }
 
-func ConvertFilename(outPath, file string) (string, error) {
-	file = filepath.Clean(file)
-	file = filepath.ToSlash(file)
-
-	mdkarmPath := path.Join(outPath, "STM32CubeMX", "MDK-ARM") // create the path where STCube sets it's files relative to (STM32CubeMX/MDK-ARM/)
-	file = path.Join(mdkarmPath, file)
-
-	if _, err := os.Stat(file); errors.Is(err, os.ErrNotExist) {
-		log.Errorf("file or directory not found: %v", file)
-	}
-
-	var err error
-	origfilename := file
-	file, err = filepath.Rel(outPath, file)
-	if err != nil {
-		log.Errorf("path error found: %v", file)
-		return origfilename, errors.New("path error")
-	}
-
-	file = filepath.ToSlash(file)
-	file = "./" + file
-
-	return file, nil
-}
-
 func WriteCgenYml(outPath string, mxproject MxprojectType, inParms cbuild.ParamsType) error {
 	outFile := path.Join(outPath, "STM32CubeMX.cgen.yml")
 	var cgen cbuild.CgenType
+	relativePathAdd := path.Join("STM32CubeMX", "MDK-ARM")
 
 	cgen.Layer.ForBoard = inParms.Board
 	cgen.Layer.ForDevice = inParms.Device
@@ -182,7 +158,7 @@ func WriteCgenYml(outPath string, mxproject MxprojectType, inParms cbuild.Params
 
 	for id := range mxproject.PreviousUsedKeilFiles.HeaderPath {
 		headerPath := mxproject.PreviousUsedKeilFiles.HeaderPath[id]
-		headerPath, _ = ConvertFilename(outPath, headerPath)
+		headerPath, _ = utils.ConvertFilename(outPath, headerPath, relativePathAdd)
 		cgen.Layer.AddPath = append(cgen.Layer.AddPath, headerPath)
 	}
 
@@ -206,7 +182,7 @@ func WriteCgenYml(outPath string, mxproject MxprojectType, inParms cbuild.Params
 
 	for id := range mxproject.PreviousUsedKeilFiles.SourceFiles {
 		file := mxproject.PreviousUsedKeilFiles.SourceFiles[id]
-		file, _ = ConvertFilename(outPath, file)
+		file, _ = utils.ConvertFilename(outPath, file, relativePathAdd)
 
 		if strings.Contains(file, "Templates") {
 			log.Infof("ignoring Templates file (mostly not present): %v", file)
