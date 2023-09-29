@@ -118,6 +118,7 @@ func WriteProjectFile(workDir string, parms *cbuild.ParamsType) (string, error) 
 	}
 	text.AddLine("project name", "STM32CubeMX")
 	text.AddLine("project toolchain", utils.AddQuotes("MDK-ARM V5"))
+
 	cubeWorkDir := workDir
 	if runtime.GOOS == "windows" {
 		cubeWorkDir = filepath.FromSlash(cubeWorkDir)

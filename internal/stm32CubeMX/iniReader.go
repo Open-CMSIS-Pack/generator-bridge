@@ -22,6 +22,7 @@ type MxprojectType struct {
 		LibFiles []string
 	}
 	PreviousUsedKeilFiles struct {
+		CoreName    string
 		SourceFiles []string
 		HeaderPath  []string
 		CDefines    []string
@@ -145,26 +146,26 @@ func IniReader(path string, trustzone bool) (MxprojectType, error) {
 		PrintItemCsv(section, "CDefines")
 	}
 
-	section = inidata.Section("PreviousGenFiles")
-	if section != nil {
-		StoreItem(&mxproject.PreviousGenFiles.AdvancedFolderStructure, section, "AdvancedFolderStructure")
-		StoreItemIterator(&mxproject.PreviousGenFiles.HeaderFilesList, section, "HeaderFileListSize", "HeaderFiles#")
-		StoreItemIterator(&mxproject.PreviousGenFiles.HeaderPathList, section, "HeaderFolderListSize", "HeaderPath#")
-		StoreItem(&mxproject.PreviousGenFiles.HeaderFiles, section, "HeaderFiles")
-		StoreItemIterator(&mxproject.PreviousGenFiles.SourceFilesList, section, "SourceFileListSize", "SourceFiles#")
-		StoreItemIterator(&mxproject.PreviousGenFiles.HeaderFilesList, section, "HeaderFileListSize", "HeaderFiles#")
-		StoreItemIterator(&mxproject.PreviousGenFiles.SourcePathList, section, "SourceFolderListSize", "SourcePath#")
-		StoreItem(&mxproject.PreviousGenFiles.SourceFiles, section, "SourceFiles")
+	//section = inidata.Section("PreviousGenFiles")
+	//if section != nil {
+	//	StoreItem(&mxproject.PreviousGenFiles.AdvancedFolderStructure, section, "AdvancedFolderStructure")
+	//	StoreItemIterator(&mxproject.PreviousGenFiles.HeaderFilesList, section, "HeaderFileListSize", "HeaderFiles#")
+	//	StoreItemIterator(&mxproject.PreviousGenFiles.HeaderPathList, section, "HeaderFolderListSize", "HeaderPath#")
+	//	StoreItem(&mxproject.PreviousGenFiles.HeaderFiles, section, "HeaderFiles")
+	//	StoreItemIterator(&mxproject.PreviousGenFiles.SourceFilesList, section, "SourceFileListSize", "SourceFiles#")
+	//	StoreItemIterator(&mxproject.PreviousGenFiles.HeaderFilesList, section, "HeaderFileListSize", "HeaderFiles#")
+	//	StoreItemIterator(&mxproject.PreviousGenFiles.SourcePathList, section, "SourceFolderListSize", "SourcePath#")
+	//	StoreItem(&mxproject.PreviousGenFiles.SourceFiles, section, "SourceFiles")
 
-		PrintItem(section, "AdvancedFolderStructure")
-		PrintItemIterator(section, "HeaderFileListSize", "HeaderFiles#")
-		PrintItemIterator(section, "HeaderFolderListSize", "HeaderPath#")
-		PrintItem(section, "HeaderFiles")
-		PrintItemIterator(section, "SourceFileListSize", "SourceFiles#")
-		PrintItemIterator(section, "HeaderFileListSize", "HeaderFiles#")
-		PrintItemIterator(section, "SourceFolderListSize", "SourcePath#")
-		PrintItem(section, "SourceFiles")
-	}
+	//	PrintItem(section, "AdvancedFolderStructure")
+	//	PrintItemIterator(section, "HeaderFileListSize", "HeaderFiles#")
+	//	PrintItemIterator(section, "HeaderFolderListSize", "HeaderPath#")
+	//	PrintItem(section, "HeaderFiles")
+	//	PrintItemIterator(section, "SourceFileListSize", "SourceFiles#")
+	//	PrintItemIterator(section, "HeaderFileListSize", "HeaderFiles#")
+	//	PrintItemIterator(section, "SourceFolderListSize", "SourcePath#")
+	//	PrintItem(section, "SourceFiles")
+	//}
 
 	return mxproject, nil
 }

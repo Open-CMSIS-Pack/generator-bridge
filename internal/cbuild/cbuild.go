@@ -45,6 +45,7 @@ type CbuildGenIdxType struct {
 		GeneratedBy string `yaml:"generated-by"`
 		Generators  []struct {
 			ID          string `yaml:"id"`
+			Output      string `yaml:"output"`
 			Device      string `yaml:"device"`
 			Board       string `yaml:"board"`
 			ProjectType string `yaml:"project-type"`
@@ -179,30 +180,25 @@ func ReadCbuildgenIdx(name, outPath string, params *ParamsType) error {
 		cbuildGenIdxBoard := cbuildGenIdx.Board
 		cbuildGenIdxDevice := cbuildGenIdx.Device
 		cbuildGenIdxType := cbuildGenIdx.ProjectType
-		cbuildGenIdxOutputPath := cbuildGenIdx.CbuildGens[0].Output
+		cbuildGenIdxOutputPath := cbuildGenIdx.Output
 
 		log.Infof("Found CBuildGenIdx: #%v Id: %v, board: %v, device: %v, type: %v", idGen, cbuildGenIdxID, cbuildGenIdxBoard, cbuildGenIdxDevice, cbuildGenIdxType)
+		log.Infof("CBuildGenIdx Output path: %v", cbuildGenIdxOutputPath)
 
 		params.Device = cbuildGenIdxDevice
+		params.OutPath = cbuildGenIdxOutputPath
+
 		split := strings.SplitAfter(cbuildGenIdx.Board, "::")
 		if len(split) == 2 {
 			params.Board = split[1]
 		} else {
 			params.Board = cbuildGenIdx.Board
 		}
-		params.OutPath = cbuildGenIdxOutputPath
 
 		for idSub := range cbuildGenIdx.CbuildGens {
 			cbuildGen := cbuildGenIdx.CbuildGens[idSub]
 			fileName := cbuildGen.CbuildGen
 			subPath := path.Join(path.Dir(name), fileName)
-
-			var outputPath string
-			if cbuildGen.Output != "" {
-				params.OutPath = cbuildGen.Output
-			} else {
-				params.OutPath = outputPath
-			}
 
 			err := ReadCbuildgen(subPath, params) // use copy, do not override for next instance
 			if err != nil {
