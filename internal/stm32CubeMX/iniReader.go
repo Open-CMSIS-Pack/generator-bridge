@@ -17,6 +17,10 @@ import (
 	"gopkg.in/ini.v1"
 )
 
+type MxprojectAllType struct {
+	Mxproject []MxprojectType
+}
+
 type MxprojectType struct {
 	PreviousLibFiles struct {
 		LibFiles []string
@@ -119,14 +123,47 @@ func StoreItemIterator(data *[]string, section *ini.Section, key, iterator strin
 	}
 }
 
-func IniReader(path string, trustzone bool) (MxprojectType, error) {
+func IniReader(path string, trustzone bool) (MxprojectAllType, error) {
 	log.Infof("\nReading CubeMX config file: %v", path)
 
+	var mxprojectAll MxprojectAllType
 	var mxproject MxprojectType
 	inidata, err := ini.Load(path)
 	if err != nil {
 		log.Errorf("Fail to read file: %v", err)
-		return mxproject, nil
+		return mxprojectAll, nil
+	}
+
+	sections := inidata.SectionStrings()
+	var cores []string
+	for sectionId := range sections {
+		section := sections[sectionId]
+		var coreName string
+		sectionStrings := strings.Split(section, ":")
+		if len(sectionStrings) > 1 {
+			coreName = sectionStrings[0]
+		} else {
+			coreName = ""
+		}
+
+		if strings.Contains(coreName, "CortexM") {
+			coreNameParts := strings.Split(coreName, "M")
+			if len(coreNameParts) > 1 {
+				coreName = "Cortex-M" + coreNameParts[1]
+			}
+		}
+
+		coreFound := false
+		for coreId := range cores {
+			core := cores[coreId]
+			if core == coreName {
+				coreFound = true
+				break
+			}
+		}
+		if !coreFound && coreName != "" {
+			cores = append(cores, coreName)
+		}
 	}
 
 	section := inidata.Section("PreviousLibFiles")
@@ -167,5 +204,5 @@ func IniReader(path string, trustzone bool) (MxprojectType, error) {
 	//	PrintItem(section, "SourceFiles")
 	//}
 
-	return mxproject, nil
+	return mxprojectAll, nil
 }

@@ -16,14 +16,15 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func Process(inFile, outPath string) error {
+func Process(inFile, inFile2, outPath string) error {
 	log.Infof("Reading file: %v", inFile)
 	if outPath == "" {
 		outPath = filepath.Dir(inFile)
 	}
 
+	var params cbuild.ParamsType
+
 	if strings.Contains(inFile, "cbuild-gen-idx.yml") {
-		var params cbuild.ParamsType
 		err := cbuild.Read(inFile, outPath, &params)
 		if err != nil {
 			return err
@@ -33,7 +34,6 @@ func Process(inFile, outPath string) error {
 			return err
 		}
 	} else if strings.Contains(inFile, "cbuild-gen.yml") || strings.Contains(inFile, "cbuild.yml") {
-		var params cbuild.ParamsType
 		params.OutPath = outPath
 		var subsystem cbuild.SubsystemType
 		err := cbuild.ReadCbuildgen(inFile, &subsystem)
@@ -41,14 +41,25 @@ func Process(inFile, outPath string) error {
 			return err
 		}
 		params.Subsystem = append(params.Subsystem, subsystem)
-	} else if strings.Contains(inFile, ".mxproject") {
-		mxproject, _ := stm32cubemx.IniReader(inFile, false)
+	}
 
-		var inParms cbuild.ParamsType
-		inParms.Board = "Test Board"
-		inParms.Device = "Test Device"
+	var mxprojectFile string
+	if strings.Contains(inFile, ".mxproject") {
+		mxprojectFile = inFile
+	}
+	if strings.Contains(inFile2, ".mxproject") {
+		mxprojectFile = inFile2
+	}
 
-		err := stm32cubemx.WriteCgenYml(outPath, mxproject, inParms)
+	if mxprojectFile != "" {
+		mxprojectAll, _ := stm32cubemx.IniReader(mxprojectFile, false)
+
+		if params.Board == "" && params.Device == "" {
+			params.Board = "Test Board"
+			params.Device = "Test Device"
+		}
+
+		err := stm32cubemx.WriteCgenYml(outPath, mxprojectAll, params)
 		if err != nil {
 			return err
 		}

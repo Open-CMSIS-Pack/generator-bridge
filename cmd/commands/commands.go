@@ -54,6 +54,7 @@ var flags struct {
 	version bool
 	help    bool
 	inFile  string
+	inFile2 string
 	outPath string
 }
 
@@ -108,12 +109,12 @@ func NewCli() *cobra.Command {
 			}
 
 			if flags.inFile != "" {
-				return readfile.Process(flags.inFile, flags.outPath)
+				return readfile.Process(flags.inFile, flags.inFile2, flags.outPath)
 			}
 
 			if len(args) == 1 {
 				cbuildYmlPath := args[0]
-				return stm32cubemx.Process(cbuildYmlPath, flags.outPath, "")
+				return stm32cubemx.Process(cbuildYmlPath, flags.outPath, "", "", true)
 			}
 
 			return cmd.Help()
@@ -125,6 +126,7 @@ func NewCli() *cobra.Command {
 	rootCmd.Flags().BoolVarP(&flags.version, "version", "V", false, "Prints the version number of generator-bridge and exit")
 	rootCmd.Flags().BoolVarP(&flags.help, "help", "h", false, "Show help")
 	rootCmd.Flags().StringVarP(&flags.inFile, "read", "r", "", "Reads an input file, type is auto determined")
+	rootCmd.Flags().StringVarP(&flags.inFile2, "file", "f", "", "Additional input file, type is auto determined")
 	rootCmd.Flags().StringVarP(&flags.outPath, "out", "o", "", "Output path for generated files")
 	rootCmd.PersistentFlags().BoolP("quiet", "q", false, "Run silently, printing only error messages")
 	rootCmd.PersistentFlags().BoolP("verbose", "v", false, "Sets verboseness level: None (Errors + Info + Warnings), -v (all + Debugging). Specify \"-q\" for no messages")

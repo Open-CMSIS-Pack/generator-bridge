@@ -21,7 +21,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func Process(cbuildYmlPath, outPath, cubeMxPath string) error {
+func Process(cbuildYmlPath, outPath, cubeMxPath, mxprojectPath string, runCubeMx bool) error {
 	var projectFile string
 	var parms cbuild.ParamsType
 
@@ -44,27 +44,29 @@ func Process(cbuildYmlPath, outPath, cubeMxPath string) error {
 		return err
 	}
 
-	cubeIocPath := path.Join(workDir, "STM32CubeMX", "STM32CubeMX.ioc")
+	if runCubeMx {
+		cubeIocPath := path.Join(workDir, "STM32CubeMX", "STM32CubeMX.ioc")
 
-	if utils.FileExists(cubeIocPath) {
-		err := Launch(cubeIocPath, "")
-		if err != nil {
-			return err
-		}
-	} else {
-		projectFile, err = WriteProjectFile(workDir, &parms)
-		if err != nil {
-			return nil
-		}
-		log.Infof("Generated file: %v", projectFile)
+		if utils.FileExists(cubeIocPath) {
+			err := Launch(cubeIocPath, "")
+			if err != nil {
+				return err
+			}
+		} else {
+			projectFile, err = WriteProjectFile(workDir, &parms)
+			if err != nil {
+				return nil
+			}
+			log.Infof("Generated file: %v", projectFile)
 
-		err := Launch("", projectFile)
-		if err != nil {
-			return err
+			err := Launch("", projectFile)
+			if err != nil {
+				return err
+			}
 		}
+
+		mxprojectPath = path.Join(workDir, "STM32CubeMX", ".mxproject")
 	}
-
-	mxprojectPath := path.Join(workDir, "STM32CubeMX", ".mxproject")
 	mxproject, err := IniReader(mxprojectPath, false)
 	if err != nil {
 		return err
@@ -164,24 +166,26 @@ func FilterFile(file string) bool {
 	return false
 }
 
-func WriteCgenYml(outPath string, mxproject MxprojectType, inParms cbuild.ParamsType) error {
+func WriteCgenYml(outPath string, mxprojectAll MxprojectAllType, inParms cbuild.ParamsType) error {
 	for id := range inParms.Subsystem {
 		subsystem := &inParms.Subsystem[id]
 		corename := subsystem.CoreName
-		_, corename, _ = strings.Cut(corename, "-")
+		corename = strings.Replace(corename, "-", "", 1)
 
-		WriteCgenYmlSub(outPath, corename, mxproject, subsystem)
+		WriteCgenYmlSub(outPath, corename, mxprojectAll, subsystem)
 
 	}
 
 	return nil
 }
 
-func WriteCgenYmlSub(outPath, corename string, mxproject MxprojectType, subsystem *cbuild.SubsystemType) error {
+func WriteCgenYmlSub(outPath, corename string, mxprojectAll MxprojectAllType, subsystem *cbuild.SubsystemType) error {
 	outName := subsystem.SubsystemIdx.Project + ".cgen.yml"
 	outFile := path.Join(outPath, outName)
 	var cgen cbuild.CgenType
 	relativePathAdd := path.Join("STM32CubeMX", "MDK-ARM")
+
+	mxproject := mxprojectAll.Mxproject[0]
 
 	cgen.Layer.ForBoard = subsystem.Board
 	cgen.Layer.ForDevice = subsystem.Device
