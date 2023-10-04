@@ -9,6 +9,7 @@ package stm32cubemx
 import (
 	"fmt"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -22,11 +23,12 @@ type MxprojectAllType struct {
 }
 
 type MxprojectType struct {
+	Pname            string
+	Trustzone        string
 	PreviousLibFiles struct {
 		LibFiles []string
 	}
 	PreviousUsedKeilFiles struct {
-		CoreName    string
 		SourceFiles []string
 		HeaderPath  []string
 		CDefines    []string
@@ -40,6 +42,17 @@ type MxprojectType struct {
 		SourcePathList          []string
 		SourceFiles             string
 	}
+}
+
+type IniSectionCore struct {
+	pname     string
+	trustzone string
+	iniName   string
+}
+
+type IniSectionsType struct {
+	cores    []IniSectionCore
+	sections []string
 }
 
 func PrintKeyValStr(key, val string) {
@@ -123,86 +136,207 @@ func StoreItemIterator(data *[]string, section *ini.Section, key, iterator strin
 	}
 }
 
+func FindInList(name string, list *[]string) bool {
+	if name == "" {
+		return false
+	}
+
+	for id := range *list {
+		item := (*list)[id]
+		if item == name {
+			return true
+		}
+	}
+	return false
+}
+
+func AppendToList(name string, list *[]string) {
+	if name == "" {
+		return
+	}
+
+	if FindInList(name, list) {
+		return
+	}
+
+	*list = append(*list, name)
+}
+
+func FindInCores(name string, list *[]IniSectionCore) bool {
+	if name == "" {
+		return false
+	}
+
+	for id := range *list {
+		item := (*list)[id]
+		if item.iniName == name {
+			return true
+		}
+	}
+	return false
+}
+
+func AppendToCores(iniSectionCore IniSectionCore, list *[]IniSectionCore) {
+	name := iniSectionCore.iniName
+	if name == "" {
+		return
+	}
+
+	if FindInCores(name, list) {
+		return
+	}
+
+	*list = append(*list, iniSectionCore)
+}
+
 func IniReader(path string, trustzone bool) (MxprojectAllType, error) {
+	var mxprojectAll MxprojectAllType
+	inidata, err := GetIni(path)
+	if err != nil {
+		return mxprojectAll, err
+	}
+
+	var iniSections IniSectionsType
+	err = GetSections(inidata, &iniSections)
+	if err != nil {
+		return mxprojectAll, err
+	}
+
+	if len(iniSections.cores) == 0 { // single core
+		sectionName := ""
+		mxproject, _ := GetData(inidata, sectionName)
+		mxprojectAll.Mxproject = append(mxprojectAll.Mxproject, mxproject)
+	} else { // multi core / trustzone
+		for coreId := range iniSections.cores {
+			core := iniSections.cores[coreId]
+			iniName := core.iniName
+			pname := core.pname
+			trustzone := core.trustzone
+			mxproject, _ := GetData(inidata, iniName)
+			mxproject.Pname = pname
+			mxproject.Trustzone = trustzone
+			mxprojectAll.Mxproject = append(mxprojectAll.Mxproject, mxproject)
+		}
+	}
+
+	return mxprojectAll, nil
+}
+
+func GetIni(path string) (*ini.File, error) {
 	log.Infof("\nReading CubeMX config file: %v", path)
 
-	var mxprojectAll MxprojectAllType
-	var mxproject MxprojectType
 	inidata, err := ini.Load(path)
 	if err != nil {
 		log.Errorf("Fail to read file: %v", err)
-		return mxprojectAll, nil
+		return inidata, nil
 	}
 
-	sections := inidata.SectionStrings()
-	var cores []string
-	for sectionId := range sections {
-		section := sections[sectionId]
-		var coreName string
-		sectionStrings := strings.Split(section, ":")
-		if len(sectionStrings) > 1 {
-			coreName = sectionStrings[0]
+	return inidata, nil
+}
+
+func GetSections(inidata *ini.File, iniSections *IniSectionsType) error {
+	sectionsData := inidata.SectionStrings()
+	for sectionId := range sectionsData {
+		section := sectionsData[sectionId]
+		var iniName string
+		var sectionName string
+		sectionString := strings.Split(section, ":")
+		if len(sectionString) > 1 {
+			iniName = sectionString[0]
+			sectionName = sectionString[1]
 		} else {
-			coreName = ""
+			iniName = ""
+			sectionName = section
 		}
 
-		if strings.Contains(coreName, "CortexM") {
-			coreNameParts := strings.Split(coreName, "M")
-			if len(coreNameParts) > 1 {
-				coreName = "Cortex-M" + coreNameParts[1]
+		var pname string
+		re := regexp.MustCompile("[0-9]+")
+		coreNameNumbers := re.FindAllString(iniName, -1)
+		if len(coreNameNumbers) == 1 {
+			pname = "Cortex-M" + coreNameNumbers[0]
+		}
+
+		var trustzone string
+		iniLen := len(iniName)
+		if iniLen > 0 {
+			if strings.LastIndex(iniName, "S") == iniLen-1 {
+				if strings.LastIndex(iniName, "NS") == iniLen-2 {
+					trustzone = "non-secure"
+				} else {
+					trustzone = "secure"
+				}
 			}
 		}
 
-		coreFound := false
-		for coreId := range cores {
-			core := cores[coreId]
-			if core == coreName {
-				coreFound = true
-				break
-			}
-		}
-		if !coreFound && coreName != "" {
-			cores = append(cores, coreName)
-		}
+		var iniSectionCore IniSectionCore
+		iniSectionCore.iniName = iniName
+		iniSectionCore.pname = pname
+		iniSectionCore.trustzone = trustzone
+		AppendToCores(iniSectionCore, &iniSections.cores)
+		AppendToList(sectionName, &iniSections.sections)
 	}
 
-	section := inidata.Section("PreviousLibFiles")
-	if section != nil {
-		PrintItemCsv(section, "LibFiles")
-		StoreItemCsv(&mxproject.PreviousLibFiles.LibFiles, section, "LibFiles")
-	}
+	return nil
+}
 
-	section = inidata.Section("PreviousUsedKeilFiles")
+func GetData(inidata *ini.File, iniName string) (MxprojectType, error) {
+	var mxproject MxprojectType
+
+	var sectionName string
+	const PreviousUsedKeilFilesId = "PreviousUsedKeilFiles"
+	if iniName != "" {
+		sectionName = iniName + ":" + PreviousUsedKeilFilesId
+	} else {
+		sectionName = PreviousUsedKeilFilesId
+	}
+	section := inidata.Section(sectionName)
 	if section != nil {
 		StoreItemCsv(&mxproject.PreviousUsedKeilFiles.SourceFiles, section, "SourceFiles")
 		StoreItemCsv(&mxproject.PreviousUsedKeilFiles.HeaderPath, section, "HeaderPath")
 		StoreItemCsv(&mxproject.PreviousUsedKeilFiles.CDefines, section, "CDefines")
-
 		PrintItemCsv(section, "SourceFiles")
 		PrintItemCsv(section, "HeaderPath")
 		PrintItemCsv(section, "CDefines")
 	}
 
-	//section = inidata.Section("PreviousGenFiles")
-	//if section != nil {
-	//	StoreItem(&mxproject.PreviousGenFiles.AdvancedFolderStructure, section, "AdvancedFolderStructure")
-	//	StoreItemIterator(&mxproject.PreviousGenFiles.HeaderFilesList, section, "HeaderFileListSize", "HeaderFiles#")
-	//	StoreItemIterator(&mxproject.PreviousGenFiles.HeaderPathList, section, "HeaderFolderListSize", "HeaderPath#")
-	//	StoreItem(&mxproject.PreviousGenFiles.HeaderFiles, section, "HeaderFiles")
-	//	StoreItemIterator(&mxproject.PreviousGenFiles.SourceFilesList, section, "SourceFileListSize", "SourceFiles#")
-	//	StoreItemIterator(&mxproject.PreviousGenFiles.HeaderFilesList, section, "HeaderFileListSize", "HeaderFiles#")
-	//	StoreItemIterator(&mxproject.PreviousGenFiles.SourcePathList, section, "SourceFolderListSize", "SourcePath#")
-	//	StoreItem(&mxproject.PreviousGenFiles.SourceFiles, section, "SourceFiles")
+	const PreviousLibFilesId = "PreviousLibFiles"
+	if iniName != "" {
+		sectionName = iniName + ":" + PreviousLibFilesId
+	} else {
+		sectionName = PreviousLibFilesId
+	}
+	section = inidata.Section(sectionName)
+	if section != nil {
+		StoreItemCsv(&mxproject.PreviousLibFiles.LibFiles, section, "LibFiles")
+		PrintItemCsv(section, "LibFiles")
+	}
 
-	//	PrintItem(section, "AdvancedFolderStructure")
-	//	PrintItemIterator(section, "HeaderFileListSize", "HeaderFiles#")
-	//	PrintItemIterator(section, "HeaderFolderListSize", "HeaderPath#")
-	//	PrintItem(section, "HeaderFiles")
-	//	PrintItemIterator(section, "SourceFileListSize", "SourceFiles#")
-	//	PrintItemIterator(section, "HeaderFileListSize", "HeaderFiles#")
-	//	PrintItemIterator(section, "SourceFolderListSize", "SourcePath#")
-	//	PrintItem(section, "SourceFiles")
-	//}
+	const PreviousGenFilesId = "PreviousGenFiles"
+	if iniName != "" {
+		sectionName = iniName + ":" + PreviousGenFilesId
+	} else {
+		sectionName = PreviousGenFilesId
+	}
+	section = inidata.Section(sectionName)
+	if section != nil {
+		StoreItem(&mxproject.PreviousGenFiles.AdvancedFolderStructure, section, "AdvancedFolderStructure")
+		StoreItemIterator(&mxproject.PreviousGenFiles.HeaderFilesList, section, "HeaderFileListSize", "HeaderFiles#")
+		StoreItemIterator(&mxproject.PreviousGenFiles.HeaderPathList, section, "HeaderFolderListSize", "HeaderPath#")
+		StoreItem(&mxproject.PreviousGenFiles.HeaderFiles, section, "HeaderFiles")
+		StoreItemIterator(&mxproject.PreviousGenFiles.SourceFilesList, section, "SourceFileListSize", "SourceFiles#")
+		StoreItemIterator(&mxproject.PreviousGenFiles.HeaderFilesList, section, "HeaderFileListSize", "HeaderFiles#")
+		StoreItemIterator(&mxproject.PreviousGenFiles.SourcePathList, section, "SourceFolderListSize", "SourcePath#")
+		StoreItem(&mxproject.PreviousGenFiles.SourceFiles, section, "SourceFiles")
 
-	return mxprojectAll, nil
+		PrintItem(section, "AdvancedFolderStructure")
+		PrintItemIterator(section, "HeaderFileListSize", "HeaderFiles#")
+		PrintItemIterator(section, "HeaderFolderListSize", "HeaderPath#")
+		PrintItem(section, "HeaderFiles")
+		PrintItemIterator(section, "SourceFileListSize", "SourceFiles#")
+		PrintItemIterator(section, "HeaderFileListSize", "HeaderFiles#")
+		PrintItemIterator(section, "SourceFolderListSize", "SourcePath#")
+		PrintItem(section, "SourceFiles")
+	}
+
+	return mxproject, nil
 }

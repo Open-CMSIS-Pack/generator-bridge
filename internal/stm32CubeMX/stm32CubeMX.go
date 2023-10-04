@@ -166,26 +166,38 @@ func FilterFile(file string) bool {
 	return false
 }
 
+func FindMxProject(subsystem *cbuild.SubsystemType, mxprojectAll MxprojectAllType) (MxprojectType, error) {
+	pname := subsystem.CoreName
+	trustzone := subsystem.TrustZone
+	for id := range mxprojectAll.Mxproject {
+		mxproject := mxprojectAll.Mxproject[id]
+		if mxproject.Pname == pname && mxproject.Trustzone == trustzone {
+			return mxproject, nil
+		}
+	}
+
+	return MxprojectType{}, nil
+}
+
 func WriteCgenYml(outPath string, mxprojectAll MxprojectAllType, inParms cbuild.ParamsType) error {
 	for id := range inParms.Subsystem {
 		subsystem := &inParms.Subsystem[id]
-		corename := subsystem.CoreName
-		corename = strings.Replace(corename, "-", "", 1)
 
-		WriteCgenYmlSub(outPath, corename, mxprojectAll, subsystem)
-
+		mxproject, err := FindMxProject(subsystem, mxprojectAll)
+		if err != nil {
+			continue
+		}
+		WriteCgenYmlSub(outPath, mxproject, subsystem)
 	}
 
 	return nil
 }
 
-func WriteCgenYmlSub(outPath, corename string, mxprojectAll MxprojectAllType, subsystem *cbuild.SubsystemType) error {
+func WriteCgenYmlSub(outPath string, mxproject MxprojectType, subsystem *cbuild.SubsystemType) error {
 	outName := subsystem.SubsystemIdx.Project + ".cgen.yml"
 	outFile := path.Join(outPath, outName)
 	var cgen cbuild.CgenType
 	relativePathAdd := path.Join("STM32CubeMX", "MDK-ARM")
-
-	mxproject := mxprojectAll.Mxproject[0]
 
 	cgen.Layer.ForBoard = subsystem.Board
 	cgen.Layer.ForDevice = subsystem.Device
