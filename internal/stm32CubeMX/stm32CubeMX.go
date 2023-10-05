@@ -167,6 +167,13 @@ func FilterFile(file string) bool {
 }
 
 func FindMxProject(subsystem *cbuild.SubsystemType, mxprojectAll MxprojectAllType) (MxprojectType, error) {
+	if len(mxprojectAll.Mxproject) == 0 {
+		return MxprojectType{}, errors.New("no .mxproject read")
+	} else if len(mxprojectAll.Mxproject) == 1 {
+		mxproject := mxprojectAll.Mxproject[0]
+		return mxproject, nil
+	}
+
 	coreName := subsystem.CoreName
 	trustzone := subsystem.TrustZone
 	if trustzone == "off" {
