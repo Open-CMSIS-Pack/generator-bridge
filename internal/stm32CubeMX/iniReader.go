@@ -7,6 +7,7 @@
 package stm32cubemx
 
 import (
+	"errors"
 	"fmt"
 	"path/filepath"
 	"regexp"
@@ -23,7 +24,7 @@ type MxprojectAllType struct {
 }
 
 type MxprojectType struct {
-	Pname            string
+	CoreName         string
 	Trustzone        string
 	PreviousLibFiles struct {
 		LibFiles []string
@@ -45,7 +46,7 @@ type MxprojectType struct {
 }
 
 type IniSectionCore struct {
-	pname     string
+	CoreName  string
 	trustzone string
 	iniName   string
 }
@@ -192,8 +193,10 @@ func AppendToCores(iniSectionCore IniSectionCore, list *[]IniSectionCore) {
 func IniReader(path string, trustzone bool) (MxprojectAllType, error) {
 	var mxprojectAll MxprojectAllType
 	inidata, err := GetIni(path)
-	if err != nil {
-		return mxprojectAll, err
+	if err != nil || inidata == nil {
+		text := "File not found or error opening file: .mxproject"
+		text += path
+		return mxprojectAll, errors.New(text)
 	}
 
 	var iniSections IniSectionsType
@@ -202,21 +205,15 @@ func IniReader(path string, trustzone bool) (MxprojectAllType, error) {
 		return mxprojectAll, err
 	}
 
-	if len(iniSections.cores) == 0 { // single core
-		sectionName := ""
-		mxproject, _ := GetData(inidata, sectionName)
+	for coreId := range iniSections.cores {
+		core := iniSections.cores[coreId]
+		iniName := core.iniName
+		coreName := core.CoreName
+		trustzone := core.trustzone
+		mxproject, _ := GetData(inidata, iniName)
+		mxproject.CoreName = coreName
+		mxproject.Trustzone = trustzone
 		mxprojectAll.Mxproject = append(mxprojectAll.Mxproject, mxproject)
-	} else { // multi core / trustzone
-		for coreId := range iniSections.cores {
-			core := iniSections.cores[coreId]
-			iniName := core.iniName
-			pname := core.pname
-			trustzone := core.trustzone
-			mxproject, _ := GetData(inidata, iniName)
-			mxproject.Pname = pname
-			mxproject.Trustzone = trustzone
-			mxprojectAll.Mxproject = append(mxprojectAll.Mxproject, mxproject)
-		}
 	}
 
 	return mxprojectAll, nil
@@ -245,15 +242,15 @@ func GetSections(inidata *ini.File, iniSections *IniSectionsType) error {
 			iniName = sectionString[0]
 			sectionName = sectionString[1]
 		} else {
-			iniName = ""
+			iniName = "Cortex" // default
 			sectionName = section
 		}
 
-		var pname string
+		var coreName string
 		re := regexp.MustCompile("[0-9]+")
 		coreNameNumbers := re.FindAllString(iniName, -1)
 		if len(coreNameNumbers) == 1 {
-			pname = "Cortex-M" + coreNameNumbers[0]
+			coreName = "Cortex-M" + coreNameNumbers[0]
 		}
 
 		var trustzone string
@@ -270,7 +267,7 @@ func GetSections(inidata *ini.File, iniSections *IniSectionsType) error {
 
 		var iniSectionCore IniSectionCore
 		iniSectionCore.iniName = iniName
-		iniSectionCore.pname = pname
+		iniSectionCore.CoreName = coreName
 		iniSectionCore.trustzone = trustzone
 		AppendToCores(iniSectionCore, &iniSections.cores)
 		AppendToList(sectionName, &iniSections.sections)
@@ -284,7 +281,7 @@ func GetData(inidata *ini.File, iniName string) (MxprojectType, error) {
 
 	var sectionName string
 	const PreviousUsedKeilFilesId = "PreviousUsedKeilFiles"
-	if iniName != "" {
+	if iniName != "" && iniName != "Cortex" {
 		sectionName = iniName + ":" + PreviousUsedKeilFilesId
 	} else {
 		sectionName = PreviousUsedKeilFilesId

@@ -167,11 +167,11 @@ func FilterFile(file string) bool {
 }
 
 func FindMxProject(subsystem *cbuild.SubsystemType, mxprojectAll MxprojectAllType) (MxprojectType, error) {
-	pname := subsystem.CoreName
+	coreName := subsystem.CoreName
 	trustzone := subsystem.TrustZone
 	for id := range mxprojectAll.Mxproject {
 		mxproject := mxprojectAll.Mxproject[id]
-		if mxproject.Pname == pname && mxproject.Trustzone == trustzone {
+		if mxproject.CoreName == coreName && mxproject.Trustzone == trustzone {
 			return mxproject, nil
 		}
 	}
@@ -211,6 +211,8 @@ func WriteCgenYmlSub(outPath string, mxproject MxprojectType, subsystem *cbuild.
 
 	var groupSrc cbuild.CgenGroupsType
 	var groupHalDriver cbuild.CgenGroupsType
+	var groupTz cbuild.CgenGroupsType
+
 	groupSrc.Group = "CubeMX"
 	groupHalDriver.Group = "HAL Driver"
 	groupHalFilter := "HAL_Driver"
@@ -235,6 +237,14 @@ func WriteCgenYmlSub(outPath string, mxproject MxprojectType, subsystem *cbuild.
 
 	cgen.Layer.Groups = append(cgen.Layer.Groups, groupSrc)
 	cgen.Layer.Groups = append(cgen.Layer.Groups, groupHalDriver)
+
+	if subsystem.TrustZone == "secure" {
+		groupTz.Group = "CMSE Library"
+		var cgenFile cbuild.CgenFilesType
+		cgenFile.File = "$cmse-lib(secure)$"
+		groupTz.Files = append(groupTz.Files, cgenFile)
+		cgen.Layer.Groups = append(cgen.Layer.Groups, groupTz)
+	}
 
 	return common.WriteYml(outFile, &cgen)
 }
