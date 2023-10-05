@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/open-cmsis-pack/generator-bridge/internal/utils"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/exp/slices"
 	"gopkg.in/ini.v1"
@@ -192,6 +193,13 @@ func AppendToCores(iniSectionCore IniSectionCore, list *[]IniSectionCore) {
 
 func IniReader(path string, trustzone bool) (MxprojectAllType, error) {
 	var mxprojectAll MxprojectAllType
+
+	if !utils.FileExists(path) {
+		text := "File not found: "
+		text += path
+		return mxprojectAll, errors.New(text)
+	}
+
 	inidata, err := GetIni(path)
 	if err != nil || inidata == nil {
 		text := "File not found or error opening file: .mxproject"
@@ -208,6 +216,9 @@ func IniReader(path string, trustzone bool) (MxprojectAllType, error) {
 	for coreId := range iniSections.cores {
 		core := iniSections.cores[coreId]
 		iniName := core.iniName
+		if iniName == "Cortex" { // remove workaround for single-core .mxproject CubeMx files
+			iniName = ""
+		}
 		coreName := core.CoreName
 		trustzone := core.trustzone
 		mxproject, _ := GetData(inidata, iniName)
@@ -278,10 +289,9 @@ func GetSections(inidata *ini.File, iniSections *IniSectionsType) error {
 
 func GetData(inidata *ini.File, iniName string) (MxprojectType, error) {
 	var mxproject MxprojectType
-
 	var sectionName string
 	const PreviousUsedKeilFilesId = "PreviousUsedKeilFiles"
-	if iniName != "" && iniName != "Cortex" {
+	if iniName != "" {
 		sectionName = iniName + ":" + PreviousUsedKeilFilesId
 	} else {
 		sectionName = PreviousUsedKeilFilesId

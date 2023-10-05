@@ -169,6 +169,9 @@ func FilterFile(file string) bool {
 func FindMxProject(subsystem *cbuild.SubsystemType, mxprojectAll MxprojectAllType) (MxprojectType, error) {
 	coreName := subsystem.CoreName
 	trustzone := subsystem.TrustZone
+	if trustzone == "off" {
+		trustzone = ""
+	}
 	for id := range mxprojectAll.Mxproject {
 		mxproject := mxprojectAll.Mxproject[id]
 		if mxproject.CoreName == coreName && mxproject.Trustzone == trustzone {
