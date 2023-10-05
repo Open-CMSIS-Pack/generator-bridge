@@ -7,10 +7,12 @@
 package cbuild
 
 import (
+	"errors"
 	"path"
 	"strings"
 
 	"github.com/open-cmsis-pack/generator-bridge/internal/common"
+	"github.com/open-cmsis-pack/generator-bridge/internal/utils"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -20,9 +22,13 @@ type PackType struct {
 }
 
 type SubsystemIdxType struct {
-	Project       string
-	CbuildGen     string
-	Configuration string
+	Project              string
+	CbuildGen            string
+	Configuration        string
+	ForProjectPart       string
+	ProjectType          string
+	SecureContextName    string
+	NonSecureContextName string
 }
 
 type SubsystemType struct {
@@ -202,6 +208,9 @@ func ReadCbuildgenIdx(name, outPath string, params *ParamsType) error {
 			params.Board = cbuildGenIdx.Board
 		}
 
+		var secureContextName string
+		var nonsecureContextName string
+
 		for idSub := range cbuildGenIdx.CbuildGens {
 			cbuildGen := cbuildGenIdx.CbuildGens[idSub]
 			fileName := cbuildGen.CbuildGen
@@ -211,12 +220,31 @@ func ReadCbuildgenIdx(name, outPath string, params *ParamsType) error {
 			subsystem.SubsystemIdx.Project = cbuildGen.Project
 			subsystem.SubsystemIdx.Configuration = cbuildGen.Configuration
 			subsystem.SubsystemIdx.CbuildGen = cbuildGen.CbuildGen
+			subsystem.SubsystemIdx.ProjectType = cbuildGenIdx.ProjectType
+			subsystem.SubsystemIdx.ForProjectPart = cbuildGen.ForProjectPart
 
 			err := ReadCbuildgen(subPath, &subsystem) // use copy, do not override for next instance
 			if err != nil {
 				return err
 			}
+
 			params.Subsystem = append(params.Subsystem, subsystem)
+
+			// store Reference project for TZ-NS
+			if cbuildGenIdx.ProjectType == "trustzone" {
+				if cbuildGen.ForProjectPart == "secure" {
+					secureContextName = cbuildGen.Project
+				} else if cbuildGen.ForProjectPart == "non-secure" {
+					nonsecureContextName = cbuildGen.Project
+				}
+			}
+		}
+
+		// store Reference project for TZ-NS
+		for idSub := range params.Subsystem {
+			subsystem := &params.Subsystem[idSub]
+			subsystem.SubsystemIdx.SecureContextName = secureContextName
+			subsystem.SubsystemIdx.NonSecureContextName = nonsecureContextName
 		}
 	}
 
@@ -225,6 +253,12 @@ func ReadCbuildgenIdx(name, outPath string, params *ParamsType) error {
 
 func ReadCbuildgen(name string, subsystem *SubsystemType) error {
 	var cbuildGen CbuildGenType
+
+	if !utils.FileExists(name) {
+		text := "File not found: "
+		text += name
+		return errors.New(text)
+	}
 
 	err := common.ReadYml(name, &cbuildGen)
 	if err != nil {

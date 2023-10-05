@@ -241,7 +241,9 @@ func WriteCgenYmlSub(outPath string, mxproject MxprojectType, subsystem *cbuild.
 	if subsystem.TrustZone == "non-secure" {
 		groupTz.Group = "CMSE Library"
 		var cgenFile cbuild.CgenFilesType
-		cgenFile.File = "$cmse-lib(secure)$"
+		cgenFile.File = "$cmse-lib("
+		cgenFile.File += subsystem.SubsystemIdx.SecureContextName
+		cgenFile.File += ")$"
 		groupTz.Files = append(groupTz.Files, cgenFile)
 		cgen.Layer.Groups = append(cgen.Layer.Groups, groupTz)
 	}
