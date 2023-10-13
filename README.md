@@ -9,4 +9,4 @@
 
 # generator_bridge
 
-Reference examples of a generator bridge. E.g. STCubeMX_Bridge
+Reference examples of a test generator bridge. E.g. STCubeMX_Bridge
