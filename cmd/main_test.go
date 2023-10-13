@@ -14,4 +14,5 @@ func Test_main(t *testing.T) {
 	t.Run("dummy main test", func(t *testing.T) {
 		main()
 	})
+
 }
