@@ -154,7 +154,7 @@ type CbuildGenType struct {
 
 // bridge generator output file
 type CgenType struct {
-	Layer LayerType `yaml:"layer,omitempty"`
+	GeneratorImport GeneratorImportType `yaml:"generator-import,omitempty"`
 }
 type CgenPacksType struct {
 	Pack string `yaml:"pack,omitempty"`
@@ -166,7 +166,7 @@ type CgenGroupsType struct {
 	Group string          `yaml:"group,omitempty"`
 	Files []CgenFilesType `yaml:"files,omitempty"`
 }
-type LayerType struct {
+type GeneratorImportType struct {
 	ForDevice string           `yaml:"for-device,omitempty"`
 	ForBoard  string           `yaml:"for-board,omitempty"`
 	Packs     []CgenPacksType  `yaml:"packs,omitempty"` // do not set if no new packs
@@ -214,7 +214,12 @@ func ReadCbuildgenIdx(name, outPath string, params *ParamsType) error {
 		for idSub := range cbuildGenIdx.CbuildGens {
 			cbuildGen := cbuildGenIdx.CbuildGens[idSub]
 			fileName := cbuildGen.CbuildGen
-			subPath := path.Join(path.Dir(name), fileName)
+			var subPath string
+			if path.IsAbs(fileName) {
+				subPath = fileName
+			} else {
+				subPath = path.Join(path.Dir(name), fileName)
+			}
 
 			var subsystem SubsystemType
 			subsystem.SubsystemIdx.Project = cbuildGen.Project

@@ -209,14 +209,14 @@ func WriteCgenYmlSub(outPath string, mxproject MxprojectType, subsystem *cbuild.
 	var cgen cbuild.CgenType
 	relativePathAdd := path.Join("STM32CubeMX", "MDK-ARM")
 
-	cgen.Layer.ForBoard = subsystem.Board
-	cgen.Layer.ForDevice = subsystem.Device
-	cgen.Layer.Define = append(cgen.Layer.Define, mxproject.PreviousUsedKeilFiles.CDefines...)
+	cgen.GeneratorImport.ForBoard = subsystem.Board
+	cgen.GeneratorImport.ForDevice = subsystem.Device
+	cgen.GeneratorImport.Define = append(cgen.GeneratorImport.Define, mxproject.PreviousUsedKeilFiles.CDefines...)
 
 	for id := range mxproject.PreviousUsedKeilFiles.HeaderPath {
 		headerPath := mxproject.PreviousUsedKeilFiles.HeaderPath[id]
 		headerPath, _ = utils.ConvertFilename(outPath, headerPath, relativePathAdd)
-		cgen.Layer.AddPath = append(cgen.Layer.AddPath, headerPath)
+		cgen.GeneratorImport.AddPath = append(cgen.GeneratorImport.AddPath, headerPath)
 	}
 
 	var groupSrc cbuild.CgenGroupsType
@@ -245,8 +245,8 @@ func WriteCgenYmlSub(outPath string, mxproject MxprojectType, subsystem *cbuild.
 		}
 	}
 
-	cgen.Layer.Groups = append(cgen.Layer.Groups, groupSrc)
-	cgen.Layer.Groups = append(cgen.Layer.Groups, groupHalDriver)
+	cgen.GeneratorImport.Groups = append(cgen.GeneratorImport.Groups, groupSrc)
+	cgen.GeneratorImport.Groups = append(cgen.GeneratorImport.Groups, groupHalDriver)
 
 	if subsystem.TrustZone == "non-secure" {
 		groupTz.Group = "CMSE Library"
@@ -255,7 +255,7 @@ func WriteCgenYmlSub(outPath string, mxproject MxprojectType, subsystem *cbuild.
 		cgenFile.File += subsystem.SubsystemIdx.SecureContextName
 		cgenFile.File += ")$"
 		groupTz.Files = append(groupTz.Files, cgenFile)
-		cgen.Layer.Groups = append(cgen.Layer.Groups, groupTz)
+		cgen.GeneratorImport.Groups = append(cgen.GeneratorImport.Groups, groupTz)
 	}
 
 	return common.WriteYml(outFile, &cgen)
