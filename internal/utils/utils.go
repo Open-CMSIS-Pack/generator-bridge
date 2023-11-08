@@ -33,14 +33,6 @@ func (t *TextBuilder) AddLine(args ...string) {
 	t.text += "\n"
 }
 
-func (t *TextBuilder) AddSpaces(num, tabWidth int) {
-	for i := int(0); i < num; i++ {
-		for j := int(0); j < tabWidth; j++ {
-			t.text += " "
-		}
-	}
-}
-
 func (t *TextBuilder) GetLine() string {
 	return t.text
 }
@@ -78,7 +70,7 @@ func ConvertFilename(outPath, file, relativePathAdd string) (string, error) {
 	file = filepath.Clean(file)
 	file = filepath.ToSlash(file)
 
-	mdkarmPath := path.Join(outPath, relativePathAdd) // create the path where STCube sets it's files relative to (STM32CubeMX/MDK-ARM/)
+	mdkarmPath := path.Join(outPath, relativePathAdd) // create the path where STCube sets it's files relative to (./STM32CubeMX/MDK-ARM/)
 	file = path.Join(mdkarmPath, file)
 
 	if _, err := os.Stat(file); errors.Is(err, os.ErrNotExist) {

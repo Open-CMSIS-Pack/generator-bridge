@@ -230,7 +230,7 @@ func ReadCbuildgenIdx(name, outPath string, params *ParamsType) error {
 
 			params.Subsystem = append(params.Subsystem, subsystem)
 
-			// store Reference project for TZ-NS
+			// store Reference project for TZ
 			if cbuildGenIdx.ProjectType == "trustzone" {
 				if cbuildGen.ForProjectPart == "secure" {
 					secureContextName = cbuildGen.Project
