@@ -32,7 +32,11 @@ func Process(cbuildYmlPath, outPath, cubeMxPath, mxprojectPath string, runCubeMx
 
 	workDir := path.Dir(cbuildYmlPath)
 	if parms.OutPath != "" {
-		workDir = path.Join(workDir, parms.OutPath)
+		if filepath.IsAbs(parms.OutPath) {
+			workDir = parms.OutPath
+		} else {
+			workDir = path.Join(workDir, parms.OutPath)
+		}
 	} else {
 		workDir = path.Join(workDir, outPath)
 	}

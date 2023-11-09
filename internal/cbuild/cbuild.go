@@ -9,6 +9,7 @@ package cbuild
 import (
 	"errors"
 	"path"
+	"path/filepath"
 	"strings"
 
 	"github.com/open-cmsis-pack/generator-bridge/internal/common"
@@ -215,7 +216,7 @@ func ReadCbuildgenIdx(name, outPath string, params *ParamsType) error {
 			cbuildGen := cbuildGenIdx.CbuildGens[idSub]
 			fileName := cbuildGen.CbuildGen
 			var subPath string
-			if path.IsAbs(fileName) {
+			if filepath.IsAbs(fileName) {
 				subPath = fileName
 			} else {
 				subPath = path.Join(path.Dir(name), fileName)
