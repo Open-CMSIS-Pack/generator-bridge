@@ -201,7 +201,10 @@ func WriteCgenYml(outPath string, mxprojectAll MxprojectAllType, inParms cbuild.
 		if err != nil {
 			continue
 		}
-		WriteCgenYmlSub(outPath, mxproject, subsystem)
+		err = WriteCgenYmlSub(outPath, mxproject, subsystem)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
