@@ -76,7 +76,8 @@ jobs:
       - name: Scan for Vulnerabilities
         uses: golang/govulncheck-action@v1
         with:
-          go-version-input: 1.21.4
+          go-version-file: go.mod
+          check-latest: true
           go-package: ./...
 
   test:
@@ -100,7 +101,7 @@ jobs:
         uses: actions/setup-go@v4
         with:
           go-version-file: go.mod
-          cache: true
+          check-latest: true
 
       - name: Install go-junit-report
         run: go install github.com/jstemmer/go-junit-report/v2@latest
