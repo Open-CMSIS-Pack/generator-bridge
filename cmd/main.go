@@ -7,15 +7,30 @@
 package main
 
 import (
-	"fmt"
-	"strings"
+	"os"
+	"time"
 
-	"github.com/google/uuid"
+	"github.com/open-cmsis-pack/generator-bridge/cmd/commands"
+	"github.com/open-cmsis-pack/generator-bridge/internal/utils"
+	log "github.com/sirupsen/logrus"
 )
 
 func main() {
-	uuidWithHyphen, _ := uuid.NewRandom()
-	uuid := strings.Replace(uuidWithHyphen.String(), "-", "", -1)
-	fmt.Println(uuid)
-	fmt.Println("Hello, World!")
+	log.SetFormatter(new(LogFormatter))
+	log.SetOutput(os.Stdout)
+
+	utils.StartSignalWatcher()
+	start := time.Now()
+
+	commands.Version = version
+	commands.Copyright = copyright
+	cmd := commands.NewCli()
+	err := cmd.Execute()
+	if err != nil {
+		log.Errorf("Error : %v", err)
+		os.Exit(-1)
+	}
+
+	log.Debugf("Took %v", time.Since(start))
+	utils.StopSignalWatcher()
 }
