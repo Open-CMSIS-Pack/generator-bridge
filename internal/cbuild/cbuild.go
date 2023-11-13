@@ -196,7 +196,7 @@ func ReadCbuildgenIdx(name, outPath string, params *ParamsType) error {
 		cbuildGenIdxType := cbuildGenIdx.ProjectType
 		cbuildGenIdxOutputPath := cbuildGenIdx.Output
 
-		log.Infof("Found CBuildGenIdx: #%v Id: %v, board: %v, device: %v, type: %v", idGen, cbuildGenIdxID, cbuildGenIdxBoard, cbuildGenIdxDevice, cbuildGenIdxType)
+		log.Infof("Found CBuildGenIdx: #%v ID: %v, board: %v, device: %v, type: %v", idGen, cbuildGenIdxID, cbuildGenIdxBoard, cbuildGenIdxDevice, cbuildGenIdxType)
 		log.Infof("CBuildGenIdx Output path: %v", cbuildGenIdxOutputPath)
 
 		params.Device = cbuildGenIdxDevice

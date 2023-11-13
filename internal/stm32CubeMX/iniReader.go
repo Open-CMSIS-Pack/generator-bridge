@@ -213,8 +213,8 @@ func IniReader(path string, trustzone bool) (MxprojectAllType, error) {
 		return mxprojectAll, err
 	}
 
-	for coreId := range iniSections.cores {
-		core := iniSections.cores[coreId]
+	for coreID := range iniSections.cores {
+		core := iniSections.cores[coreID]
 		iniName := core.iniName
 		if iniName == "Cortex" { // remove workaround for single-core .mxproject CubeMx files
 			iniName = ""
@@ -244,8 +244,8 @@ func GetIni(path string) (*ini.File, error) {
 
 func GetSections(inidata *ini.File, iniSections *IniSectionsType) error {
 	sectionsData := inidata.SectionStrings()
-	for sectionId := range sectionsData {
-		section := sectionsData[sectionId]
+	for sectionID := range sectionsData {
+		section := sectionsData[sectionID]
 		var iniName string
 		var sectionName string
 		sectionString := strings.Split(section, ":")
@@ -290,11 +290,11 @@ func GetSections(inidata *ini.File, iniSections *IniSectionsType) error {
 func GetData(inidata *ini.File, iniName string) (MxprojectType, error) {
 	var mxproject MxprojectType
 	var sectionName string
-	const PreviousUsedKeilFilesId = "PreviousUsedKeilFiles"
+	const PreviousUsedKeilFilesID = "PreviousUsedKeilFiles"
 	if iniName != "" {
-		sectionName = iniName + ":" + PreviousUsedKeilFilesId
+		sectionName = iniName + ":" + PreviousUsedKeilFilesID
 	} else {
-		sectionName = PreviousUsedKeilFilesId
+		sectionName = PreviousUsedKeilFilesID
 	}
 	section := inidata.Section(sectionName)
 	if section != nil {
@@ -306,11 +306,11 @@ func GetData(inidata *ini.File, iniName string) (MxprojectType, error) {
 		PrintItemCsv(section, "CDefines")
 	}
 
-	const PreviousLibFilesId = "PreviousLibFiles"
+	const PreviousLibFilesID = "PreviousLibFiles"
 	if iniName != "" {
-		sectionName = iniName + ":" + PreviousLibFilesId
+		sectionName = iniName + ":" + PreviousLibFilesID
 	} else {
-		sectionName = PreviousLibFilesId
+		sectionName = PreviousLibFilesID
 	}
 	section = inidata.Section(sectionName)
 	if section != nil {
@@ -318,11 +318,11 @@ func GetData(inidata *ini.File, iniName string) (MxprojectType, error) {
 		PrintItemCsv(section, "LibFiles")
 	}
 
-	const PreviousGenFilesId = "PreviousGenFiles"
+	const PreviousGenFilesID = "PreviousGenFiles"
 	if iniName != "" {
-		sectionName = iniName + ":" + PreviousGenFilesId
+		sectionName = iniName + ":" + PreviousGenFilesID
 	} else {
-		sectionName = PreviousGenFilesId
+		sectionName = PreviousGenFilesID
 	}
 	section = inidata.Section(sectionName)
 	if section != nil {

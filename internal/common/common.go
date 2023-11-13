@@ -37,9 +37,9 @@ func WriteYml(path string, out interface{}) error {
 		return err
 	}
 
-	err1 := os.WriteFile(path, data.Bytes(), 0600)
-	if err1 != nil {
-		log.Fatal(err1)
+	err = os.WriteFile(path, data.Bytes(), 0600)
+	if err != nil {
+		log.Fatal(err)
 	}
 
 	return nil
