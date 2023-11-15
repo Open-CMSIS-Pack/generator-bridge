@@ -49,7 +49,12 @@ func Process(cbuildYmlPath, outPath, cubeMxPath, mxprojectPath string, runCubeMx
 	}
 
 	if runCubeMx {
-		cubeIocPath := path.Join(workDir, "STM32CubeMX", "STM32CubeMX.ioc")
+		cubeIocPath := workDir
+		lastPath := filepath.Base(cubeIocPath)
+		if lastPath != "STM32CubeMX" {
+			cubeIocPath = path.Join(cubeIocPath, "STM32CubeMX")
+		}
+		cubeIocPath = path.Join(cubeIocPath, "STM32CubeMX.ioc")
 
 		if utils.FileExists(cubeIocPath) {
 			err := Launch(cubeIocPath, "")
@@ -69,7 +74,8 @@ func Process(cbuildYmlPath, outPath, cubeMxPath, mxprojectPath string, runCubeMx
 			}
 		}
 
-		mxprojectPath = path.Join(workDir, "STM32CubeMX", ".mxproject")
+		tmpPath, _ := filepath.Split(cubeIocPath)
+		mxprojectPath = path.Join(tmpPath, ".mxproject")
 	}
 	mxproject, err := IniReader(mxprojectPath, false)
 	if err != nil {
@@ -214,7 +220,13 @@ func WriteCgenYmlSub(outPath string, mxproject MxprojectType, subsystem *cbuild.
 	outName := subsystem.SubsystemIdx.Project + ".cgen.yml"
 	outFile := path.Join(outPath, outName)
 	var cgen cbuild.CgenType
-	relativePathAdd := path.Join("STM32CubeMX", "MDK-ARM")
+
+	lastPath := filepath.Base(outPath)
+	var relativePathAdd string
+	if lastPath != "STM32CubeMX" {
+		relativePathAdd = path.Join(relativePathAdd, "STM32CubeMX")
+	}
+	relativePathAdd = path.Join(relativePathAdd, "MDK-ARM")
 
 	cgen.GeneratorImport.ForBoard = subsystem.Board
 	cgen.GeneratorImport.ForDevice = subsystem.Device
