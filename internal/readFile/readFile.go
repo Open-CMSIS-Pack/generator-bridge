@@ -8,6 +8,8 @@ package readfile
 
 import (
 	"errors"
+	"os"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -59,7 +61,35 @@ func Process(inFile, inFile2, outPath string) error {
 			params.Device = "Test Device"
 		}
 
-		err := stm32cubemx.WriteCgenYml(outPath, mxprojectAll, params)
+		var parms cbuild.ParamsType
+
+		err := stm32cubemx.ReadCbuildYmlFile(inFile, outPath, &parms)
+		if err != nil {
+			return err
+		}
+		workDir := path.Dir(inFile)
+		if parms.OutPath != "" {
+			if filepath.IsAbs(parms.OutPath) {
+				workDir = parms.OutPath
+			} else {
+				workDir = path.Join(workDir, parms.OutPath)
+			}
+		} else {
+			workDir = path.Join(workDir, outPath)
+		}
+		workDir = filepath.Clean(workDir)
+		workDir = filepath.ToSlash(workDir)
+		err = os.MkdirAll(workDir, os.ModePerm)
+		if err != nil {
+			return err
+		}
+			
+		err = stm32cubemx.ReadContexts(workDir + "/STM32CubeMX/STM32CubeMX.ioc")
+		if err != nil {
+			return err
+		}
+
+		err = stm32cubemx.WriteCgenYml(outPath, mxprojectAll, params)
 		if err != nil {
 			return err
 		}
