@@ -209,13 +209,13 @@ func FindMxProject(subsystem *cbuild.SubsystemType, mxprojectAll MxprojectAllTyp
 }
 
 type PinDefinition struct {
-	p			string
-	pin			string
-	port		string
-	mode		string
-	pull 		string
-	speed		string
-	alternate	string
+	p         string
+	pin       string
+	port      string
+	mode      string
+	pull      string
+	speed     string
+	alternate string
 }
 
 func ReadContexts(iocFile string) error {
@@ -240,8 +240,8 @@ func ReadContexts(iocFile string) error {
 		return err
 	}
 
-	mspName := deviceFamily + "xx_hal_msp.c"
-//	pinConfigMap, err := createPinConfigMap(mspName)
+	mspName := deviceFamily+"xx_hal_msp.c"
+	//	pinConfigMap, err := createPinConfigMap(mspName)
 	mspFolder := contextMap["ProjectManager"]["MainLocation"]
 	if mspFolder == "" {
 		return errors.New("main location missing")
@@ -259,7 +259,10 @@ func ReadContexts(iocFile string) error {
 		fName := "MX_Device.h"
 		fPath := path.Join(path.Dir(workDir), "drv_cfg", "cproject_" + strconv.Itoa(projectIndex))
 		if _, err := os.Stat(fPath); err != nil {
-			os.MkdirAll(fPath, 0750)
+			err = os.MkdirAll(fPath, 0750)
+			if err != nil {
+				return err
+			}
 		}
 		fPath = path.Join(fPath, fName)
 		fMxDevice, err := os.Create(fPath)
@@ -269,19 +272,25 @@ func ReadContexts(iocFile string) error {
 		defer fMxDevice.Close()
 
 		mxDeviceWriteHeader(fMxDevice, fName)
-        peripherals, err := getPeripherals1(contextMap)
+		peripherals, err := getPeripherals1(contextMap)
 		if err != nil {
 			return err
 		}
-        for _, peripheral := range(peripherals) {
-            vmode := getVirtualMode(contextMap, peripheral)
-            pins := getPins(contextMap, fMsp, peripheral)
-            err := mxDeviceWritePeripheralCfg(fMxDevice, peripheral, vmode, pins)
+		for _, peripheral := range peripherals {
+			vmode := getVirtualMode(contextMap, peripheral)
+			pins, err := getPins(contextMap, fMsp, peripheral)
+			if err != nil {
+				return err
+			}
+			err = mxDeviceWritePeripheralCfg(fMxDevice, peripheral, vmode, pins)
 			if err != nil {
 				return err
 			}
 		}
-        fMxDevice.WriteString("\n#endif  /* __MX_DEVICE_H */\n")
+        _, err = fMxDevice.WriteString("\n#endif  /* __MX_DEVICE_H */\n")
+		if err != nil {
+			return err
+		}
 	} else {
 		CONTEXT := make(map[string]string)
 		CONTEXT["CortexM33S"] = "Secure"
@@ -299,11 +308,14 @@ func ReadContexts(iocFile string) error {
 			if err != nil {
 				return err
 			}
-	
+
 			fName := "MX_Device.h"
 			fPath := path.Join(path.Dir(workDir), "drv_cfg", "cproject_" + strconv.Itoa(projectIndex))
 			if _, err := os.Stat(fPath); err != nil {
-				os.MkdirAll(fPath, 0750)
+				err = os.MkdirAll(fPath, 0750)
+				if err != nil {
+					return err
+				}
 			}
 			fPath = path.Join(fPath, fName)
 			fMxDevice, err := os.Create(fPath)
@@ -312,25 +324,35 @@ func ReadContexts(iocFile string) error {
 			}
 
 			projectIndex += 1
-	
+
 			mxDeviceWriteHeader(fMxDevice, fName)
 			peripherals, err := getPeripherals(contextMap, context)
 			if err != nil {
 				fMxDevice.Close()
 				return err
 			}
-			for _, peripheral := range(peripherals) {
+			for _, peripheral := range peripherals {
 				vmode := getVirtualMode(contextMap, peripheral)
-				pins := getPins(contextMap, fMsp, peripheral)
-				err := mxDeviceWritePeripheralCfg(fMxDevice, peripheral, vmode, pins)
+				pins, err := getPins(contextMap, fMsp, peripheral)
+				if err != nil {
+					fMxDevice.Close()
+					return err
+				}
+				err = mxDeviceWritePeripheralCfg(fMxDevice, peripheral, vmode, pins)
 				if err != nil {
 					fMxDevice.Close()
 					return err
 				}
 			}
-			fMxDevice.WriteString("\n#endif  /* __MX_DEVICE_H */\n")
-			fMxDevice.Close()
+			_, err = fMxDevice.WriteString("\n#endif  /* __MX_DEVICE_H */\n")
+			if err != nil {
+				return err
 			}
+			err = fMxDevice.Close()
+			if err != nil {
+				return err
+			}
+		}
 	}
 	return nil
 }
@@ -363,49 +385,49 @@ func createContextMap(iocFile string) (map[string]map[string]string, error) {
 }
 
 /*
-func createPinConfigMap(mspName string) (map[string]PinDefinition, error) {
-	pinConfigMap := make(map[string]PinDefinition)
-	var instance string
-	fIoc, err := os.Open(mspName)
-	if err != nil {
-		return nil, err
-	}
-	defer fIoc.Close()
-	mspScan := bufio.NewScanner(fIoc)
-	mspScan.Split(bufio.ScanLines)
-	s := "->Instance=="
-	h := "HAL_GPIO_Init"
-	for mspScan.Scan() {
-		line := mspScan.Text()
-		if line == "}" {				// end of function
-			instance = ""				// reset instance
+	func createPinConfigMap(mspName string) (map[string]PinDefinition, error) {
+		pinConfigMap := make(map[string]PinDefinition)
+		var instance string
+		fIoc, err := os.Open(mspName)
+		if err != nil {
+			return nil, err
 		}
-		if len(instance) == 0 {			// no instance yet
-			idx := strings.Index(line, s)
-			if idx != -1 {
-				inst := strings.Split(line[idx:], ")")[0]
-				if len(inst) > 0 {
-					instance = inst
+		defer fIoc.Close()
+		mspScan := bufio.NewScanner(fIoc)
+		mspScan.Split(bufio.ScanLines)
+		s := "->Instance=="
+		h := "HAL_GPIO_Init"
+		for mspScan.Scan() {
+			line := mspScan.Text()
+			if line == "}" {				// end of function
+				instance = ""				// reset instance
+			}
+			if len(instance) == 0 {			// no instance yet
+				idx := strings.Index(line, s)
+				if idx != -1 {
+					inst := strings.Split(line[idx:], ")")[0]
+					if len(inst) > 0 {
+						instance = inst
+					}
+				}
+			} else {						// there was an instance
+				idx := strings.Index(line, h)
+				if idx != -1 {
+					pinConfigMap[instance] = pinDef
 				}
 			}
-		} else {						// there was an instance
-			idx := strings.Index(line, h)
-			if idx != -1 {
-				pinConfigMap[instance] = pinDef
-			}
 		}
+		return pinConfigMap, nil
 	}
-	return pinConfigMap, nil
-}
  */
 func getContexts(contextMap map[string]map[string]string) ([]string, error) {
-	var contexts [] string
+	var contexts []string
 	head := contextMap["Mcu"]
 	if len(head) > 0 {
 		for key, content := range head {
 			if strings.HasPrefix(key, "Context") {
-	 			l := len(key)
-	 			if l > 0 && key[l-1] >= '0' && key[l-1] <= '9' {
+				l := len(key)
+				if l > 0 && key[l-1] >= '0' && key[l-1] <= '9' {
 					contexts = append(contexts, content)
 				}
 			}
@@ -426,12 +448,12 @@ func getDeviceFamily(contextMap map[string]map[string]string) (string, error) {
 
 func getPeripherals1(contextMap map[string]map[string]string) ([]string, error) {
 	PERIPHERALS := [...]string{"USART", "UART", "LPUART", "SPI", "I2C", "ETH", "SDMMC", "CAN", "USB", "SDIO", "FDCAN"}
-	var peripherals [] string
+	var peripherals []string
 	mcu := contextMap["Mcu"]
 	if mcu != nil {
-		for ip, peri := range(mcu) {
+		for ip, peri := range mcu {
 			if strings.HasPrefix(ip, "IP") {
-				for _, peripheral := range(PERIPHERALS) {
+				for _, peripheral := range PERIPHERALS {
 					if strings.HasPrefix(peri, peripheral) {
 						peripherals = append(peripherals, peri)
 					}
@@ -446,7 +468,7 @@ func getPeripherals1(contextMap map[string]map[string]string) ([]string, error) 
 
 func getPeripherals(contextMap map[string]map[string]string, context string) ([]string, error) {
 	PERIPHERALS := [...]string{"USART", "UART", "LPUART", "SPI", "I2C", "ETH", "SDMMC", "CAN", "USB", "SDIO", "FDCAN"}
-	var peripherals [] string
+	var peripherals []string
 	contextIps := contextMap[context]
 	if contextIps == nil {
 		return nil, errors.New("context not found in ioc")
@@ -457,10 +479,10 @@ func getPeripherals(contextMap map[string]map[string]string, context string) ([]
 	}
 	mcu := contextMap["Mcu"]
 	if mcu != nil {
-		for ip, peri := range(mcu) {
+		for ip, peri := range mcu {
 			if strings.HasPrefix(ip, "IP") {
 				if strings.Contains(contextIpsLine, peri) {
-					for _, peripheral := range(PERIPHERALS) {
+					for _, peripheral := range PERIPHERALS {
 						if strings.HasPrefix(peri, peripheral) {
 							peripherals = append(peripherals, peri)
 						}
@@ -477,7 +499,7 @@ func getPeripherals(contextMap map[string]map[string]string, context string) ([]
 func getVirtualMode(contextMap map[string]map[string]string, peripheral string) string {
 	peri := contextMap[peripheral]
 	if len(peri) > 0 {
-		for vm, vmode := range(peri) {
+		for vm, vmode := range peri {
 			if strings.HasPrefix(vm, "VirtualMode") {
 				return vmode
 			}
@@ -486,11 +508,11 @@ func getVirtualMode(contextMap map[string]map[string]string, peripheral string) 
 	return ""
 }
 
-func getPins(contextMap map[string]map[string]string, fMsp *os.File, peripheral string) map[string]PinDefinition {
+func getPins(contextMap map[string]map[string]string, fMsp *os.File, peripheral string) (map[string]PinDefinition, error) {
 	pinsName := make(map[string]string)
 	pinsLabel := make(map[string]string)
 	pinsInfo := make(map[string]PinDefinition)
-	for key, signal := range(contextMap) {
+	for key, signal := range contextMap {
 		if !strings.HasPrefix(key, "VP") {
 			peri := signal["Signal"]
 			if strings.HasPrefix(peri, peripheral) {
@@ -504,23 +526,26 @@ func getPins(contextMap map[string]map[string]string, fMsp *os.File, peripheral 
 			}
 		}
 	}
-	for pin, name := range(pinsName) {
+	for pin, name := range pinsName {
 		p := strings.Split(pin, "\\")[0]
 		p = strings.Split(p, "(")[0]
 		p = strings.Split(p, " ")[0]
 		p = strings.Split(p, "_")[0]
 		p = strings.Split(p, "-")[0]
 		label := pinsLabel[pin]
-		info := getPinConfiguration(fMsp, peripheral, p, label)
+		info, err := getPinConfiguration(fMsp, peripheral, p, label)
+		if err != nil {
+			return nil, err
+		}
 		pinsInfo[name] = info
 	}
-	return pinsInfo
+	return pinsInfo, nil
 }
 
 func replaceSpecialChars(label string, ch string) string {
-	specialCharacter := []string{"!", "@", "#", "$", "%", "^", "&", "*", "(",  "+", "=", "-", "_", "[", "]", "{", "}",
-								 ";", ":", ",", ".", "?", "/", "\\", "|", "~", "`", "\"", "'", "<", ">", " "}
-	for _, spec := range(specialCharacter) {
+	specialCharacter := []string{"!", "@", "#", "$", "%", "^", "&", "*", "(", "+", "=", "-", "_", "[", "]", "{", "}",
+			";", ":", ",", ".", "?", "/", "\\", "|", "~", "`", "\"", "'", "<", ">", " "}
+	for _, spec := range specialCharacter {
 		label = strings.ReplaceAll(label, spec, ch)
 	}
 	return label
@@ -535,8 +560,8 @@ func getDigitAtEnd(pin string) string {
 	return ""
 }
 
-func getPinConfiguration(fMsp *os.File, peripheral string, pin string, label string) PinDefinition {
-	var pinInfo	PinDefinition
+func getPinConfiguration(fMsp *os.File, peripheral string, pin string, label string) (PinDefinition, error) {
+	var pinInfo PinDefinition
 
 	pinNum := getDigitAtEnd(pin)
 	gpioPin := "GPIO_PIN_" + pinNum
@@ -544,7 +569,10 @@ func getPinConfiguration(fMsp *os.File, peripheral string, pin string, label str
 	gpioPort := "GPIO" + port
 
 	section := false
-	fMsp.Seek(0, 0)
+	_, err := fMsp.Seek(0, 0)
+	if err != nil {
+		return PinDefinition{}, err
+	}
 	mspScan := bufio.NewScanner(fMsp)
 	mspScan.Split(bufio.ScanLines)
 	s := "->Instance=="
@@ -553,23 +581,23 @@ func getPinConfiguration(fMsp *os.File, peripheral string, pin string, label str
 	value := ""
 	for mspScan.Scan() {
 		line := mspScan.Text()
-		if line == "}" {				// end of function
-			section = false				// reset instance
+		if line == "}" { // end of function
+			section = false // reset instance
 		}
 		if strings.Contains(line, s) && strings.Contains(line, peripheral) {
 			section = true
 		}
 		if section {
 			if strings.Contains(line, h) {
-				if strings.Contains(line, gpioPort) || strings.Contains(line, label + "_GPIO_Port") {
+				if strings.Contains(line, gpioPort) || strings.Contains(line, label+"_GPIO_Port") {
 					values := strings.Split(pinInfo.pin, "|")
-					for _, val := range(values) {
+					for _, val := range values {
 						val = strings.TrimRight(strings.TrimLeft(val, " "), " ")
-						if val == gpioPin || val == (label + "_Pin") {
+						if val == gpioPin || val == (label+"_Pin") {
 							pinInfo.p = pin;
 							pinInfo.pin = gpioPin
 							pinInfo.port = gpioPort
-							return pinInfo
+							return pinInfo, nil
 						}
 					}
 				}
@@ -607,23 +635,47 @@ func getPinConfiguration(fMsp *os.File, peripheral string, pin string, label str
 			}
 		}
 	}
-	return PinDefinition{}
+	return PinDefinition{}, nil
 }
 
 func mxDeviceWriteHeader(fMxDevice *os.File, fName string) error {
 	now := time.Now()
 	dtString := now.Format("02/01/2006 15:04:05")
 
-	fMxDevice.WriteString("/******************************************************************************\n")
-	fMxDevice.WriteString(" * File Name   : " + fName + "\n")
-	fMxDevice.WriteString(" * Date        : " + dtString + "\n")
-	fMxDevice.WriteString(" * Description : STM32Cube MX parameter definitions\n")
-	fMxDevice.WriteString(" * Note        : This file is generated with a generator out of the\n")
-	fMxDevice.WriteString(" *               STM32CubeMX project and its generated files (DO NOT EDIT!)\n")
-	fMxDevice.WriteString(" ******************************************************************************/\n\n")
-	fMxDevice.WriteString("#ifndef __MX_DEVICE_H\n")
-	fMxDevice.WriteString("#define __MX_DEVICE_H\n\n")
-	return nil
+	_, err := fMxDevice.WriteString("/******************************************************************************\n")
+	if err != nil {
+		return err
+	}
+	_, err = fMxDevice.WriteString(" * File Name   : " + fName+"\n")
+	if err != nil {
+		return err
+	}
+	_, err = fMxDevice.WriteString(" * Date        : " + dtString+"\n")
+	if err != nil {
+		return err
+	}
+	_, err = fMxDevice.WriteString(" * Description : STM32Cube MX parameter definitions\n")
+	if err != nil {
+		return err
+	}
+	_, err = fMxDevice.WriteString(" * Note        : This file is generated with a generator out of the\n")
+	if err != nil {
+		return err
+	}
+	_, err = fMxDevice.WriteString(" *               STM32CubeMX project and its generated files (DO NOT EDIT!)\n")
+	if err != nil {
+		return err
+	}
+	_, err = fMxDevice.WriteString(" ******************************************************************************/\n\n")
+	if err != nil {
+		return err
+	}
+	_, err = fMxDevice.WriteString("#ifndef __MX_DEVICE_H\n")
+	if err != nil {
+		return err
+	}
+	_, err = fMxDevice.WriteString("#define __MX_DEVICE_H\n\n")
+	return err
 }
 
 func mxDeviceWritePeripheralCfg(fMxDevice *os.File, peripheral string, vmode string, pins map[string]PinDefinition) error {
@@ -632,37 +684,79 @@ func mxDeviceWritePeripheralCfg(fMxDevice *os.File, peripheral string, vmode str
 		str += strings.Repeat(" ", 49-len(str))
 	}
 	str += "-----------------------------*/\n"
-	fMxDevice.WriteString(str)
-	fMxDevice.WriteString(createDefine(peripheral, "1") + "\n\n")
+	_, err := fMxDevice.WriteString(str)
+	if err != nil {
+		return err
+	}
+	_, err = fMxDevice.WriteString(createDefine(peripheral, "1")+"\n\n")
+	if err != nil {
+		return err
+	}
 	if vmode != "" {
-		fMxDevice.WriteString("/* Virtual mode */\n")
-		fMxDevice.WriteString(createDefine(peripheral + "_VM", vmode) + "\n")
-		fMxDevice.WriteString(createDefine(peripheral + "_" + vmode, "1") + "\n\n")
+		_, err = fMxDevice.WriteString("/* Virtual mode */\n")
+		if err != nil {
+			return err
+		}
+		_, err = fMxDevice.WriteString(createDefine(peripheral+"_VM", vmode)+"\n")
+		if err != nil {
+			return err
+		}
+		_, err = fMxDevice.WriteString(createDefine(peripheral+"_" + vmode, "1")+"\n\n")
+		if err != nil {
+			return err
+		}
 	}
 	if len(pins) != 0 {
-		fMxDevice.WriteString("/* Pins */\n")
-		for pin, pinDef := range(pins) {
-			fMxDevice.WriteString("\n/* " + pin + " */\n")
+		_, err = fMxDevice.WriteString("/* Pins */\n")
+		if err != nil {
+			return err
+		}
+		for pin, pinDef := range pins {
+			_, err = fMxDevice.WriteString("\n/* " + pin+" */\n")
+			if err != nil {
+				return err
+			}
 			if len(pinDef.p) != 0 {
-				fMxDevice.WriteString(createDefine(pin + "_Pin", pinDef.p) + "\n")
+				_, err = fMxDevice.WriteString(createDefine(pin+"_Pin", pinDef.p)+"\n")
+				if err != nil {
+					return err
+				}
 			}
 			if len(pinDef.pin) != 0 {
-				fMxDevice.WriteString(createDefine(pin + "_GPIO_Pin", pinDef.pin) + "\n")
+				_, err = fMxDevice.WriteString(createDefine(pin+"_GPIO_Pin", pinDef.pin)+"\n")
+				if err != nil {
+					return err
+				}
 			}
 			if len(pinDef.port) != 0 {
-				fMxDevice.WriteString(createDefine(pin + "_GPIOx", pinDef.port) + "\n")
+				_, err = fMxDevice.WriteString(createDefine(pin+"_GPIOx", pinDef.port)+"\n")
+				if err != nil {
+					return err
+				}
 			}
 			if len(pinDef.mode) != 0 {
-				fMxDevice.WriteString(createDefine(pin + "_GPIO_Mode", pinDef.mode) + "\n")
+				_, err = fMxDevice.WriteString(createDefine(pin+"_GPIO_Mode", pinDef.mode)+"\n")
+				if err != nil {
+					return err
+				}
 			}
 			if len(pinDef.pull) != 0 {
-				fMxDevice.WriteString(createDefine(pin + "_GPIO_PuPd", pinDef.pull) + "\n")
+				_, err = fMxDevice.WriteString(createDefine(pin+"_GPIO_PuPd", pinDef.pull)+"\n")
+				if err != nil {
+					return err
+				}
 			}
 			if len(pinDef.speed) != 0 {
-				fMxDevice.WriteString(createDefine(pin + "_GPIO_Speed", pinDef.speed) + "\n")
+				_, err = fMxDevice.WriteString(createDefine(pin+"_GPIO_Speed", pinDef.speed)+"\n")
+				if err != nil {
+					return err
+				}
 			}
 			if len(pinDef.alternate) != 0 {
-				fMxDevice.WriteString(createDefine(pin + "_GPIO_AF", pinDef.alternate) + "\n")
+				_, err = fMxDevice.WriteString(createDefine(pin+"_GPIO_AF", pinDef.alternate)+"\n")
+				if err != nil {
+					return err
+				}
 			}
 		}
 	}
@@ -673,7 +767,7 @@ func mxDeviceWritePeripheralCfg(fMxDevice *os.File, peripheral string, vmode str
 func createDefine(name string, value string) string {
 	invalidChars := [...]string{"=", " ", "/", "(", ")", "[", "]", "\\", "-"}
 
-	for _, ch := range(invalidChars) {
+	for _, ch := range invalidChars {
 		name = strings.ReplaceAll(name, ch, "_")
 		value = strings.ReplaceAll(value, ch, "_")
 	}
@@ -703,7 +797,7 @@ func WriteCgenYml(outPath string, mxprojectAll MxprojectAllType, inParms cbuild.
 }
 
 func WriteCgenYmlSub(outPath string, mxproject MxprojectType, subsystem *cbuild.SubsystemType) error {
-	outName := subsystem.SubsystemIdx.Project + ".cgen.yml"
+	outName := subsystem.SubsystemIdx.Project+".cgen.yml"
 	outFile := path.Join(outPath, outName)
 	var cgen cbuild.CgenType
 
