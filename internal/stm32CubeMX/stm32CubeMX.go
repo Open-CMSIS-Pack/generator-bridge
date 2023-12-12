@@ -271,7 +271,10 @@ func ReadContexts(iocFile string) error {
 		}
 		defer fMxDevice.Close()
 
-		mxDeviceWriteHeader(fMxDevice, fName)
+		err = mxDeviceWriteHeader(fMxDevice, fName)
+		if err != nil {
+			return err
+		}
 		peripherals, err := getPeripherals1(contextMap)
 		if err != nil {
 			return err
@@ -547,7 +550,7 @@ func getPins(contextMap map[string]map[string]string, fMsp *os.File, peripheral 
 }
 
 func replaceSpecialChars(label string, ch string) string {
-	specialCharacter := []string{"!", "@", "#", "$", "%", "^", "&", "*", "(", "+", "=", "-", "_", "[", "]", "{", "}",
+	specialCharacter := [...]string{"!", "@", "#", "$", "%", "^", "&", "*", "(", "+", "=", "-", "_", "[", "]", "{", "}",
 		";", ":", ",", ".", "?", "/", "\\", "|", "~", "`", "\"", "'", "<", ">", " "}
 	for _, spec := range specialCharacter {
 		label = strings.ReplaceAll(label, spec, ch)
