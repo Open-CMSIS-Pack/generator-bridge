@@ -15,7 +15,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
-	"strconv"
 	"strings"
 	"time"
 
@@ -78,7 +77,7 @@ func Process(cbuildYmlPath, outPath, cubeMxPath, mxprojectPath string, runCubeMx
 			}
 		}
 
-		err = ReadContexts(cubeIocPath)
+		err = ReadContexts(cubeIocPath, parms)
 		if err != nil {
 			return err
 		}
@@ -218,7 +217,7 @@ type PinDefinition struct {
 	alternate string
 }
 
-func ReadContexts(iocFile string) error {
+func ReadContexts(iocFile string, params cbuild.ParamsType) error {
 	contextMap, err := createContextMap(iocFile)
 	if err != nil {
 		return err
@@ -247,7 +246,7 @@ func ReadContexts(iocFile string) error {
 		return errors.New("main location missing")
 	}
 
-	projectIndex := 1
+	projectIndex := 0
 	if len(contexts) == 0 {
 		msp := path.Join(workDirAbs, mspFolder, mspName)
 		fMsp, err := os.Open(msp)
@@ -256,8 +255,9 @@ func ReadContexts(iocFile string) error {
 		}
 		defer fMsp.Close()
 
+		subsystem := &params.Subsystem[projectIndex]
 		fName := "MX_Device.h"
-		fPath := path.Join(path.Dir(workDir), "drv_cfg", "cproject_"+strconv.Itoa(projectIndex))
+		fPath := path.Join(path.Dir(workDir), "drv_cfg", subsystem.SubsystemIdx.Project)
 		if _, err := os.Stat(fPath); err != nil {
 			err = os.MkdirAll(fPath, 0750)
 			if err != nil {
@@ -312,8 +312,9 @@ func ReadContexts(iocFile string) error {
 				return err
 			}
 
+			subsystem := &params.Subsystem[projectIndex]
 			fName := "MX_Device.h"
-			fPath := path.Join(path.Dir(workDir), "drv_cfg", "cproject_"+strconv.Itoa(projectIndex))
+			fPath := path.Join(path.Dir(workDir), "drv_cfg", subsystem.SubsystemIdx.Project)
 			if _, err := os.Stat(fPath); err != nil {
 				err = os.MkdirAll(fPath, 0750)
 				if err != nil {
