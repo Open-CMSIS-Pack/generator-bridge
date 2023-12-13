@@ -11,3 +11,6 @@
 # Folders
 .vscode
 /build*/
+
+# others
+*~

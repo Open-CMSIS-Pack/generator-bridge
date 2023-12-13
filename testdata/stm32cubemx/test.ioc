@@ -1,0 +1,3 @@
+#MicroXplorer Configuration settings - do not modify
+Mcu.Family=STM32U5
+PA10.GPIOParameters=GPIO_Label
