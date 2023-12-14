@@ -74,6 +74,11 @@ func Process(cbuildYmlPath, outPath, cubeMxPath, mxprojectPath string, runCubeMx
 			}
 		}
 
+		err = ReadContexts(cubeIocPath, parms)
+		if err != nil {
+			return err
+		}
+
 		tmpPath, _ := filepath.Split(cubeIocPath)
 		mxprojectPath = path.Join(tmpPath, ".mxproject")
 	}
