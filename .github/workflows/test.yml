@@ -117,7 +117,7 @@ jobs:
           go-junit-report -set-exit-code -in build/${{ env.program }}-${{ matrix.target }}-${{ matrix.arch }}.txt -iocopy -out build/${{ env.program }}-testreport-${{ matrix.target }}-${{ matrix.arch }}.xml
 
       - name: Archive test results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ env.program }}-test-result-${{ matrix.target }}-${{ matrix.arch }}
           path: ./build/${{ env.program }}-testreport-*.xml
