@@ -136,9 +136,10 @@ jobs:
           path: artifacts
 
       - name: publish test results
-        uses: EnricoMi/publish-unit-test-result-action@v2
+        uses: EnricoMi/publish-unit-test-result-action/composite@v2
         with:
-          files: "artifacts/**/${{ env.program }}-testreport-*.xml"
+          commit: ${{ github.event.workflow_run.head_sha }}
+          junit_files: "artifacts/**/${{ env.program }}-testreport-*.xml"
           report_individual_runs: true
 
   coverage:
