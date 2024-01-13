@@ -13,6 +13,7 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -35,7 +36,10 @@ func ReadContexts(iocFile string, params cbuild.ParamsType) error {
 		return err
 	}
 
-	contexts := getContexts(contextMap)
+	contexts, err := getContexts(contextMap)
+	if err != nil {
+		return err
+	}
 
 	deviceFamily, err := getDeviceFamily(contextMap)
 	if err != nil {
@@ -55,7 +59,6 @@ func ReadContexts(iocFile string, params cbuild.ParamsType) error {
 		return errors.New("main location missing")
 	}
 
-	projectIndex := 0
 	if len(contexts) == 0 {
 		msp := path.Join(workDirAbs, mspFolder, mspName)
 		fMsp, err := os.Open(msp)
@@ -64,7 +67,7 @@ func ReadContexts(iocFile string, params cbuild.ParamsType) error {
 		}
 		defer fMsp.Close()
 
-		subsystem := &params.Subsystem[projectIndex]
+		subsystem := &params.Subsystem[0]
 		fName := "MX_Device.h"
 		fPath := path.Join(path.Dir(workDir), "drv_cfg", subsystem.SubsystemIdx.Project)
 		if _, err := os.Stat(fPath); err != nil {
@@ -109,7 +112,7 @@ func ReadContexts(iocFile string, params cbuild.ParamsType) error {
 		CONTEXT["CortexM33NS"] = "NonSecure"
 		CONTEXT["CortexM4"] = "CM4"
 		CONTEXT["CortexM7"] = "CM7"
-		for _, context := range contexts {
+		for projectIndex, context := range contexts {
 			contextFolder := CONTEXT[context]
 			if contextFolder == "" {
 				print("Cannot find ", mspName)
@@ -237,20 +240,24 @@ func createContextMap(iocFile string) (map[string]map[string]string, error) {
 		return pinConfigMap, nil
 	}
 */
-func getContexts(contextMap map[string]map[string]string) []string {
-	contexts := []string{}
+func getContexts(contextMap map[string]map[string]string) (map[int]string, error) {
+	contexts := make(map[int]string)
 	head := contextMap["Mcu"]
 	if len(head) > 0 {
 		for key, content := range head {
 			if strings.HasPrefix(key, "Context") {
 				l := len(key)
 				if l > 0 && key[l-1] >= '0' && key[l-1] <= '9' {
-					contexts = append(contexts, content)
+					i, err := strconv.Atoi(string(key[l-1]))
+					if err != nil {
+						return nil, err
+					}
+					contexts[i] = content
 				}
 			}
 		}
 	}
-	return contexts
+	return contexts, nil
 }
 
 func getDeviceFamily(contextMap map[string]map[string]string) (string, error) {
