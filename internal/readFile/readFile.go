@@ -84,12 +84,12 @@ func Process(inFile, inFile2, outPath string) error {
 			return err
 		}
 
-		err = stm32cubemx.ReadContexts(workDir+"/STM32CubeMX/STM32CubeMX.ioc", parms)
+		fPaths, err := stm32cubemx.ReadContexts(workDir+"/STM32CubeMX/STM32CubeMX.ioc", parms)
 		if err != nil {
 			return err
 		}
 
-		err = stm32cubemx.WriteCgenYml(outPath, mxprojectAll, params)
+		err = stm32cubemx.WriteCgenYml(outPath, mxprojectAll, fPaths, params)
 		if err != nil {
 			return err
 		}

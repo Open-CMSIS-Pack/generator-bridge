@@ -48,6 +48,8 @@ func Process(cbuildYmlPath, outPath, cubeMxPath, mxprojectPath string, runCubeMx
 		return err
 	}
 
+	var fPaths []string
+
 	if runCubeMx {
 		cubeIocPath := workDir
 		lastPath := filepath.Base(cubeIocPath)
@@ -74,7 +76,7 @@ func Process(cbuildYmlPath, outPath, cubeMxPath, mxprojectPath string, runCubeMx
 			}
 		}
 
-		err = ReadContexts(cubeIocPath, parms)
+		fPaths, err = ReadContexts(cubeIocPath, parms)
 		if err != nil {
 			return err
 		}
@@ -87,7 +89,7 @@ func Process(cbuildYmlPath, outPath, cubeMxPath, mxprojectPath string, runCubeMx
 		return err
 	}
 
-	err = WriteCgenYml(workDir, mxproject, parms)
+	err = WriteCgenYml(workDir, mxproject, fPaths, parms)
 	if err != nil {
 		return err
 	}
@@ -204,7 +206,7 @@ func FindMxProject(subsystem *cbuild.SubsystemType, mxprojectAll MxprojectAllTyp
 	return MxprojectType{}, nil
 }
 
-func WriteCgenYml(outPath string, mxprojectAll MxprojectAllType, inParms cbuild.ParamsType) error {
+func WriteCgenYml(outPath string, mxprojectAll MxprojectAllType, fPaths []string, inParms cbuild.ParamsType) error {
 	for id := range inParms.Subsystem {
 		subsystem := &inParms.Subsystem[id]
 
@@ -212,7 +214,7 @@ func WriteCgenYml(outPath string, mxprojectAll MxprojectAllType, inParms cbuild.
 		if err != nil {
 			continue
 		}
-		err = WriteCgenYmlSub(outPath, mxproject, subsystem)
+		err = WriteCgenYmlSub(outPath, mxproject, fPaths, subsystem)
 		if err != nil {
 			return err
 		}
@@ -221,7 +223,7 @@ func WriteCgenYml(outPath string, mxprojectAll MxprojectAllType, inParms cbuild.
 	return nil
 }
 
-func WriteCgenYmlSub(outPath string, mxproject MxprojectType, subsystem *cbuild.SubsystemType) error {
+func WriteCgenYmlSub(outPath string, mxproject MxprojectType, fPaths []string, subsystem *cbuild.SubsystemType) error {
 	outName := subsystem.SubsystemIdx.Project + ".cgen.yml"
 	outFile := path.Join(outPath, outName)
 	var cgen cbuild.CgenType
@@ -241,6 +243,10 @@ func WriteCgenYmlSub(outPath string, mxproject MxprojectType, subsystem *cbuild.
 		headerPath := mxproject.PreviousUsedKeilFiles.HeaderPath[id]
 		headerPath, _ = utils.ConvertFilename(outPath, headerPath, relativePathAdd)
 		cgen.GeneratorImport.AddPath = append(cgen.GeneratorImport.AddPath, headerPath)
+	}
+	for _, fPath := range fPaths {
+		fPath, _ = utils.ConvertFilename(outPath, fPath, "")
+		cgen.GeneratorImport.AddPath = append(cgen.GeneratorImport.AddPath, fPath)
 	}
 
 	var groupSrc cbuild.CgenGroupsType

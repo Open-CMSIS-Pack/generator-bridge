@@ -30,81 +30,84 @@ type PinDefinition struct {
 	alternate string
 }
 
-func ReadContexts(iocFile string, params cbuild.ParamsType) error {
+func ReadContexts(iocFile string, params cbuild.ParamsType) ([]string, error) {
+	var fPaths []string
 	contextMap, err := createContextMap(iocFile)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	contexts, err := getContexts(contextMap)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	deviceFamily, err := getDeviceFamily(contextMap)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	workDir := path.Dir(iocFile)
 	workDirAbs, err := filepath.Abs(workDir)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	mspName := deviceFamily + "xx_hal_msp.c"
 	//	pinConfigMap, err := createPinConfigMap(mspName)
 	mspFolder := contextMap["ProjectManager"]["MainLocation"]
 	if mspFolder == "" {
-		return errors.New("main location missing")
+		return nil, errors.New("main location missing")
 	}
 
 	if len(contexts) == 0 {
 		msp := path.Join(workDirAbs, mspFolder, mspName)
 		fMsp, err := os.Open(msp)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		defer fMsp.Close()
 
 		subsystem := &params.Subsystem[0]
+		cfgPath := path.Join("drv_cfg", subsystem.SubsystemIdx.Project)
 		fName := "MX_Device.h"
-		fPath := path.Join(path.Dir(workDir), "drv_cfg", subsystem.SubsystemIdx.Project)
+		fPath := path.Join(path.Dir(workDir), cfgPath)
 		if _, err := os.Stat(fPath); err != nil {
 			err = os.MkdirAll(fPath, 0750)
 			if err != nil {
-				return err
+				return nil, err
 			}
 		}
+		fPaths = append(fPaths, cfgPath)
 		fPath = path.Join(fPath, fName)
 		fMxDevice, err := os.Create(fPath)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		defer fMxDevice.Close()
 
 		err = mxDeviceWriteHeader(fMxDevice, fName)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		peripherals, err := getPeripherals1(contextMap)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		for _, peripheral := range peripherals {
 			vmode := getVirtualMode(contextMap, peripheral)
 			pins, err := getPins(contextMap, fMsp, peripheral)
 			if err != nil {
-				return err
+				return nil, err
 			}
 			err = mxDeviceWritePeripheralCfg(fMxDevice, peripheral, vmode, pins)
 			if err != nil {
-				return err
+				return nil, err
 			}
 		}
 		_, err = fMxDevice.WriteString("\n#endif  /* __MX_DEVICE_H */\n")
 		if err != nil {
-			return err
+			return nil, err
 		}
 	} else {
 		CONTEXT := make(map[string]string)
@@ -116,65 +119,65 @@ func ReadContexts(iocFile string, params cbuild.ParamsType) error {
 			contextFolder := CONTEXT[context]
 			if contextFolder == "" {
 				print("Cannot find ", mspName)
-				return errors.New("Cannot find " + mspName)
+				return nil, errors.New("Cannot find " + mspName)
 			}
 			msp := path.Join(workDirAbs, contextFolder, mspFolder, mspName)
 			fMsp, err := os.Open(msp)
 			if err != nil {
-				return err
+				return nil, err
 			}
 
 			subsystem := &params.Subsystem[projectIndex]
+			cfgPath := path.Join("drv_cfg", subsystem.SubsystemIdx.Project)
 			fName := "MX_Device.h"
-			fPath := path.Join(path.Dir(workDir), "drv_cfg", subsystem.SubsystemIdx.Project)
+			fPath := path.Join(path.Dir(workDir), cfgPath)
 			if _, err := os.Stat(fPath); err != nil {
 				err = os.MkdirAll(fPath, 0750)
 				if err != nil {
-					return err
+					return nil, err
 				}
 			}
+			fPaths = append(fPaths, cfgPath)
 			fPath = path.Join(fPath, fName)
 			fMxDevice, err := os.Create(fPath)
 			if err != nil {
-				return err
+				return nil, err
 			}
-
-			projectIndex += 1
 
 			err = mxDeviceWriteHeader(fMxDevice, fName)
 			if err != nil {
 				_ = fMxDevice.Close()
-				return err
+				return nil, err
 			}
 			peripherals, err := getPeripherals(contextMap, context)
 			if err != nil {
 				_ = fMxDevice.Close()
-				return err
+				return nil, err
 			}
 			for _, peripheral := range peripherals {
 				vmode := getVirtualMode(contextMap, peripheral)
 				pins, err := getPins(contextMap, fMsp, peripheral)
 				if err != nil {
 					_ = fMxDevice.Close()
-					return err
+					return nil, err
 				}
 				err = mxDeviceWritePeripheralCfg(fMxDevice, peripheral, vmode, pins)
 				if err != nil {
 					_ = fMxDevice.Close()
-					return err
+					return nil, err
 				}
 			}
 			_, err = fMxDevice.WriteString("\n#endif  /* __MX_DEVICE_H */\n")
 			if err != nil {
-				return err
+				return nil, err
 			}
 			err = fMxDevice.Close()
 			if err != nil {
-				return err
+				return nil, err
 			}
 		}
 	}
-	return nil
+	return fPaths, nil
 }
 
 func createContextMap(iocFile string) (map[string]map[string]string, error) {
