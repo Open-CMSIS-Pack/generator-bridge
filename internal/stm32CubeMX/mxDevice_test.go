@@ -46,7 +46,7 @@ func Test_createContextMap(t *testing.T) {
 }
 
 func Test_getContexts(t *testing.T) {
-	t.Parallel()
+//	t.Parallel()
 
 	var mcuContext1 = make(map[string]map[string]string)
 	mcuContext1["Mcu"] = map[string]string{"ContextTest": "myContext"}
@@ -54,23 +54,33 @@ func Test_getContexts(t *testing.T) {
 	var mcuContext2 = make(map[string]map[string]string)
 	mcuContext2["Mcu"] = map[string]string{"Context1": "myContext1", "Context2": "myContext2"}
 
+	var oneEmpty = make(map[int]string)
+
+	var two1 = make(map[int]string)
+	two1[1] = "myContext1"
+	two1[2] = "myContext2"
+
+	var two2 = make(map[int]string)
+	two2[2] = "myContext1"
+	two2[1] = "myContext2"
+
 	type args struct {
 		contextMap map[string]map[string]string
 	}
 	tests := []struct {
 		name    string
 		args    args
-		want1   []string
-		want2   []string
+		want1   map[int]string
+		want2   map[int]string
 		wantErr bool
 	}{
-		{"1 Context", args{mcuContext1}, []string{}, []string{}, false},
-		{"2 Contexts", args{mcuContext2}, []string{"myContext1", "myContext2"}, []string{"myContext2", "myContext1"}, false},
+		{"1 Context", args{mcuContext1}, oneEmpty, oneEmpty, false},
+		{"2 Contexts", args{mcuContext2}, two1, two2, false},
 	}
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
+//			t.Parallel()
 			got, err := getContexts(tt.args.contextMap)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("getContexts() %s error = %v, wantErr %v", tt.name, err, tt.wantErr)
