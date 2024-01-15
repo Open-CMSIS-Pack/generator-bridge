@@ -71,7 +71,11 @@ func Test_getContexts(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got := getContexts(tt.args.contextMap)
+			got, err := getContexts(tt.args.contextMap)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("getContexts() %s error = %v, wantErr %v", tt.name, err, tt.wantErr)
+				return
+			}
 			if !reflect.DeepEqual(got, tt.want1) && !reflect.DeepEqual(got, tt.want2) {
 				t.Errorf("getContexts() %s = %v, want %v", tt.name, got, tt.want1)
 			}
