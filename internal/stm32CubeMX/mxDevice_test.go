@@ -46,7 +46,7 @@ func Test_createContextMap(t *testing.T) {
 }
 
 func Test_getContexts(t *testing.T) {
-//	t.Parallel()
+	t.Parallel()
 
 	var mcuContext1 = make(map[string]map[string]string)
 	mcuContext1["Mcu"] = map[string]string{"ContextTest": "myContext"}
@@ -80,7 +80,7 @@ func Test_getContexts(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-//			t.Parallel()
+			t.Parallel()
 			got, err := getContexts(tt.args.contextMap)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("getContexts() %s error = %v, wantErr %v", tt.name, err, tt.wantErr)
