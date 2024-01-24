@@ -14,15 +14,15 @@ import (
 )
 
 type ParamsType struct {
-	Id			string
-	DownloadUrl string
+	ID          string
+	DownloadURL string
 }
 
 type GeneratorType struct {
 	Generator []struct {
-		Id          string `yaml:"id"`
+		ID          string `yaml:"id"`
 		Description string `yaml:"description"`
-		DownloadUrl string `yaml:"download-url"`
+		DownloadURL string `yaml:"download-url"`
 		Run         string `yaml:"run"`
 		Path        string `yaml:"path"`
 	} `yaml:"generator"`
@@ -42,13 +42,13 @@ func Read(name string, params *ParamsType) error {
 		return err
 	}
 	for _, genx := range gen.Generator {
-		if genx.Id == "CubeMX" {
-			params.Id = genx.Id
-			params.DownloadUrl = genx.DownloadUrl
+		if genx.ID == "CubeMX" {
+			params.ID = genx.ID
+			params.DownloadURL = genx.DownloadURL
 			break
 		}
 	}
-	if params.Id != "CubeMX" {
+	if params.ID != "CubeMX" {
 		return errors.New("generator CubeMX missing in global.generator.yml")
 	}
 	return nil

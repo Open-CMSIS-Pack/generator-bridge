@@ -37,19 +37,22 @@ func Process(cbuildYmlPath, outPath, cubeMxPath, mxprojectPath string, runCubeMx
 		cRoot = path.Dir(exPath)
 	}
 	var generatorFile string
-	filepath.Walk(cRoot, func(path string, f fs.FileInfo, err error) error {
+	err := filepath.Walk(cRoot, func(path string, f fs.FileInfo, err error) error {
 		if f.Mode().IsRegular() && strings.Contains(path, "global.generator.yml") {
 			generatorFile = path
 			return nil
 		}
 		return nil
 	})
+	if err != nil {
+		return err
+	}
 	if len(generatorFile) == 0 {
 		return errors.New("config file 'global.generator.yml' not found")
 	}
 
 	var gParms generator.ParamsType
-	err := ReadGeneratorYmlFile(generatorFile, &gParms)
+	err = ReadGeneratorYmlFile(generatorFile, &gParms)
 	if err != nil {
 		return err
 	}
@@ -91,7 +94,7 @@ func Process(cbuildYmlPath, outPath, cubeMxPath, mxprojectPath string, runCubeMx
 		if utils.FileExists(cubeIocPath) {
 			err := Launch(cubeIocPath, "")
 			if err != nil {
-				return errors.New("generator '" + gParms.Id + "' missing. Install from '" + gParms.DownloadUrl + "'")
+				return errors.New("generator '" + gParms.ID + "' missing. Install from '" + gParms.DownloadURL + "'")
 			}
 		} else {
 			projectFile, err = WriteProjectFile(workDir, &parms)
@@ -102,7 +105,7 @@ func Process(cbuildYmlPath, outPath, cubeMxPath, mxprojectPath string, runCubeMx
 
 			err := Launch("", projectFile)
 			if err != nil {
-				return errors.New("generator '" + gParms.Id + "' missing. Install from '" + gParms.DownloadUrl + "'")
+				return errors.New("generator '" + gParms.ID + "' missing. Install from '" + gParms.DownloadURL + "'")
 			}
 		}
 
