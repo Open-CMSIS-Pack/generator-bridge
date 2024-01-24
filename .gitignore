@@ -11,6 +11,9 @@
 # Folders
 .vscode
 /build*/
+/etc/
 
 # others
 *~
+*.swp
+*.swo

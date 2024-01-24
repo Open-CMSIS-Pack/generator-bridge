@@ -7,6 +7,7 @@
 package stm32cubemx
 
 import (
+	"os"
 	"reflect"
 	"testing"
 )
@@ -132,46 +133,8 @@ func Test_getDeviceFamily(t *testing.T) {
 	}
 }
 
-func Test_getPeripherals1(t *testing.T) {
-	t.Parallel()
-
-	var parts = make(map[string]map[string]string)
-	parts["Mcu"] = map[string]string{"IP1": "UART", "IP2": "xx", "IP3": "USB3"}
-
-	var parts1 = make(map[string]map[string]string)
-	parts1["xxx"] = map[string]string{}
-
-	type args struct {
-		contextMap map[string]map[string]string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want1   []string
-		want2   []string
-		wantErr bool
-	}{
-		{"test", args{parts}, []string{"UART", "USB3"}, []string{"USB3", "UART"}, false},
-		{"fail", args{parts1}, nil, nil, true},
-	}
-	for _, tt := range tests {
-		tt := tt
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-			got, err := getPeripherals1(tt.args.contextMap)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("getPeripherals1() %s error = %v, wantErr %v", tt.name, err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want1) && !reflect.DeepEqual(got, tt.want2) {
-				t.Errorf("getPeripherals1() %s = %v, want %v", tt.name, got, tt.want1)
-			}
-		})
-	}
-}
-
 func Test_getPeripherals(t *testing.T) {
-	t.Parallel()
+	//	t.Parallel()
 
 	var parts = make(map[string]map[string]string)
 	parts["Mcu"] = map[string]string{"IP1": "UART", "IP2": "xx", "IP3": "USB"}
@@ -201,11 +164,13 @@ func Test_getPeripherals(t *testing.T) {
 		{"fail1", args{parts1, "xxx"}, nil, nil, true},
 		{"fail2", args{parts2, "Context1"}, nil, nil, true},
 		{"fail3", args{parts3, "Context1"}, nil, nil, true},
+		{"test1", args{parts, ""}, []string{"UART", "USB"}, []string{"USB", "UART"}, false},
+		{"fail4", args{parts1, ""}, nil, nil, true},
 	}
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
+			//			t.Parallel()
 			got, err := getPeripherals(tt.args.contextMap, tt.args.context)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("getPeripherals() %s error = %v, wantErr %v", tt.name, err, tt.wantErr)
@@ -250,7 +215,49 @@ func Test_getVirtualMode(t *testing.T) {
 	}
 }
 
+func Test_getPins(t *testing.T) {
+	var pins = make(map[string]map[string]string)
+	pins["PB8"] = map[string]string{"Mode": "MII", "Signal": "I2C1_sss", "GPIO_Label": "lab"}
+
+	pindef := PinDefinition{p: "PB8", pin: "GPIO_PIN_8", port: "GPIOB", mode: "GPIO_MODE_AF_OD", pull: "GPIO_NOPULL", speed: "GPIO_SPEED_FREQ_LOW", alternate: "GPIO_AF4_I2C1"}
+	var pindefs = make(map[string]PinDefinition)
+	pindefs["I2C1_sss"] = pindef
+
+	type args struct {
+		contextMap map[string]map[string]string
+		filename   string
+		peripheral string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    map[string]PinDefinition
+		wantErr bool
+	}{
+		{"test", args{pins, "../../testdata/stm32cubemx/test_msp.c", "I2C1"}, pindefs, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			file, err := os.Open(tt.args.filename)
+			if err != nil {
+				t.Errorf("getPinConfiguration() %s cannot open %s", tt.name, tt.args.filename)
+				return
+			}
+			got, err := getPins(tt.args.contextMap, file, tt.args.peripheral)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("getPins() %s error = %v, wantErr %v", tt.name, err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("getPins() %s = %v, want %v", tt.name, got, tt.want)
+			}
+		})
+	}
+}
+
 func Test_replaceSpecialChars(t *testing.T) {
+	t.Parallel()
+
 	type args struct {
 		label string
 		ch    string
@@ -266,7 +273,9 @@ func Test_replaceSpecialChars(t *testing.T) {
 		{"test4", args{"?bcd,", "_"}, "_bcd_"},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			if got := replaceSpecialChars(tt.args.label, tt.args.ch); got != tt.want {
 				t.Errorf("replaceSpecialChars() = %v, want %v", got, tt.want)
 			}
@@ -292,6 +301,42 @@ func Test_getDigitAtEnd(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := getDigitAtEnd(tt.args.pin); got != tt.want {
 				t.Errorf("getDigitAtEnd() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_getPinConfiguration(t *testing.T) {
+	pins := PinDefinition{p: "PB8", pin: "GPIO_PIN_8", port: "GPIOB", mode: "GPIO_MODE_AF_OD", pull: "GPIO_NOPULL", speed: "GPIO_SPEED_FREQ_LOW", alternate: "GPIO_AF4_I2C1"}
+
+	type args struct {
+		filename   string
+		peripheral string
+		pin        string
+		label      string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    PinDefinition
+		wantErr bool
+	}{
+		{"test.ioc", args{"../../testdata/stm32cubemx/test_msp.c", "", "PB8", ""}, pins, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			file, err := os.Open(tt.args.filename)
+			if err != nil {
+				t.Errorf("getPinConfiguration() %s cannot open %s", tt.name, tt.args.filename)
+				return
+			}
+			got, err := getPinConfiguration(file, tt.args.peripheral, tt.args.pin, tt.args.label)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("getPinConfiguration() %s error = %v, wantErr %v", tt.name, err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("getPinConfiguration() %s = %v, want %v", tt.name, got, tt.want)
 			}
 		})
 	}

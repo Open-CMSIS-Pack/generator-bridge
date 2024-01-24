@@ -60,121 +60,59 @@ func ReadContexts(iocFile string, params cbuild.ParamsType) ([]string, error) {
 		return nil, errors.New("main location missing")
 	}
 
+	var cfgPath string
 	if len(contexts) == 0 {
 		msp := path.Join(workDirAbs, mspFolder, mspName)
-		fMsp, err := os.Open(msp)
+		cfgPath = path.Join("drv_cfg", params.Subsystem[0].SubsystemIdx.Project)
+		err := writeMXdeviceH(contextMap, workDir, msp, cfgPath, "", params)
 		if err != nil {
 			return nil, err
-		}
-		defer fMsp.Close()
-
-		subsystem := &params.Subsystem[0]
-		cfgPath := path.Join("drv_cfg", subsystem.SubsystemIdx.Project)
-		fName := "MX_Device.h"
-		fPath := path.Join(path.Dir(workDir), cfgPath)
-		if _, err := os.Stat(fPath); err != nil {
-			err = os.MkdirAll(fPath, 0750)
-			if err != nil {
-				return nil, err
-			}
 		}
 		fPaths = append(fPaths, cfgPath)
-		fPath = path.Join(fPath, fName)
-		fMxDevice, err := os.Create(fPath)
-		if err != nil {
-			return nil, err
-		}
-		defer fMxDevice.Close()
-
-		err = mxDeviceWriteHeader(fMxDevice, fName)
-		if err != nil {
-			return nil, err
-		}
-		peripherals, err := getPeripherals1(contextMap)
-		if err != nil {
-			return nil, err
-		}
-		for _, peripheral := range peripherals {
-			vmode := getVirtualMode(contextMap, peripheral)
-			pins, err := getPins(contextMap, fMsp, peripheral)
-			if err != nil {
-				return nil, err
-			}
-			err = mxDeviceWritePeripheralCfg(fMxDevice, peripheral, vmode, pins)
-			if err != nil {
-				return nil, err
-			}
-		}
-		_, err = fMxDevice.WriteString("\n#endif  /* __MX_DEVICE_H */\n")
-		if err != nil {
-			return nil, err
-		}
 	} else {
-		CONTEXT := make(map[string]string)
-		CONTEXT["CortexM33S"] = "Secure"
-		CONTEXT["CortexM33NS"] = "NonSecure"
-		CONTEXT["CortexM4"] = "CM4"
-		CONTEXT["CortexM7"] = "CM7"
-		for projectIndex, context := range contexts {
-			contextFolder := CONTEXT[context]
-			if contextFolder == "" {
-				print("Cannot find ", mspName)
-				return nil, errors.New("Cannot find " + mspName)
+		for _, context := range contexts {
+			var coreName string
+			var contextFolder string
+			var projectPart string
+			re := regexp.MustCompile("[0-9]+")
+			coreNameNumbers := re.FindAllString(context, -1)
+			if len(coreNameNumbers) == 1 {
+				coreName = "Cortex-M" + coreNameNumbers[0]
+				contextFolder = "CM" + coreNameNumbers[0]
+				projectPart = contextFolder
+			}
+
+			var trustzone string
+			contextLen := len(context)
+			if contextLen > 0 {
+				if strings.LastIndex(context, "S") == contextLen-1 {
+					if strings.LastIndex(context, "NS") == contextLen-2 {
+						trustzone = "NonSecure"
+						projectPart = "non-secure"
+					} else {
+						trustzone = "Secure"
+						projectPart = "secure"
+					}
+					contextFolder = trustzone
+				}
+			}
+
+			_ = projectPart
+			if len(contextFolder) == 0 {
+				return nil, errors.New("Cannot find context " + context)
 			}
 			msp := path.Join(workDirAbs, contextFolder, mspFolder, mspName)
-			fMsp, err := os.Open(msp)
+			for _, subsystem := range params.Subsystem {
+				if subsystem.CoreName == coreName {
+					cfgPath = path.Join("drv_cfg", subsystem.SubsystemIdx.Project)
+					break
+				}
+			}
+			err := writeMXdeviceH(contextMap, workDir, msp, cfgPath, context, params)
 			if err != nil {
 				return nil, err
-			}
-
-			subsystem := &params.Subsystem[projectIndex]
-			cfgPath := path.Join("drv_cfg", subsystem.SubsystemIdx.Project)
-			fName := "MX_Device.h"
-			fPath := path.Join(path.Dir(workDir), cfgPath)
-			if _, err := os.Stat(fPath); err != nil {
-				err = os.MkdirAll(fPath, 0750)
-				if err != nil {
-					return nil, err
-				}
 			}
 			fPaths = append(fPaths, cfgPath)
-			fPath = path.Join(fPath, fName)
-			fMxDevice, err := os.Create(fPath)
-			if err != nil {
-				return nil, err
-			}
-
-			err = mxDeviceWriteHeader(fMxDevice, fName)
-			if err != nil {
-				_ = fMxDevice.Close()
-				return nil, err
-			}
-			peripherals, err := getPeripherals(contextMap, context)
-			if err != nil {
-				_ = fMxDevice.Close()
-				return nil, err
-			}
-			for _, peripheral := range peripherals {
-				vmode := getVirtualMode(contextMap, peripheral)
-				pins, err := getPins(contextMap, fMsp, peripheral)
-				if err != nil {
-					_ = fMxDevice.Close()
-					return nil, err
-				}
-				err = mxDeviceWritePeripheralCfg(fMxDevice, peripheral, vmode, pins)
-				if err != nil {
-					_ = fMxDevice.Close()
-					return nil, err
-				}
-			}
-			_, err = fMxDevice.WriteString("\n#endif  /* __MX_DEVICE_H */\n")
-			if err != nil {
-				return nil, err
-			}
-			err = fMxDevice.Close()
-			if err != nil {
-				return nil, err
-			}
 		}
 	}
 	return fPaths, nil
@@ -205,6 +143,54 @@ func createContextMap(iocFile string) (map[string]map[string]string, error) {
 		}
 	}
 	return contextMap, nil
+}
+
+func writeMXdeviceH(contextMap map[string]map[string]string, workDir string, msp string, cfgPath string, context string, params cbuild.ParamsType) error {
+	fMsp, err := os.Open(msp)
+	if err != nil {
+		return err
+	}
+	defer fMsp.Close()
+
+	fName := "MX_Device.h"
+	fPath := path.Join(path.Dir(workDir), cfgPath)
+	if _, err := os.Stat(fPath); err != nil {
+		err = os.MkdirAll(fPath, 0750)
+		if err != nil {
+			return err
+		}
+	}
+	fPath = path.Join(fPath, fName)
+	fMxDevice, err := os.Create(fPath)
+	if err != nil {
+		return err
+	}
+	defer fMxDevice.Close()
+
+	err = mxDeviceWriteHeader(fMxDevice, fName)
+	if err != nil {
+		return err
+	}
+	peripherals, err := getPeripherals(contextMap, context)
+	if err != nil {
+		return err
+	}
+	for _, peripheral := range peripherals {
+		vmode := getVirtualMode(contextMap, peripheral)
+		pins, err := getPins(contextMap, fMsp, peripheral)
+		if err != nil {
+			return err
+		}
+		err = mxDeviceWritePeripheralCfg(fMxDevice, peripheral, vmode, pins)
+		if err != nil {
+			return err
+		}
+	}
+	_, err = fMxDevice.WriteString("\n#endif  /* __MX_DEVICE_H */\n")
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 /*
@@ -273,43 +259,25 @@ func getDeviceFamily(contextMap map[string]map[string]string) (string, error) {
 	return "", errors.New("missing device family")
 }
 
-func getPeripherals1(contextMap map[string]map[string]string) ([]string, error) {
-	PERIPHERALS := [...]string{"USART", "UART", "LPUART", "SPI", "I2C", "ETH", "SDMMC", "CAN", "USB", "SDIO", "FDCAN"}
-	peripherals := []string{}
-	mcu := contextMap["Mcu"]
-	if mcu != nil {
-		for ip, peri := range mcu {
-			if strings.HasPrefix(ip, "IP") {
-				for _, peripheral := range PERIPHERALS {
-					if strings.HasPrefix(peri, peripheral) {
-						peripherals = append(peripherals, peri)
-						break
-					}
-				}
-			}
-		}
-	} else {
-		return nil, errors.New("peripheral not found in Mcu")
-	}
-	return peripherals, nil
-}
-
 func getPeripherals(contextMap map[string]map[string]string, context string) ([]string, error) {
 	PERIPHERALS := [...]string{"USART", "UART", "LPUART", "SPI", "I2C", "ETH", "SDMMC", "CAN", "USB", "SDIO", "FDCAN"}
 	var peripherals []string
-	contextIps := contextMap[context]
-	if contextIps == nil {
-		return nil, errors.New("context not found in ioc")
-	}
-	contextIpsLine := contextIps["IPs"]
-	if len(contextIpsLine) == 0 {
-		return nil, errors.New("IPs not found in context")
+	var contextIpsLine string
+	if len(context) > 0 {
+		contextIps, ok := contextMap[context]
+		if !ok {
+			return nil, errors.New("context not found in ioc")
+		}
+		contextIpsLine, ok = contextIps["IPs"]
+		if !ok {
+			return nil, errors.New("IPs not found in context")
+		}
 	}
 	mcu := contextMap["Mcu"]
 	if mcu != nil {
 		for ip, peri := range mcu {
 			if strings.HasPrefix(ip, "IP") {
-				if strings.Contains(contextIpsLine, peri) {
+				if len(context) == 0 || strings.Contains(contextIpsLine, peri) {
 					for _, peripheral := range PERIPHERALS {
 						if strings.HasPrefix(peri, peripheral) {
 							peripherals = append(peripherals, peri)
@@ -346,8 +314,8 @@ func getPins(contextMap map[string]map[string]string, fMsp *os.File, peripheral 
 			peri := signal["Signal"]
 			if strings.HasPrefix(peri, peripheral) {
 				pinsName[key] = peri
-				label := signal["GPIO_Label"]
-				if len(label) > 0 {
+				label, ok := signal["GPIO_Label"]
+				if ok {
 					label = strings.Split(label, " ")[0]
 					label = replaceSpecialChars(label, "_")
 					pinsLabel[key] = strings.ReplaceAll(label, ".", "_")

@@ -8,6 +8,7 @@ package stm32cubemx
 
 import (
 	"errors"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path"
@@ -17,15 +18,44 @@ import (
 
 	"github.com/open-cmsis-pack/generator-bridge/internal/cbuild"
 	"github.com/open-cmsis-pack/generator-bridge/internal/common"
+	"github.com/open-cmsis-pack/generator-bridge/internal/generator"
 	"github.com/open-cmsis-pack/generator-bridge/internal/utils"
 	log "github.com/sirupsen/logrus"
 )
 
 func Process(cbuildYmlPath, outPath, cubeMxPath, mxprojectPath string, runCubeMx bool) error {
 	var projectFile string
-	var parms cbuild.ParamsType
 
-	err := ReadCbuildYmlFile(cbuildYmlPath, outPath, &parms)
+	cRoot := os.Getenv("CMSIS_COMPILER_ROOT")
+	if len(cRoot) == 0 {
+		ex, err := os.Executable()
+		if err != nil {
+			return err
+		}
+		exPath := filepath.Dir(ex)
+		exPath = filepath.ToSlash(exPath)
+		cRoot = path.Dir(exPath)
+	}
+	var generatorFile string
+	filepath.Walk(cRoot, func(path string, f fs.FileInfo, err error) error {
+		if f.Mode().IsRegular() && strings.Contains(path, "global.generator.yml") {
+			generatorFile = path
+			return nil
+		}
+		return nil
+	})
+	if len(generatorFile) == 0 {
+		return errors.New("config file 'global.generator.yml' not found")
+	}
+
+	var gParms generator.ParamsType
+	err := ReadGeneratorYmlFile(generatorFile, &gParms)
+	if err != nil {
+		return err
+	}
+
+	var parms cbuild.ParamsType
+	err = ReadCbuildYmlFile(cbuildYmlPath, outPath, &parms)
 	if err != nil {
 		return err
 	}
@@ -61,7 +91,7 @@ func Process(cbuildYmlPath, outPath, cubeMxPath, mxprojectPath string, runCubeMx
 		if utils.FileExists(cubeIocPath) {
 			err := Launch(cubeIocPath, "")
 			if err != nil {
-				return err
+				return errors.New("generator '" + gParms.Id + "' missing. Install from '" + gParms.DownloadUrl + "'")
 			}
 		} else {
 			projectFile, err = WriteProjectFile(workDir, &parms)
@@ -72,7 +102,7 @@ func Process(cbuildYmlPath, outPath, cubeMxPath, mxprojectPath string, runCubeMx
 
 			err := Launch("", projectFile)
 			if err != nil {
-				return err
+				return errors.New("generator '" + gParms.Id + "' missing. Install from '" + gParms.DownloadUrl + "'")
 			}
 		}
 
@@ -102,7 +132,7 @@ func Launch(iocFile, projectFile string) error {
 
 	const cubeEnvVar = "STM32CubeMX_PATH"
 	cubeEnv := os.Getenv(cubeEnvVar)
-	if cubeEnv == "" {
+	if cubeEnv != "" {
 		return errors.New("environment variable for CubeMX not set: " + cubeEnvVar)
 	}
 
@@ -165,6 +195,12 @@ func ReadCbuildYmlFile(path, outPath string, parms *cbuild.ParamsType) error {
 	}
 
 	return nil
+}
+
+func ReadGeneratorYmlFile(path string, parms *generator.ParamsType) error {
+	log.Infof("Reading generator.yml file: '%v'", path)
+	err := generator.Read(path, parms)
+	return err
 }
 
 var filterFiles = map[string]string{
