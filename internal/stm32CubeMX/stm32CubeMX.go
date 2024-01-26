@@ -135,7 +135,7 @@ func Launch(iocFile, projectFile string) error {
 
 	const cubeEnvVar = "STM32CubeMX_PATH"
 	cubeEnv := os.Getenv(cubeEnvVar)
-	if cubeEnv != "" {
+	if cubeEnv == "" {
 		return errors.New("environment variable for CubeMX not set: " + cubeEnvVar)
 	}
 
