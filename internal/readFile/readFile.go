@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Arm Limited. All rights reserved.
+ * Copyright (c) 2023-2024 Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -75,7 +75,11 @@ func Process(inFile, inFile2, outPath string) error {
 				workDir = path.Join(workDir, parms.OutPath)
 			}
 		} else {
-			workDir = path.Join(workDir, outPath)
+			if filepath.IsAbs(outPath) {
+				workDir = outPath
+			} else {
+				workDir = path.Join(workDir, outPath)
+			}
 		}
 		workDir = filepath.Clean(workDir)
 		workDir = filepath.ToSlash(workDir)
@@ -84,12 +88,12 @@ func Process(inFile, inFile2, outPath string) error {
 			return err
 		}
 
-		fPaths, err := stm32cubemx.ReadContexts(workDir+"/STM32CubeMX/STM32CubeMX.ioc", parms)
+		err = stm32cubemx.ReadContexts(workDir+"/STM32CubeMX/STM32CubeMX.ioc", parms)
 		if err != nil {
 			return err
 		}
 
-		err = stm32cubemx.WriteCgenYml(outPath, mxprojectAll, fPaths, params)
+		err = stm32cubemx.WriteCgenYml(outPath, mxprojectAll, params)
 		if err != nil {
 			return err
 		}

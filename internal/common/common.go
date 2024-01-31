@@ -23,6 +23,7 @@ func ReadYml(path string, out interface{}) error {
 	err = yaml.Unmarshal(yamlFile, out)
 	if err != nil {
 		log.Errorf("Unmarshal: %v", err)
+		return err
 	}
 
 	return nil

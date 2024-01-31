@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Arm Limited. All rights reserved.
+ * Copyright (c) 2023-2024 Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -30,34 +30,33 @@ type PinDefinition struct {
 	alternate string
 }
 
-func ReadContexts(iocFile string, params cbuild.ParamsType) ([]string, error) {
-	var fPaths []string
+func ReadContexts(iocFile string, params cbuild.ParamsType) error {
 	contextMap, err := createContextMap(iocFile)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	contexts, err := getContexts(contextMap)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	deviceFamily, err := getDeviceFamily(contextMap)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	workDir := path.Dir(iocFile)
 	workDirAbs, err := filepath.Abs(workDir)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	mspName := deviceFamily + "xx_hal_msp.c"
 	//	pinConfigMap, err := createPinConfigMap(mspName)
 	mspFolder := contextMap["ProjectManager"]["MainLocation"]
 	if mspFolder == "" {
-		return nil, errors.New("main location missing")
+		return errors.New("main location missing")
 	}
 
 	var cfgPath string
@@ -66,9 +65,8 @@ func ReadContexts(iocFile string, params cbuild.ParamsType) ([]string, error) {
 		cfgPath = path.Join("drv_cfg", params.Subsystem[0].SubsystemIdx.Project)
 		err := writeMXdeviceH(contextMap, workDir, msp, cfgPath, "", params)
 		if err != nil {
-			return nil, err
+			return err
 		}
-		fPaths = append(fPaths, cfgPath)
 	} else {
 		for _, context := range contexts {
 			var coreName string
@@ -97,25 +95,29 @@ func ReadContexts(iocFile string, params cbuild.ParamsType) ([]string, error) {
 				}
 			}
 
-			_ = projectPart
 			if len(contextFolder) == 0 {
-				return nil, errors.New("Cannot find context " + context)
+				return errors.New("Cannot find context " + context)
 			}
 			msp := path.Join(workDirAbs, contextFolder, mspFolder, mspName)
 			for _, subsystem := range params.Subsystem {
 				if subsystem.CoreName == coreName {
-					cfgPath = path.Join("drv_cfg", subsystem.SubsystemIdx.Project)
-					break
+					if len(subsystem.TrustZone) == 0 {
+						cfgPath = path.Join("drv_cfg", subsystem.SubsystemIdx.Project)
+						break
+					}
+					if subsystem.TrustZone == projectPart {
+						cfgPath = path.Join("drv_cfg", subsystem.SubsystemIdx.Project)
+						break
+					}
 				}
 			}
 			err := writeMXdeviceH(contextMap, workDir, msp, cfgPath, context, params)
 			if err != nil {
-				return nil, err
+				return err
 			}
-			fPaths = append(fPaths, cfgPath)
 		}
 	}
-	return fPaths, nil
+	return nil
 }
 
 func createContextMap(iocFile string) (map[string]map[string]string, error) {
@@ -167,7 +169,9 @@ func writeMXdeviceH(contextMap map[string]map[string]string, workDir string, msp
 	}
 	defer fMxDevice.Close()
 
-	err = mxDeviceWriteHeader(fMxDevice, fName)
+	out := bufio.NewWriter(fMxDevice)
+	defer out.Flush()
+	err = mxDeviceWriteHeader(out, fName)
 	if err != nil {
 		return err
 	}
@@ -181,12 +185,12 @@ func writeMXdeviceH(contextMap map[string]map[string]string, workDir string, msp
 		if err != nil {
 			return err
 		}
-		err = mxDeviceWritePeripheralCfg(fMxDevice, peripheral, vmode, pins)
+		err = mxDeviceWritePeripheralCfg(out, peripheral, vmode, pins)
 		if err != nil {
 			return err
 		}
 	}
-	_, err = fMxDevice.WriteString("\n#endif  /* __MX_DEVICE_H */\n")
+	_, err = out.WriteString("\n#endif  /* __MX_DEVICE_H */\n")
 	if err != nil {
 		return err
 	}
@@ -389,7 +393,7 @@ func getPinConfiguration(fMsp *os.File, peripheral string, pin string, label str
 				if strings.Contains(line, gpioPort) || strings.Contains(line, label+"_GPIO_Port") {
 					values := strings.Split(pinInfo.pin, "|")
 					for _, val := range values {
-						val = strings.TrimRight(strings.TrimLeft(val, " "), " ")
+						val = strings.TrimRight(strings.TrimLeft(val, "\t "), "\t ")
 						if val == gpioPin || val == (label+"_Pin") {
 							pinInfo.p = pin
 							pinInfo.pin = gpioPin
@@ -435,93 +439,93 @@ func getPinConfiguration(fMsp *os.File, peripheral string, pin string, label str
 	return PinDefinition{}, nil
 }
 
-func mxDeviceWriteHeader(fMxDevice *os.File, fName string) error {
+func mxDeviceWriteHeader(out *bufio.Writer, fName string) error {
 	now := time.Now()
 	dtString := now.Format("02/01/2006 15:04:05")
 
 	var err error
 
-	if _, err = fMxDevice.WriteString("/******************************************************************************\n"); err != nil {
+	if _, err = out.WriteString("/******************************************************************************\n"); err != nil {
 		return err
 	}
-	if _, err = fMxDevice.WriteString(" * File Name   : " + fName + "\n"); err != nil {
+	if _, err = out.WriteString(" * File Name   : " + fName + "\n"); err != nil {
 		return err
 	}
-	if _, err = fMxDevice.WriteString(" * Date        : " + dtString + "\n"); err != nil {
+	if _, err = out.WriteString(" * Date        : " + dtString + "\n"); err != nil {
 		return err
 	}
-	if _, err = fMxDevice.WriteString(" * Description : STM32Cube MX parameter definitions\n"); err != nil {
+	if _, err = out.WriteString(" * Description : STM32Cube MX parameter definitions\n"); err != nil {
 		return err
 	}
-	if _, err = fMxDevice.WriteString(" * Note        : This file is generated with a generator out of the\n"); err != nil {
+	if _, err = out.WriteString(" * Note        : This file is generated with a generator out of the\n"); err != nil {
 		return err
 	}
-	if _, err = fMxDevice.WriteString(" *               STM32CubeMX project and its generated files (DO NOT EDIT!)\n"); err != nil {
+	if _, err = out.WriteString(" *               STM32CubeMX project and its generated files (DO NOT EDIT!)\n"); err != nil {
 		return err
 	}
-	if _, err = fMxDevice.WriteString(" ******************************************************************************/\n\n"); err != nil {
+	if _, err = out.WriteString(" ******************************************************************************/\n\n"); err != nil {
 		return err
 	}
-	if _, err = fMxDevice.WriteString("#ifndef __MX_DEVICE_H\n"); err != nil {
+	if _, err = out.WriteString("#ifndef __MX_DEVICE_H\n"); err != nil {
 		return err
 	}
-	_, err = fMxDevice.WriteString("#define __MX_DEVICE_H\n\n")
+	_, err = out.WriteString("#define __MX_DEVICE_H\n\n")
 	return err
 }
 
-func mxDeviceWritePeripheralCfg(fMxDevice *os.File, peripheral string, vmode string, pins map[string]PinDefinition) error {
+func mxDeviceWritePeripheralCfg(out *bufio.Writer, peripheral string, vmode string, pins map[string]PinDefinition) error {
 	str := "\n/*------------------------------ " + peripheral
 	if len(str) < 49 {
 		str += strings.Repeat(" ", 49-len(str))
 	}
 	str += "-----------------------------*/\n"
-	_, err := fMxDevice.WriteString(str)
+	_, err := out.WriteString(str)
 	if err != nil {
 		return err
 	}
-	if err = writeDefine(fMxDevice, peripheral, "1\n"); err != nil {
+	if err = writeDefine(out, peripheral, "1\n"); err != nil {
 		return err
 	}
 	if vmode != "" {
-		if _, err = fMxDevice.WriteString("/* Virtual mode */\n"); err != nil {
+		if _, err = out.WriteString("/* Virtual mode */\n"); err != nil {
 			return err
 		}
-		if err = writeDefine(fMxDevice, peripheral+"_VM", vmode); err != nil {
+		if err = writeDefine(out, peripheral+"_VM", vmode); err != nil {
 			return err
 		}
-		if err = writeDefine(fMxDevice, peripheral+"_"+vmode, "1"); err != nil {
+		if err = writeDefine(out, peripheral+"_"+vmode, "1"); err != nil {
 			return err
 		}
 	}
 	if len(pins) != 0 {
-		_, err = fMxDevice.WriteString("/* Pins */\n")
+		_, err = out.WriteString("/* Pins */\n")
 		if err != nil {
 			return err
 		}
 		for pin, pinDef := range pins {
-			_, err = fMxDevice.WriteString("\n/* " + pin + " */\n")
+			_, err = out.WriteString("\n/* " + pin + " */\n")
 			if err != nil {
 				return err
 			}
-			if err = writeDefine(fMxDevice, pin+"_Pin", pinDef.p); err != nil {
+			if err = writeDefine(out, pin+"_Pin", pinDef.p); err != nil {
 				return err
 			}
-			if err = writeDefine(fMxDevice, pin+"_GPIO_Pin", pinDef.pin); err != nil {
+			if err = writeDefine(out, pin+"_GPIO_Pin", pinDef.pin); err != nil {
 				return err
 			}
-			if err = writeDefine(fMxDevice, pin+"_GPIOx", pinDef.port); err != nil {
+			if err = writeDefine(out, pin+"_GPIOx", pinDef.port); err != nil {
 				return err
 			}
-			if err = writeDefine(fMxDevice, pin+"_GPIO_Mode", pinDef.mode); err != nil {
+			if err = writeDefine(out, pin+"_GPIO_Mode", pinDef.mode); err != nil {
 				return err
 			}
-			if err = writeDefine(fMxDevice, pin+"_GPIO_PuPd", pinDef.pull); err != nil {
+			if err = writeDefine(out, pin+"_GPIO_PuPd", pinDef.pull); err != nil {
 				return err
 			}
-			if err = writeDefine(fMxDevice, pin+"_GPIO_Speed", pinDef.speed); err != nil {
+			if err = writeDefine(out, pin+"_GPIO_Speed", pinDef.speed); err != nil {
 				return err
 			}
-			if err = writeDefine(fMxDevice, pin+"_GPIO_AF", pinDef.alternate); err != nil {
+			if err = writeDefine(out, pin+"_GPIO_AF", pinDef.alternate); err != nil {
 				return err
 			}
 		}
@@ -530,7 +534,7 @@ func mxDeviceWritePeripheralCfg(fMxDevice *os.File, peripheral string, vmode str
 	return nil
 }
 
-func writeDefine(fMxDevice *os.File, name string, value string) error {
+func writeDefine(out *bufio.Writer, name string, value string) error {
 	invalidChars := [...]string{"=", " ", "/", "(", ")", "[", "]", "\\", "-"}
 
 	if len(value) == 0 {
@@ -544,6 +548,6 @@ func writeDefine(fMxDevice *os.File, name string, value string) error {
 	if len(name) < 39 {
 		name += strings.Repeat(" ", 39-len(name))
 	}
-	_, err := fMxDevice.WriteString("#define " + name + value + "\n")
+	_, err := out.WriteString("#define " + name + value + "\n")
 	return err
 }

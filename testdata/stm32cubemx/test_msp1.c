@@ -20,7 +20,8 @@ void HAL_I2C_MspInit(I2C_HandleTypeDef* hi2c)
     PB9     ------> I2C1_SDA
     PB8     ------> I2C1_SCL
     */
-    GPIO_InitStruct.Pin = GPIO_PIN_9|GPIO_PIN_8;
+    GPIO_InitStruct.Pin = GPIO_PIN_9|
+	    GPIO_PIN_8;
     GPIO_InitStruct.Port = GPIO_PORT;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_OD;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
