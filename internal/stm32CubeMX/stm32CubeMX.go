@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Arm Limited. All rights reserved.
+ * Copyright (c) 2023-2024 Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -8,6 +8,7 @@ package stm32cubemx
 
 import (
 	"errors"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path"
@@ -17,15 +18,47 @@ import (
 
 	"github.com/open-cmsis-pack/generator-bridge/internal/cbuild"
 	"github.com/open-cmsis-pack/generator-bridge/internal/common"
+	"github.com/open-cmsis-pack/generator-bridge/internal/generator"
 	"github.com/open-cmsis-pack/generator-bridge/internal/utils"
 	log "github.com/sirupsen/logrus"
 )
 
 func Process(cbuildYmlPath, outPath, cubeMxPath, mxprojectPath string, runCubeMx bool) error {
 	var projectFile string
-	var parms cbuild.ParamsType
 
-	err := ReadCbuildYmlFile(cbuildYmlPath, outPath, &parms)
+	cRoot := os.Getenv("CMSIS_COMPILER_ROOT")
+	if len(cRoot) == 0 {
+		ex, err := os.Executable()
+		if err != nil {
+			return err
+		}
+		exPath := filepath.Dir(ex)
+		exPath = filepath.ToSlash(exPath)
+		cRoot = path.Dir(exPath)
+	}
+	var generatorFile string
+	err := filepath.Walk(cRoot, func(path string, f fs.FileInfo, err error) error {
+		if f.Mode().IsRegular() && strings.Contains(path, "global.generator.yml") {
+			generatorFile = path
+			return nil
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	if len(generatorFile) == 0 {
+		return errors.New("config file 'global.generator.yml' not found")
+	}
+
+	var gParms generator.ParamsType
+	err = ReadGeneratorYmlFile(generatorFile, &gParms)
+	if err != nil {
+		return err
+	}
+
+	var parms cbuild.ParamsType
+	err = ReadCbuildYmlFile(cbuildYmlPath, outPath, &parms)
 	if err != nil {
 		return err
 	}
@@ -59,7 +92,7 @@ func Process(cbuildYmlPath, outPath, cubeMxPath, mxprojectPath string, runCubeMx
 		if utils.FileExists(cubeIocPath) {
 			err := Launch(cubeIocPath, "")
 			if err != nil {
-				return err
+				return errors.New("generator '" + gParms.ID + "' missing. Install from '" + gParms.DownloadURL + "'")
 			}
 		} else {
 			projectFile, err = WriteProjectFile(workDir, &parms)
@@ -70,7 +103,7 @@ func Process(cbuildYmlPath, outPath, cubeMxPath, mxprojectPath string, runCubeMx
 
 			err := Launch("", projectFile)
 			if err != nil {
-				return err
+				return errors.New("generator '" + gParms.ID + "' missing. Install from '" + gParms.DownloadURL + "'")
 			}
 		}
 
@@ -165,6 +198,12 @@ func ReadCbuildYmlFile(path, outPath string, parms *cbuild.ParamsType) error {
 	return nil
 }
 
+func ReadGeneratorYmlFile(path string, parms *generator.ParamsType) error {
+	log.Infof("Reading generator.yml file: '%v'", path)
+	err := generator.Read(path, parms)
+	return err
+}
+
 var filterFiles = map[string]string{
 	"system_":   "system_ file (delivered from elsewhere)",
 	"Templates": "Templates file (mostly not present)",
@@ -237,11 +276,14 @@ func WriteCgenYmlSub(outPath string, mxproject MxprojectType, subsystem *cbuild.
 	cgen.GeneratorImport.ForDevice = subsystem.Device
 	cgen.GeneratorImport.Define = append(cgen.GeneratorImport.Define, mxproject.PreviousUsedKeilFiles.CDefines...)
 
-	for id := range mxproject.PreviousUsedKeilFiles.HeaderPath {
-		headerPath := mxproject.PreviousUsedKeilFiles.HeaderPath[id]
+	for _, headerPath := range mxproject.PreviousUsedKeilFiles.HeaderPath {
 		headerPath, _ = utils.ConvertFilename(outPath, headerPath, relativePathAdd)
 		cgen.GeneratorImport.AddPath = append(cgen.GeneratorImport.AddPath, headerPath)
 	}
+
+	cfgPath := path.Join("drv_cfg", subsystem.SubsystemIdx.Project)
+	cfgPath, _ = utils.ConvertFilename(outPath, cfgPath, "")
+	cgen.GeneratorImport.AddPath = append(cgen.GeneratorImport.AddPath, cfgPath)
 
 	var groupSrc cbuild.CgenGroupsType
 	var groupHalDriver cbuild.CgenGroupsType
@@ -251,8 +293,7 @@ func WriteCgenYmlSub(outPath string, mxproject MxprojectType, subsystem *cbuild.
 	groupHalDriver.Group = "HAL Driver"
 	groupHalFilter := "HAL_Driver"
 
-	for id := range mxproject.PreviousUsedKeilFiles.SourceFiles {
-		file := mxproject.PreviousUsedKeilFiles.SourceFiles[id]
+	for _, file := range mxproject.PreviousUsedKeilFiles.SourceFiles {
 		if FilterFile(file) {
 			continue
 		}

@@ -244,8 +244,7 @@ func GetIni(path string) (*ini.File, error) {
 
 func GetSections(inidata *ini.File, iniSections *IniSectionsType) error {
 	sectionsData := inidata.SectionStrings()
-	for sectionID := range sectionsData {
-		section := sectionsData[sectionID]
+	for _, section := range sectionsData {
 		var iniName string
 		var sectionName string
 		sectionString := strings.Split(section, ":")

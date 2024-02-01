@@ -1,0 +1,6 @@
+generator:
+  - id: CubeMX
+    description: Global Registered Generator
+    download-url: https://nix.html
+    run: ../bin/cbridge
+    path: $SolutionDir()$/STM32CubeMX/$TargetType$

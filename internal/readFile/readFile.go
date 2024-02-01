@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Arm Limited. All rights reserved.
+ * Copyright (c) 2023-2024 Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -75,7 +75,11 @@ func Process(inFile, inFile2, outPath string) error {
 				workDir = path.Join(workDir, parms.OutPath)
 			}
 		} else {
-			workDir = path.Join(workDir, outPath)
+			if filepath.IsAbs(outPath) {
+				workDir = outPath
+			} else {
+				workDir = path.Join(workDir, outPath)
+			}
 		}
 		workDir = filepath.Clean(workDir)
 		workDir = filepath.ToSlash(workDir)
