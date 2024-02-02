@@ -4,9 +4,27 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package stm32cubemx_test
+package stm32cubemx
 
-import "testing"
+func ExamplePrintKeyValStr() {
+	PrintKeyValStr("key", "val")
+	// Output:
+	// 
+	// key : val
+}
 
-func TestIniReader(t *testing.T) {
+func ExamplePrintKeyValStrs() {
+	PrintKeyValStrs("key", []string{"val1", "val2"})
+	// Output:
+	// 
+	// key
+	// 0: val1
+	// 1: val2
+}
+
+func ExamplePrintKeyValInt() {
+	PrintKeyValInt("key", 4711)
+	// Output:
+	// 
+	// key : 4711
 }

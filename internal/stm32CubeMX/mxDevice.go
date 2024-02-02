@@ -47,23 +47,17 @@ func ReadContexts(iocFile string, params cbuild.ParamsType) error {
 	}
 
 	workDir := path.Dir(iocFile)
-	workDirAbs, err := filepath.Abs(workDir)
-	if err != nil {
-		return err
-	}
 
-	mspName := deviceFamily + "xx_hal_msp.c"
-	//	pinConfigMap, err := createPinConfigMap(mspName)
-	mspFolder := contextMap["ProjectManager"]["MainLocation"]
-	if mspFolder == "" {
+	mainFolder := contextMap["ProjectManager"]["MainLocation"]
+	if mainFolder == "" {
 		return errors.New("main location missing")
 	}
+	mspName := deviceFamily + "xx_hal_msp.c"
 
 	var cfgPath string
 	if len(contexts) == 0 {
-		msp := path.Join(workDirAbs, mspFolder, mspName)
 		cfgPath = path.Join("drv_cfg", params.Subsystem[0].SubsystemIdx.Project)
-		err := writeMXdeviceH(contextMap, workDir, msp, cfgPath, "", params)
+		err := writeMXdeviceH(contextMap, workDir, mainFolder, mspName, cfgPath, "", params)
 		if err != nil {
 			return err
 		}
@@ -98,7 +92,6 @@ func ReadContexts(iocFile string, params cbuild.ParamsType) error {
 			if len(contextFolder) == 0 {
 				return errors.New("Cannot find context " + context)
 			}
-			msp := path.Join(workDirAbs, contextFolder, mspFolder, mspName)
 			for _, subsystem := range params.Subsystem {
 				if subsystem.CoreName == coreName {
 					if len(subsystem.TrustZone) == 0 {
@@ -111,7 +104,7 @@ func ReadContexts(iocFile string, params cbuild.ParamsType) error {
 					}
 				}
 			}
-			err := writeMXdeviceH(contextMap, workDir, msp, cfgPath, context, params)
+			err := writeMXdeviceH(contextMap, workDir, path.Join(contextFolder, mainFolder), mspName, cfgPath, context, params)
 			if err != nil {
 				return err
 			}
@@ -147,7 +140,20 @@ func createContextMap(iocFile string) (map[string]map[string]string, error) {
 	return contextMap, nil
 }
 
-func writeMXdeviceH(contextMap map[string]map[string]string, workDir string, msp string, cfgPath string, context string, params cbuild.ParamsType) error {
+func writeMXdeviceH(contextMap map[string]map[string]string, workDir string, mainFolder string, mspName string, cfgPath string, context string, params cbuild.ParamsType) error {
+	workDirAbs, err := filepath.Abs(workDir)
+	if err != nil {
+		return err
+	}
+
+	main := path.Join(workDirAbs, mainFolder, "main.c")
+	fMain, err := os.Open(main)
+	if err != nil {
+		return err
+	}
+	defer fMain.Close()
+
+	msp := path.Join(workDirAbs, mainFolder, mspName)
 	fMsp, err := os.Open(msp)
 	if err != nil {
 		return err
@@ -181,11 +187,15 @@ func writeMXdeviceH(contextMap map[string]map[string]string, workDir string, msp
 	}
 	for _, peripheral := range peripherals {
 		vmode := getVirtualMode(contextMap, peripheral)
+		i2cInfo, err := getI2cInfo(fMain, peripheral)
+		if err != nil {
+			return err
+		}
 		pins, err := getPins(contextMap, fMsp, peripheral)
 		if err != nil {
 			return err
 		}
-		err = mxDeviceWritePeripheralCfg(out, peripheral, vmode, pins)
+		err = mxDeviceWritePeripheralCfg(out, peripheral, vmode, i2cInfo, pins)
 		if err != nil {
 			return err
 		}
@@ -361,6 +371,46 @@ func getDigitAtEnd(pin string) string {
 	return ""
 }
 
+// Get i2c info (filter, coefficients)
+func getI2cInfo(fMain *os.File, peripheral string) (map[string]string, error) {
+    info := make(map[string]string)
+	if strings.HasPrefix(peripheral, "I2C") {
+		_, err := fMain.Seek(0, 0)
+		if err != nil {
+			return nil, err
+		}
+		section := false
+
+		mainScan := bufio.NewScanner(fMain)
+		mainScan.Split(bufio.ScanLines)
+		for mainScan.Scan() {
+			line := mainScan.Text()
+			if !section {
+				if strings.HasPrefix(line, "static void MX_"+peripheral+"_Init") && !strings.Contains(line, ";") {
+					section = true // Start of section: static void MX_I2Cx_Init
+				}
+			} else { // Parse section: static void MX_I2Cx_Init
+				if strings.HasPrefix(line, "}") {
+					break // End of section: static void MX_I2Cx_Init
+				}
+				if strings.Contains(line, "HAL_I2CEx_ConfigAnalogFilter") {
+					if strings.Contains(line, "I2C_ANALOGFILTER_ENABLE") {
+						info["ANF_ENABLE"] = "1"
+					} else {
+						info["ANF_ENABLE"] = "0"
+					}
+				}
+				if strings.Contains(line, "HAL_I2CEx_ConfigDigitalFilter") {
+					dnf := strings.Split(strings.Split(line, ",")[1], ")")[0]
+					dnf = strings.TrimRight(strings.TrimLeft(dnf, "\t "), "\t ")
+					info["DNF"] = dnf
+				}
+			}
+		}
+	}
+    return info, nil
+}
+
 func getPinConfiguration(fMsp *os.File, peripheral string, pin string, label string) (PinDefinition, error) {
 	var pinInfo PinDefinition
 
@@ -473,18 +523,32 @@ func mxDeviceWriteHeader(out *bufio.Writer, fName string) error {
 	return err
 }
 
-func mxDeviceWritePeripheralCfg(out *bufio.Writer, peripheral string, vmode string, pins map[string]PinDefinition) error {
+func mxDeviceWritePeripheralCfg(out *bufio.Writer, peripheral string, vmode string, i2cInfo map[string]string, pins map[string]PinDefinition) error {
+	var err error
+
 	str := "\n/*------------------------------ " + peripheral
 	if len(str) < 49 {
 		str += strings.Repeat(" ", 49-len(str))
 	}
 	str += "-----------------------------*/\n"
-	_, err := out.WriteString(str)
-	if err != nil {
+	if _, err = out.WriteString(str); err != nil {
 		return err
 	}
 	if err = writeDefine(out, peripheral, "1\n"); err != nil {
 		return err
+	}
+	if i2cInfo != nil {
+		if _, err = out.WriteString("/* Filter Settings */\n"); err != nil {
+			return err
+		}
+		for item, value := range i2cInfo {
+			if err = writeDefine(out, peripheral + "_" + item, value); err != nil {
+				return err
+			}
+		}
+		if _, err = out.WriteString("\n"); err != nil {
+			return err
+		}
 	}
 	if vmode != "" {
 		if _, err = out.WriteString("/* Virtual mode */\n"); err != nil {
@@ -498,13 +562,11 @@ func mxDeviceWritePeripheralCfg(out *bufio.Writer, peripheral string, vmode stri
 		}
 	}
 	if len(pins) != 0 {
-		_, err = out.WriteString("/* Pins */\n")
-		if err != nil {
+		if _, err = out.WriteString("/* Pins */\n"); err != nil {
 			return err
 		}
 		for pin, pinDef := range pins {
-			_, err = out.WriteString("\n/* " + pin + " */\n")
-			if err != nil {
+			if _, err = out.WriteString("\n/* " + pin + " */\n"); err != nil {
 				return err
 			}
 			if err = writeDefine(out, pin+"_Pin", pinDef.p); err != nil {
