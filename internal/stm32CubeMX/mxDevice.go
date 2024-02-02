@@ -373,7 +373,7 @@ func getDigitAtEnd(pin string) string {
 
 // Get i2c info (filter, coefficients)
 func getI2cInfo(fMain *os.File, peripheral string) (map[string]string, error) {
-    info := make(map[string]string)
+	info := make(map[string]string)
 	if strings.HasPrefix(peripheral, "I2C") {
 		_, err := fMain.Seek(0, 0)
 		if err != nil {
@@ -408,7 +408,7 @@ func getI2cInfo(fMain *os.File, peripheral string) (map[string]string, error) {
 			}
 		}
 	}
-    return info, nil
+	return info, nil
 }
 
 func getPinConfiguration(fMsp *os.File, peripheral string, pin string, label string) (PinDefinition, error) {
@@ -542,7 +542,7 @@ func mxDeviceWritePeripheralCfg(out *bufio.Writer, peripheral string, vmode stri
 			return err
 		}
 		for item, value := range i2cInfo {
-			if err = writeDefine(out, peripheral + "_" + item, value); err != nil {
+			if err = writeDefine(out, peripheral+"_"+item, value); err != nil {
 				return err
 			}
 		}

@@ -17,9 +17,11 @@ func TestReadYml(t *testing.T) {
 			Xx string `yaml:"xx"`
 		} `yaml:"test"`
 	}
-	var testyml	TestYml
+	var testyml TestYml
 
-	t1 := TestYml{Test: []struct{Xx string `yaml:"xx"`}{{Xx: "abc"}}}
+	t1 := TestYml{Test: []struct {
+		Xx string `yaml:"xx"`
+	}{{Xx: "abc"}}}
 
 	type args struct {
 		path string
@@ -28,7 +30,7 @@ func TestReadYml(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    args
-		want	TestYml
+		want    TestYml
 		wantErr bool
 	}{
 		{"test", args{"../../testdata/test.yml", &testyml}, t1, false},

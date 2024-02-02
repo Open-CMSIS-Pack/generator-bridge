@@ -9,14 +9,14 @@ package stm32cubemx
 func ExamplePrintKeyValStr() {
 	PrintKeyValStr("key", "val")
 	// Output:
-	// 
+	//
 	// key : val
 }
 
 func ExamplePrintKeyValStrs() {
 	PrintKeyValStrs("key", []string{"val1", "val2"})
 	// Output:
-	// 
+	//
 	// key
 	// 0: val1
 	// 1: val2
@@ -25,6 +25,6 @@ func ExamplePrintKeyValStrs() {
 func ExamplePrintKeyValInt() {
 	PrintKeyValInt("key", 4711)
 	// Output:
-	// 
+	//
 	// key : 4711
 }
