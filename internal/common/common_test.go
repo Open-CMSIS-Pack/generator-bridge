@@ -40,7 +40,8 @@ func TestReadYml(t *testing.T) {
 			if err := ReadYml(tt.args.path, tt.args.out); (err != nil) != tt.wantErr {
 				t.Errorf("ReadYml() %s error = %v, wantErr %v", tt.name, err, tt.wantErr)
 			}
-			if !reflect.DeepEqual(tt.args.out, &tt.want) {
+			xx := tt.want
+			if !reflect.DeepEqual(tt.args.out, &xx) {
 				t.Errorf("ReadYml() %s got = %v, want %v", tt.name, tt.args.out, tt.want)
 			}
 		})
