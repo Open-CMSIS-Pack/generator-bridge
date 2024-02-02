@@ -181,7 +181,7 @@ func Test_getDeviceFamily(t *testing.T) {
 }
 
 func Test_getPeripherals(t *testing.T) {
-	t.Parallel()
+	//	t.Parallel()
 
 	var parts = make(map[string]map[string]string)
 	parts["Mcu"] = map[string]string{"IP1": "UART", "IP2": "xx", "IP3": "USB"}
@@ -217,7 +217,7 @@ func Test_getPeripherals(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
+			//			t.Parallel()
 			got, err := getPeripherals(tt.args.contextMap, tt.args.context)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("getPeripherals() %s error = %v, wantErr %v", tt.name, err, tt.wantErr)

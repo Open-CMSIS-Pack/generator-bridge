@@ -32,13 +32,13 @@ jobs:
           fetch-depth: 0
 
       - name: Install Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
           check-latest: true
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v2
+        uses: github/codeql-action/init@v3
         with:
           languages: go
           queries: security-and-quality
@@ -48,11 +48,11 @@ jobs:
           make OS=${{ matrix.goos }} ARCH=${{ matrix.arch }} build
 
       - name: Upload binary
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: cbridge-${{ matrix.goos }}-${{ matrix.arch }}
           path: build/cbridge*
           retention-days: 1
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v2
+        uses: github/codeql-action/analyze@v3
