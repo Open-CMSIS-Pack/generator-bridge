@@ -168,4 +168,3 @@ jobs:
         with:
           debug: true
           coverageLocations: ./cover.out:gocov
-          prefix: cmd
