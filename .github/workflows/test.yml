@@ -168,4 +168,4 @@ jobs:
         with:
           debug: true
           coverageLocations: ./cover.out:gocov
-          prefix: github.com/Open-CMSIS-Pack/generator-bridge
+          prefix: github.com/open-cmsis-pack/generator-bridge
