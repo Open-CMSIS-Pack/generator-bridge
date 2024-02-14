@@ -40,7 +40,7 @@ type SubsystemType struct {
 	Compiler     string
 	TrustZone    string
 	CoreName     string
-	Packs        []PackType
+	// Packs        []PackType
 }
 
 type ParamsType struct {
@@ -286,14 +286,14 @@ func ReadCbuildgen(name string, subsystem *SubsystemType) error {
 	log.Infof("Found CBuildGen: board: %v, device: %v, core: %v, TZ: %v, compiler: %v, project: %v",
 		subsystem.Board, subsystem.Device, subsystem.CoreName, subsystem.TrustZone, subsystem.Compiler, subsystem.Project)
 
-	for id := range cbuildGen.BuildGen.Packs {
-		genPack := cbuildGen.BuildGen.Packs[id]
-		var pack PackType
-		pack.Pack = genPack.Pack
-		pack.Path = genPack.Path
-		log.Infof("Found Pack: #%v Pack: %v, Path: %v", id, pack.Pack, pack.Path)
-		subsystem.Packs = append(subsystem.Packs, pack)
-	}
+	// for id := range cbuildGen.BuildGen.Packs {
+	// 	genPack := cbuildGen.BuildGen.Packs[id]
+	// 	var pack PackType
+	// 	pack.Pack = genPack.Pack
+	// 	pack.Path = genPack.Path
+	// 	log.Infof("Found Pack: #%v Pack: %v, Path: %v", id, pack.Pack, pack.Path)
+	// 	subsystem.Packs = append(subsystem.Packs, pack)
+	// }
 
 	return nil
 }
