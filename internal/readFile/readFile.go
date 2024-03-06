@@ -54,7 +54,7 @@ func Process(inFile, inFile2, outPath string) error {
 	}
 
 	if mxprojectFile != "" {
-		mxprojectAll, _ := stm32cubemx.IniReader(mxprojectFile, false)
+		mxprojectAll, _ := stm32cubemx.IniReader(mxprojectFile, params.Subsystem[0].Compiler, false)
 
 		if params.Board == "" && params.Device == "" {
 			params.Board = "Test Board"
