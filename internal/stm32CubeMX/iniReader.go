@@ -213,8 +213,8 @@ func IniReader(path string, trustzone bool) (MxprojectAllType, error) {
 		return mxprojectAll, err
 	}
 
-	for coreID := range iniSections.cores {
-		core := iniSections.cores[coreID]
+	for _, core := range iniSections.cores {
+		//		core := iniSections.cores[coreID]
 		iniName := core.iniName
 		if iniName == "Cortex" { // remove workaround for single-core .mxproject CubeMx files
 			iniName = ""

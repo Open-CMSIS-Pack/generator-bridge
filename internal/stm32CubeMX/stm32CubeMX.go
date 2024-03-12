@@ -8,6 +8,7 @@ package stm32cubemx
 
 import (
 	"errors"
+	"fmt"
 	"io/fs"
 	"os"
 	"os/exec"
@@ -15,7 +16,9 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"time"
 
+	"github.com/fsnotify/fsnotify"
 	"github.com/open-cmsis-pack/generator-bridge/internal/cbuild"
 	"github.com/open-cmsis-pack/generator-bridge/internal/common"
 	"github.com/open-cmsis-pack/generator-bridge/internal/generator"
@@ -23,7 +26,20 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func Process(cbuildYmlPath, outPath, cubeMxPath, mxprojectPath string, runCubeMx bool) error {
+var cubeEnded bool
+var watcher *fsnotify.Watcher
+
+func procWait(proc *os.Process) {
+	if proc != nil {
+		proc.Wait()
+		log.Println("CubeMX ended")
+		cubeEnded = true
+		watcher.Close()
+		log.Println("Watcher closed")
+	}
+}
+
+func Process(cbuildYmlPath, outPath, cubeMxPath string, runCubeMx bool, pid int) error {
 	var projectFile string
 
 	cRoot := os.Getenv("CMSIS_COMPILER_ROOT")
@@ -81,16 +97,104 @@ func Process(cbuildYmlPath, outPath, cubeMxPath, mxprojectPath string, runCubeMx
 		return err
 	}
 
+	cubeIocPath := workDir
+	if pid >= 0 {
+		lastPath := filepath.Base(cubeIocPath)
+		if lastPath != "STM32CubeMX" {
+			cubeIocPath = path.Join(cubeIocPath, "STM32CubeMX")
+		}
+		iocprojectPath := path.Join(cubeIocPath, "STM32CubeMX.ioc")
+		mxprojectPath := path.Join(cubeIocPath, ".mxproject")
+		for {
+			log.Printf("pid of CubeMX in daemon: %d", pid)
+			proc, err := os.FindProcess(pid) // this only works for windows as it is now
+			if err == nil {                  // cubeMX already runs
+				go procWait(proc)
+				watcher, err = fsnotify.NewWatcher()
+				if err != nil {
+					log.Fatal(err)
+				}
+				//				defer watcher.Close()
+				done := make(chan bool)
+				// use goroutine to start the watcher
+				go func() {
+					var infomx0 fs.FileInfo
+					changes := 0
+					for {
+						if changes == 0 {
+							log.Println("Waiting for CubeMX \"Generate Code\"")
+						}
+						select {
+						case event := <-watcher.Events:
+							if event.Op&fsnotify.Write == fsnotify.Write {
+								log.Println("Modified file:", event.Name)
+								if changes == 1 {
+									infomx0, _ = os.Stat(mxprojectPath)
+								}
+								changes++
+								if changes >= 4 {
+									changes = 0
+									i := 1
+									for ; i < 100; i++ {
+										time.Sleep(time.Second)
+										infomx, err := os.Stat(mxprojectPath)
+										if err == nil {
+											timeDiff := infomx.ModTime().Sub(infomx0.ModTime())
+											seconds := timeDiff.Abs().Seconds()
+											if seconds > 1 {
+												break
+											}
+										}
+									}
+									if i < 100 {
+										mxproject, err := IniReader(mxprojectPath, false)
+										if err != nil {
+											return
+										}
+
+										err = ReadContexts(iocprojectPath, parms)
+										if err != nil {
+											return
+										}
+
+										err = WriteCgenYml(workDir, mxproject, parms)
+										if err != nil {
+											return
+										}
+									}
+								}
+							}
+						case err := <-watcher.Errors:
+							log.Println("Errorx:", err)
+							os.Exit(0)
+							// return
+						}
+					}
+				}()
+				log.Printf("watching for: %s", iocprojectPath)
+				if err = watcher.Add(iocprojectPath); err != nil {
+					log.Println("Error:", err)
+					return err
+				}
+				<-done
+				log.Println("Watcher raus")
+			}
+			log.Println("Process loop")
+		}
+	}
+
 	if runCubeMx {
-		cubeIocPath := workDir
 		lastPath := filepath.Base(cubeIocPath)
 		if lastPath != "STM32CubeMX" {
 			cubeIocPath = path.Join(cubeIocPath, "STM32CubeMX")
 		}
 		cubeIocPath = path.Join(cubeIocPath, "STM32CubeMX.ioc")
 
+		var err error
+		pid := -1
 		if utils.FileExists(cubeIocPath) {
-			err := Launch(cubeIocPath, "")
+			log.Printf("CubeMX with: %s", cubeIocPath)
+			pid, err = Launch(cubeIocPath, "")
 			if err != nil {
 				return errors.New("generator '" + gParms.ID + "' missing. Install from '" + gParms.DownloadURL + "'")
 			}
@@ -101,40 +205,32 @@ func Process(cbuildYmlPath, outPath, cubeMxPath, mxprojectPath string, runCubeMx
 			}
 			log.Infof("Generated file: %v", projectFile)
 
-			err := Launch("", projectFile)
+			pid, err = Launch("", projectFile)
 			if err != nil {
 				return errors.New("generator '" + gParms.ID + "' missing. Install from '" + gParms.DownloadURL + "'")
 			}
 		}
+		log.Printf("pid of CubeMX in main: %d", pid)
 
-		err = ReadContexts(cubeIocPath, parms)
-		if err != nil {
+		// here cubeMX runs
+		cmd := exec.Command(os.Args[0])
+		cmd.Args = os.Args
+		cmd.Args = append(cmd.Args, "-p", fmt.Sprint(pid)) // pid of cubeMX
+		if err := cmd.Start(); err != nil {                // start myself as a daemon
+			log.Fatal(err)
 			return err
 		}
-
-		tmpPath, _ := filepath.Split(cubeIocPath)
-		mxprojectPath = path.Join(tmpPath, ".mxproject")
 	}
-	mxproject, err := IniReader(mxprojectPath, false)
-	if err != nil {
-		return err
-	}
-
-	err = WriteCgenYml(workDir, mxproject, parms)
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
-func Launch(iocFile, projectFile string) error {
+func Launch(iocFile, projectFile string) (int, error) {
 	log.Infof("Launching STM32CubeMX...")
 
 	const cubeEnvVar = "STM32CubeMX_PATH"
 	cubeEnv := os.Getenv(cubeEnvVar)
 	if cubeEnv == "" {
-		return errors.New("environment variable for CubeMX not set: " + cubeEnvVar)
+		return -1, errors.New("environment variable for CubeMX not set: " + cubeEnvVar)
 	}
 
 	pathJava := path.Join(cubeEnv, "jre", "bin", "java.exe")
@@ -148,12 +244,12 @@ func Launch(iocFile, projectFile string) error {
 	} else {
 		cmd = exec.Command(pathJava, "-jar", pathCubeMx)
 	}
-	err := cmd.Run()
-	if err != nil {
+	if err := cmd.Start(); err != nil {
 		log.Fatal(err)
+		return -1, err
 	}
 
-	return nil
+	return cmd.Process.Pid, nil
 }
 
 func WriteProjectFile(workDir string, parms *cbuild.ParamsType) (string, error) {
