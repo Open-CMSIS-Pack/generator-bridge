@@ -4,65 +4,157 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package utils_test
+package utils
 
 import (
+	"os"
+	"reflect"
 	"testing"
-
-	"github.com/open-cmsis-pack/generator-bridge/internal/utils"
-	"github.com/stretchr/testify/assert"
 )
 
-//var testDir string = "./Testing"
-
-func TestAddLine(t *testing.T) {
-	var text utils.TextBuilder
-
-	text.AddLine("A line")
-	expected := "A line\n"
-	result := text.GetLine()
-	assert.Equal(t, expected, result)
-
-	text.AddLine("A second line")
-	result = text.GetLine()
-	expected += "A second line\n"
-	assert.Equal(t, expected, result)
-}
-
 func TestAddQuotes(t *testing.T) {
-	text := "Test"
-	expected := "\"" + text + "\""
-	result := utils.AddQuotes(text)
-	assert.Equal(t, expected, result)
+	type args struct {
+		text string
+	}
+	tests := []struct {
+		name string
+		args args
+		want string
+	}{
+		{"test", args{"Test"}, "\"Test\""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := AddQuotes(tt.args.text); got != tt.want {
+				t.Errorf("AddQuotes() = %v, want %v", got, tt.want)
+			}
+		})
+	}
 }
 
-/* Test runs when "Debug" but fails in "Run"
+func TestTextBuilder_AddLine(t *testing.T) {
+	var builder TextBuilder
+	var builder1 TextBuilder
+	var builder2 TextBuilder
+
+	type args struct {
+		args []string
+	}
+	tests := []struct {
+		name string
+		tr   *TextBuilder
+		args args
+		want string
+	}{
+		{"nix", &builder, args{}, "\n"},
+		{"1", &builder1, args{[]string{"A line"}}, "A line\n"},
+		{"1+", &builder2, args{[]string{"A line", "and more"}}, "A line and more\n"},
+		{"2", &builder1, args{[]string{"A second line"}}, "A line\nA second line\n"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.tr.AddLine(tt.args.args...)
+			if !reflect.DeepEqual(tt.tr.GetLine(), tt.want) {
+				t.Errorf("TestTextBuilder_AddLine() %s got = %v, want %v", tt.name, tt.tr.GetLine(), tt.want)
+			}
+		})
+	}
+}
+
 func TestFileExists(t *testing.T) {
-
-	result := utils.DirExists(testDir)
-	expected := false
-	assert.Equal(t, expected, result)
-
-	filename := filepath.Join(testDir, "fileexists.txt")
-	result = utils.FileExists(filename)
-	expected = false
-	assert.Equal(t, expected, result)
-
-	err := os.Mkdir(testDir, 0755)
-	assert.Equal(t, nil, err)
-
-	result = utils.DirExists(testDir)
-	expected = true
-	assert.Equal(t, expected, result)
-
-	text := "Hello, World"
-	err = os.WriteFile(filename, []byte(text), 0755)
-	assert.NotEqual(t, nil, err)
-
-	result = utils.FileExists(filename)
-	expected = true
-	assert.Equal(t, expected, result)
-
-	os.RemoveAll(testDir)
+	t.Parallel()
+	type args struct {
+		filePath string
+	}
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		{"file", args{"../../testdata/test.yml"}, true},
+		{"dir", args{"../../testdata"}, false},
+		{"nix", args{"../../testdata/nix"}, false},
+	}
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			if got := FileExists(tt.args.filePath); got != tt.want {
+				t.Errorf("FileExists() %s = %v, want %v", tt.name, got, tt.want)
+			}
+		})
+	}
 }
-*/
+
+func TestDirExists(t *testing.T) {
+	type args struct {
+		dirPath string
+	}
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		{"file", args{"../../testdata/test.yml"}, false},
+		{"dir", args{"../../testdata"}, true},
+		{"nix", args{"../../testdata/nix"}, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := DirExists(tt.args.dirPath); got != tt.want {
+				t.Errorf("DirExists() %s = %v, want %v", tt.name, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestEnsureDir(t *testing.T) {
+	type args struct {
+		dirName string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		remove  string
+		wantErr bool
+	}{
+		{"test", args{"../../testdata/1/2/3"}, "../../testdata/1", false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			defer os.RemoveAll(tt.remove)
+			if err := EnsureDir(tt.args.dirName); (err != nil) != tt.wantErr {
+				t.Errorf("EnsureDir() %s error = %v, wantErr %v", tt.name, err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestConvertFilename(t *testing.T) {
+	type args struct {
+		outPath         string
+		file            string
+		relativePathAdd string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    string
+		wantErr bool
+	}{
+		{"test", args{"../../testdata", "test.ioc", "stm32cubemx"}, "./stm32cubemx/test.ioc", false},
+		{"nix", args{"../../testdata", "nix", "stm32cubemx"}, "./stm32cubemx/nix", false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := ConvertFilename(tt.args.outPath, tt.args.file, tt.args.relativePathAdd)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ConvertFilename() %s error = %v, wantErr %v", tt.name, err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("ConvertFilename() %s = %v, want %v", tt.name, got, tt.want)
+			}
+		})
+	}
+}

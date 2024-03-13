@@ -59,13 +59,15 @@ func Test_writeMXdeviceH(t *testing.T) {
 	var mcuContext1 = make(map[string]map[string]string)
 	mcuContext1["Mcu"] = map[string]string{"IPs": "myContext"}
 	var mcuContext2 = make(map[string]map[string]string)
-	mcuContext2["Mcu"] = map[string]string{"IPs": "IP1"}
-	mcuContext2["IP1"] = map[string]string{"IPs": "SPI2"}
+	mcuContext2["Mcu"] = map[string]string{"IP1": "SPI2"}
+	mcuContext2["SPI2"] = map[string]string{"VirtualModex": "ModeX"}
+	mcuContext2["P1"] = map[string]string{"Signal": "SPI2"}
 
 	type args struct {
 		contextMap map[string]map[string]string
 		workDir    string
-		msp        string
+		mainFolder string
+		mspName    string
 		cfgPath    string
 		context    string
 		params     cbuild.ParamsType
@@ -75,16 +77,16 @@ func Test_writeMXdeviceH(t *testing.T) {
 		args    args
 		wantErr bool
 	}{
-		{"Mcu", args{mcuContext2, "work", "../../testdata/stm32cubemx/test_msp.c", "../../testdata/cfg", "Mcu", cbuild.ParamsType{}}, false},
-		{"wrong context", args{mcuContext0, "work", "../../testdata/stm32cubemx/test_msp.c", "../../testdata/cfg", "context", cbuild.ParamsType{}}, true},
-		{"Mcu Context", args{mcuContext1, "work", "../../testdata/stm32cubemx/test_msp.c", "../../testdata/cfg", "Mcu", cbuild.ParamsType{}}, false},
-		{"wrong myContext", args{mcuContext1, "work", "../../testdata/stm32cubemx/test_msp.c", "../../testdata/cfg", "context", cbuild.ParamsType{}}, true},
-		{"wrong msp", args{mcuContext1, "work", "msp", "cfg", "context", cbuild.ParamsType{}}, true},
+		{"Mcu", args{mcuContext2, "../../testdata/stm32cubemx", "", "test_msp.c", "cfg", "", cbuild.ParamsType{}}, false},
+		{"wrong context", args{mcuContext0, "../../testdata/stm32cubemx", "", "test_msp.c", "cfg", "context", cbuild.ParamsType{}}, true},
+		{"Mcu Context", args{mcuContext1, "../../testdata/stm32cubemx", "", "test_msp.c", "cfg", "Mcu", cbuild.ParamsType{}}, false},
+		{"wrong myContext", args{mcuContext1, "../../testdata/stm32cubemx", "", "test_msp.c", "cfg", "context", cbuild.ParamsType{}}, true},
+		{"wrong msp", args{mcuContext1, "", "", "msp", "cfg", "context", cbuild.ParamsType{}}, true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			defer os.RemoveAll(tt.args.cfgPath)
-			if err := writeMXdeviceH(tt.args.contextMap, tt.args.workDir, tt.args.msp, tt.args.cfgPath, tt.args.context, tt.args.params); (err != nil) != tt.wantErr {
+			defer os.RemoveAll(tt.args.workDir + "/../" + tt.args.cfgPath)
+			if err := writeMXdeviceH(tt.args.contextMap, tt.args.workDir, tt.args.mainFolder, tt.args.mspName, tt.args.cfgPath, tt.args.context, tt.args.params); (err != nil) != tt.wantErr {
 				t.Errorf("writeMXdeviceH() %s error = %v, wantErr %v", tt.name, err, tt.wantErr)
 			}
 		})
@@ -329,6 +331,8 @@ func Test_replaceSpecialChars(t *testing.T) {
 }
 
 func Test_getDigitAtEnd(t *testing.T) {
+	t.Parallel()
+
 	type args struct {
 		pin string
 	}
@@ -343,7 +347,9 @@ func Test_getDigitAtEnd(t *testing.T) {
 		{"test4", args{"12"}, "12"},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			if got := getDigitAtEnd(tt.args.pin); got != tt.want {
 				t.Errorf("getDigitAtEnd() = %v, want %v", got, tt.want)
 			}
@@ -512,6 +518,7 @@ func Test_mxDeviceWritePeripheralCfg(t *testing.T) {
 		out        *bufio.Writer
 		peripheral string
 		vmode      string
+		i2cInfo    map[string]string
 		pins       map[string]PinDefinition
 	}
 	tests := []struct {
@@ -533,7 +540,7 @@ func Test_mxDeviceWritePeripheralCfg(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.args.out = bufio.NewWriter(&b)
 
-			if err := mxDeviceWritePeripheralCfg(tt.args.out, tt.args.peripheral, tt.args.vmode, tt.args.pins); (err != nil) != tt.wantErr {
+			if err := mxDeviceWritePeripheralCfg(tt.args.out, tt.args.peripheral, tt.args.vmode, tt.args.i2cInfo, tt.args.pins); (err != nil) != tt.wantErr {
 				t.Errorf("mxDeviceWritePeripheralCfg() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			tt.args.out.Flush()
