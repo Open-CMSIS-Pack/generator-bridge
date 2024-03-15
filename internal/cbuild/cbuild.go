@@ -188,8 +188,7 @@ func ReadCbuildgenIdx(name, outPath string, params *ParamsType) error {
 		return err
 	}
 
-	for idGen := range cbuildGenIdx.BuildGenIdx.Generators {
-		cbuildGenIdx := cbuildGenIdx.BuildGenIdx.Generators[idGen]
+	for idGen, cbuildGenIdx := range cbuildGenIdx.BuildGenIdx.Generators {
 		cbuildGenIdxID := cbuildGenIdx.ID
 		cbuildGenIdxBoard := cbuildGenIdx.Board
 		cbuildGenIdxDevice := cbuildGenIdx.Device
@@ -212,8 +211,7 @@ func ReadCbuildgenIdx(name, outPath string, params *ParamsType) error {
 		var secureContextName string
 		var nonsecureContextName string
 
-		for idSub := range cbuildGenIdx.CbuildGens {
-			cbuildGen := cbuildGenIdx.CbuildGens[idSub]
+		for _, cbuildGen := range cbuildGenIdx.CbuildGens {
 			fileName := cbuildGen.CbuildGen
 			var subPath string
 			if filepath.IsAbs(fileName) {

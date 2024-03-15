@@ -105,8 +105,7 @@ func StoreData(data *string, value string) {
 }
 
 func StoreDataArray(data *[]string, values ...string) {
-	for id := range values {
-		value := values[id]
+	for _, value := range values {
 		value = filepath.ToSlash(value)
 		if value != "" {
 			if !slices.Contains(*data, value) {
@@ -143,8 +142,7 @@ func FindInList(name string, list *[]string) bool {
 		return false
 	}
 
-	for id := range *list {
-		item := (*list)[id]
+	for _, item := range *list {
 		if item == name {
 			return true
 		}
@@ -169,8 +167,7 @@ func FindInCores(name string, list *[]IniSectionCore) bool {
 		return false
 	}
 
-	for id := range *list {
-		item := (*list)[id]
+	for _, item := range *list {
 		if item.iniName == name {
 			return true
 		}

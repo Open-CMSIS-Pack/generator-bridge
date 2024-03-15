@@ -141,6 +141,7 @@ func createContextMap(iocFile string) (map[string]map[string]string, error) {
 }
 
 func writeMXdeviceH(contextMap map[string]map[string]string, workDir string, mainFolder string, mspName string, cfgPath string, context string, params cbuild.ParamsType) error {
+	_ = params
 	workDirAbs, err := filepath.Abs(workDir)
 	if err != nil {
 		return err

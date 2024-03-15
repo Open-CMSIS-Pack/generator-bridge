@@ -26,14 +26,12 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var cubeEnded bool
 var watcher *fsnotify.Watcher
 
 func procWait(proc *os.Process) {
 	if proc != nil {
 		proc.Wait()
 		log.Println("CubeMX ended")
-		cubeEnded = true
 		watcher.Close()
 		log.Println("Watcher closed")
 	}
@@ -114,7 +112,6 @@ func Process(cbuildYmlPath, outPath, cubeMxPath string, runCubeMx bool, pid int)
 				if err != nil {
 					log.Fatal(err)
 				}
-				//				defer watcher.Close()
 				done := make(chan bool)
 				// use goroutine to start the watcher
 				go func() {
@@ -165,9 +162,10 @@ func Process(cbuildYmlPath, outPath, cubeMxPath string, runCubeMx bool, pid int)
 								}
 							}
 						case err := <-watcher.Errors:
-							log.Println("Errorx:", err)
+							if err != nil {
+								log.Println("Error:", err)
+							}
 							os.Exit(0)
-							// return
 						}
 					}
 				}()
@@ -329,8 +327,7 @@ func FindMxProject(subsystem *cbuild.SubsystemType, mxprojectAll MxprojectAllTyp
 	if trustzone == "off" {
 		trustzone = ""
 	}
-	for id := range mxprojectAll.Mxproject {
-		mxproject := mxprojectAll.Mxproject[id]
+	for _, mxproject := range mxprojectAll.Mxproject {
 		if mxproject.CoreName == coreName && mxproject.Trustzone == trustzone {
 			return mxproject, nil
 		}
