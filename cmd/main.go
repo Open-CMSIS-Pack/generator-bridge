@@ -17,23 +17,15 @@ import (
 
 func main() {
 	log.SetFormatter(new(LogFormatter))
-	f, err := os.OpenFile("cbridge.log", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0600)
-	if err != nil {
-		log.SetOutput(os.Stdout)
-	} else {
-		defer f.Close()
-		log.SetOutput(f)
-	}
+	log.SetOutput(os.Stdout)
 
 	utils.StartSignalWatcher()
 	start := time.Now()
 
-	log.Println("Command line:", os.Args[1:])
-
 	commands.Version = version
 	commands.Copyright = copyright
 	cmd := commands.NewCli()
-	err = cmd.Execute()
+	err := cmd.Execute()
 	if err != nil {
 		log.Errorf("Error : %v", err)
 		os.Exit(-1)
