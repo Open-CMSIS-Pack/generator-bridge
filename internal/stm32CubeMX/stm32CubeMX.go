@@ -144,7 +144,7 @@ func Process(cbuildYmlPath, outPath, cubeMxPath string, runCubeMx bool, pid int)
 										}
 									}
 									if i < 100 {
-										mxproject, err := IniReader(mxprojectPath, false)
+										mxproject, err := IniReader(mxprojectPath, parms.Subsystem[0].Compiler, false)
 										if err != nil {
 											return
 										}
@@ -261,7 +261,12 @@ func WriteProjectFile(workDir string, parms *cbuild.ParamsType) (string, error) 
 		text.AddLine("load", parms.Device)
 	}
 	text.AddLine("project name", "STM32CubeMX")
-	text.AddLine("project toolchain", utils.AddQuotes("MDK-ARM V5"))
+
+	toolchain, err := GetToolchain(parms.Subsystem[0].Compiler)
+	if err != nil {
+		return "", err
+	}
+	text.AddLine("project toolchain", utils.AddQuotes(toolchain))
 
 	cubeWorkDir := workDir
 	if runtime.GOOS == "windows" {
@@ -274,7 +279,7 @@ func WriteProjectFile(workDir string, parms *cbuild.ParamsType) (string, error) 
 		os.Remove(filePath)
 	}
 
-	err := os.WriteFile(filePath, []byte(text.GetLine()), 0600)
+	err = os.WriteFile(filePath, []byte(text.GetLine()), 0600)
 	if err != nil {
 		return "", err
 	}
@@ -299,8 +304,9 @@ func ReadGeneratorYmlFile(path string, parms *generator.ParamsType) error {
 }
 
 var filterFiles = map[string]string{
-	"system_":   "system_ file (delivered from elsewhere)",
-	"Templates": "Templates file (mostly not present)",
+	"system_":                            "system_ file (already added)",
+	"Templates":                          "Templates file (mostly not present)",
+	"/STM32CubeMX/Drivers/CMSIS/Include": "CMSIS include folder (delivered by ARM::CMSIS)",
 }
 
 func FilterFile(file string) bool {
@@ -358,19 +364,20 @@ func WriteCgenYmlSub(outPath string, mxproject MxprojectType, subsystem *cbuild.
 	outFile := path.Join(outPath, outName)
 	var cgen cbuild.CgenType
 
-	lastPath := filepath.Base(outPath)
-	var relativePathAdd string
-	if lastPath != "STM32CubeMX" {
-		relativePathAdd = path.Join(relativePathAdd, "STM32CubeMX")
+	relativePathAdd, err := GetRelativePathAdd(outPath, subsystem.Compiler)
+	if err != nil {
+		return err
 	}
-	relativePathAdd = path.Join(relativePathAdd, "MDK-ARM")
 
 	cgen.GeneratorImport.ForBoard = subsystem.Board
 	cgen.GeneratorImport.ForDevice = subsystem.Device
-	cgen.GeneratorImport.Define = append(cgen.GeneratorImport.Define, mxproject.PreviousUsedKeilFiles.CDefines...)
+	cgen.GeneratorImport.Define = append(cgen.GeneratorImport.Define, mxproject.PreviousUsedFiles.CDefines...)
 
-	for _, headerPath := range mxproject.PreviousUsedKeilFiles.HeaderPath {
+	for _, headerPath := range mxproject.PreviousUsedFiles.HeaderPath {
 		headerPath, _ = utils.ConvertFilename(outPath, headerPath, relativePathAdd)
+		if FilterFile(headerPath) {
+			continue
+		}
 		cgen.GeneratorImport.AddPath = append(cgen.GeneratorImport.AddPath, headerPath)
 	}
 
@@ -383,15 +390,14 @@ func WriteCgenYmlSub(outPath string, mxproject MxprojectType, subsystem *cbuild.
 	var groupTz cbuild.CgenGroupsType
 
 	groupSrc.Group = "CubeMX"
-	groupHalDriver.Group = "HAL Driver"
+	groupHalDriver.Group = "STM32 HAL Driver"
 	groupHalFilter := "HAL_Driver"
 
-	for _, file := range mxproject.PreviousUsedKeilFiles.SourceFiles {
+	for _, file := range mxproject.PreviousUsedFiles.SourceFiles {
 		if FilterFile(file) {
 			continue
 		}
 		file, _ = utils.ConvertFilename(outPath, file, relativePathAdd)
-
 		if strings.Contains(file, groupHalFilter) {
 			var cgenFile cbuild.CgenFilesType
 			cgenFile.File = file
@@ -401,6 +407,43 @@ func WriteCgenYmlSub(outPath string, mxproject MxprojectType, subsystem *cbuild.
 			cgenFile.File = file
 			groupSrc.Files = append(groupSrc.Files, cgenFile)
 		}
+	}
+
+	var cgenFile cbuild.CgenFilesType
+	startupFile, err := GetStartupFile(outPath, subsystem)
+	if err != nil {
+		return err
+	}
+	startupFile, err = utils.ConvertFilenameRel(outPath, startupFile)
+	if err != nil {
+		return err
+	}
+	cgenFile.File = startupFile
+	groupSrc.Files = append(groupSrc.Files, cgenFile)
+
+	systemFile, err := GetSystemFile(outPath, subsystem)
+	if err != nil {
+		return err
+	}
+	systemFile, err = utils.ConvertFilenameRel(outPath, systemFile)
+	if err != nil {
+		return err
+	}
+	cgenFile.File = systemFile
+	groupSrc.Files = append(groupSrc.Files, cgenFile)
+
+	linkerFiles, err := GetLinkerScripts(outPath, subsystem)
+	if err != nil {
+		return err
+	}
+	for _, file := range linkerFiles {
+		file, err = utils.ConvertFilenameRel(outPath, file)
+		if err != nil {
+			return err
+		}
+		var cgenFile cbuild.CgenFilesType
+		cgenFile.File = file
+		groupSrc.Files = append(groupSrc.Files, cgenFile)
 	}
 
 	cgen.GeneratorImport.Groups = append(cgen.GeneratorImport.Groups, groupSrc)
@@ -417,4 +460,267 @@ func WriteCgenYmlSub(outPath string, mxproject MxprojectType, subsystem *cbuild.
 	}
 
 	return common.WriteYml(outFile, &cgen)
+}
+
+func GetToolchain(compiler string) (string, error) {
+	var toolchainMapping = map[string]string{
+		"AC6":   "MDK-ARM V5",
+		"GCC":   "STM32CubeIDE",
+		"IAR":   "EWARM",
+		"CLANG": "STM32CubeIDE",
+	}
+
+	toolchain, ok := toolchainMapping[compiler]
+	if !ok {
+		return "", errors.New("unknown compiler")
+	}
+	return toolchain, nil
+}
+
+func GetRelativePathAdd(outPath string, compiler string) (string, error) {
+	var pathMapping = map[string]string{
+		"AC6":   "MDK-ARM",
+		"GCC":   "",
+		"IAR":   "EWARM",
+		"CLANG": "",
+	}
+
+	folder, ok := pathMapping[compiler]
+	if !ok {
+		return "", errors.New("unknown compiler")
+	}
+
+	lastPath := filepath.Base(outPath)
+	var relativePathAdd string
+	if lastPath != "STM32CubeMX" {
+		relativePathAdd = path.Join(relativePathAdd, "STM32CubeMX")
+	}
+	relativePathAdd = path.Join(relativePathAdd, folder)
+
+	return relativePathAdd, nil
+}
+
+func GetToolchainFolderPath(outPath string, compiler string) (string, error) {
+	var toolchainFolderMapping = map[string]string{
+		"AC6":   "MDK-ARM",
+		"GCC":   "STM32CubeIDE",
+		"IAR":   "EWARM",
+		"CLANG": "STM32CubeIDE",
+	}
+
+	toolchainFolder, ok := toolchainFolderMapping[compiler]
+	if !ok {
+		return "", errors.New("unknown compiler")
+	}
+
+	lastPath := filepath.Base(outPath)
+	toolchainFolderPath := outPath
+	if lastPath != "STM32CubeMX" {
+		toolchainFolderPath = path.Join(outPath, "STM32CubeMX")
+	}
+	toolchainFolderPath = path.Join(toolchainFolderPath, toolchainFolder)
+
+	return toolchainFolderPath, nil
+}
+
+func GetStartupFile(outPath string, subsystem *cbuild.SubsystemType) (string, error) {
+	var startupFolder string
+	var fileExtesion string
+	var fileFilter string
+
+	startupFolder, err := GetToolchainFolderPath(outPath, subsystem.Compiler)
+	if err != nil {
+		return "", err
+	}
+
+	fileExtesion = ".s"
+	switch subsystem.Compiler {
+	case "AC6", "IAR":
+		if subsystem.SubsystemIdx.ProjectType == "multi-core" {
+			fileFilter = "_" + subsystem.SubsystemIdx.ForProjectPart
+		}
+
+	case "GCC", "CLANG":
+		switch subsystem.SubsystemIdx.ProjectType {
+		case "multi-core":
+			startupFolder = path.Join(startupFolder, subsystem.SubsystemIdx.ForProjectPart)
+		case "trustzone":
+			if subsystem.SubsystemIdx.ForProjectPart == "secure" {
+				startupFolder = path.Join(startupFolder, "Secure")
+			}
+			if subsystem.SubsystemIdx.ForProjectPart == "non-secure" {
+				startupFolder = path.Join(startupFolder, "NonSecure")
+			}
+		}
+		startupFolder = path.Join(startupFolder, "Application")
+		startupFolder = path.Join(startupFolder, "Startup")
+
+	default:
+		return "", errors.New("unknown compiler")
+	}
+
+	if !utils.DirExists(startupFolder) {
+		errorString := "Directory not found: " + startupFolder
+		log.Errorf(errorString)
+		return "", errors.New(errorString)
+	}
+
+	var startupFile string
+	err = filepath.Walk(startupFolder, func(path string, f fs.FileInfo, err error) error {
+		if f.Mode().IsRegular() &&
+			strings.HasSuffix(f.Name(), fileExtesion) &&
+			strings.HasPrefix(f.Name(), "startup_") {
+			if fileFilter != "" {
+				if strings.Contains(f.Name(), fileFilter) {
+					startupFile = path
+				}
+			} else {
+				startupFile = path
+			}
+		}
+		return nil
+	})
+
+	if startupFile == "" {
+		errorString := "startup file not found"
+		log.Errorf(errorString)
+		return "", errors.New(errorString)
+	}
+
+	return startupFile, err
+}
+
+func GetSystemFile(outPath string, subsystem *cbuild.SubsystemType) (string, error) {
+	var toolchainFolder string
+	var systemFolder string
+
+	toolchainFolder, err := GetToolchainFolderPath(outPath, subsystem.Compiler)
+	if err != nil {
+		return "", err
+	}
+
+	if subsystem.SubsystemIdx.ProjectType == "multi-core" {
+		systemFolder = filepath.Dir(toolchainFolder)
+		systemFolder = path.Join(systemFolder, "Common")
+		systemFolder = path.Join(systemFolder, "Src")
+		if !utils.DirExists(toolchainFolder) {
+			systemFolder = ""
+		}
+	}
+
+	if systemFolder == "" {
+		systemFolder = filepath.Dir(toolchainFolder)
+		switch subsystem.SubsystemIdx.ProjectType {
+		case "multi-core":
+			systemFolder = path.Join(systemFolder, subsystem.SubsystemIdx.ForProjectPart)
+		case "trustzone":
+			if subsystem.SubsystemIdx.ForProjectPart == "secure" {
+				systemFolder = path.Join(systemFolder, "Secure")
+			}
+			if subsystem.SubsystemIdx.ForProjectPart == "non-secure" {
+				systemFolder = path.Join(systemFolder, "NonSecure")
+			}
+		}
+		systemFolder = path.Join(systemFolder, "Src")
+	}
+
+	if !utils.DirExists(systemFolder) {
+		errorString := "Directory not found: " + systemFolder
+		log.Errorf(errorString)
+		return "", errors.New(errorString)
+	}
+
+	var systemFile string
+	err = filepath.Walk(systemFolder, func(path string, f fs.FileInfo, err error) error {
+		if f.Mode().IsRegular() &&
+			strings.HasPrefix(f.Name(), "system_stm32") &&
+			strings.HasSuffix(f.Name(), ".c") {
+			systemFile = path
+		}
+		return nil
+	})
+
+	if systemFile == "" {
+		errorString := "system file not found"
+		log.Errorf(errorString)
+		return "", errors.New(errorString)
+	}
+
+	return systemFile, err
+}
+
+func GetLinkerScripts(outPath string, subsystem *cbuild.SubsystemType) ([]string, error) {
+	var linkerFolder string
+	var fileExtesion string
+	var fileFilter string
+
+	linkerFolder, err := GetToolchainFolderPath(outPath, subsystem.Compiler)
+	if err != nil {
+		return nil, err
+	}
+
+	switch subsystem.Compiler {
+	case "AC6":
+		fileExtesion = ".sct"
+	case "IAR":
+		fileExtesion = ".icf"
+	case "GCC", "CLANG":
+		fileExtesion = ".ld"
+	default:
+		return nil, errors.New("unknown compiler")
+	}
+
+	switch subsystem.Compiler {
+	case "AC6", "IAR":
+		switch subsystem.SubsystemIdx.ProjectType {
+		case "single-core":
+			fileFilter = ""
+		case "multi-core":
+			fileFilter = "_" + subsystem.SubsystemIdx.ForProjectPart
+		case "trustzone":
+			if subsystem.SubsystemIdx.ForProjectPart == "secure" {
+				fileFilter = "_s."
+			}
+			if subsystem.SubsystemIdx.ForProjectPart == "non-secure" {
+				fileFilter = "_ns."
+			}
+		}
+
+	case "GCC", "CLANG":
+		switch subsystem.SubsystemIdx.ProjectType {
+		case "multi-core":
+			linkerFolder = path.Join(linkerFolder, subsystem.SubsystemIdx.ForProjectPart)
+		case "trustzone":
+			if subsystem.SubsystemIdx.ForProjectPart == "secure" {
+				linkerFolder = path.Join(linkerFolder, "Secure")
+			}
+			if subsystem.SubsystemIdx.ForProjectPart == "non-secure" {
+				linkerFolder = path.Join(linkerFolder, "NonSecure")
+			}
+		}
+	default:
+		return nil, errors.New("unknown compiler")
+	}
+
+	if !utils.DirExists(linkerFolder) {
+		errorString := "Directory not found: " + linkerFolder
+		log.Errorf(errorString)
+		return nil, errors.New(errorString)
+	}
+
+	var linkerScripts []string
+	err = filepath.Walk(linkerFolder, func(path string, f fs.FileInfo, err error) error {
+		if f.Mode().IsRegular() && strings.HasSuffix(f.Name(), fileExtesion) {
+			if fileFilter != "" {
+				if strings.Contains(f.Name(), fileFilter) {
+					linkerScripts = append(linkerScripts, path)
+				}
+			} else {
+				linkerScripts = append(linkerScripts, path)
+			}
+		}
+		return nil
+	})
+
+	return linkerScripts, err
 }

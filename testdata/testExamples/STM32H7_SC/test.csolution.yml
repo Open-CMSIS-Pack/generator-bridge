@@ -1,0 +1,25 @@
+solution:
+
+  created-for: CMSIS-Toolbox@2.0.0
+  cdefault:
+
+  packs:
+    - pack: Keil::STM32H7xx_DFP
+      path: ../../../Packs/STM32H7xx_DFP
+    - pack: ARM::CMSIS
+    - pack: ARM::CMSIS-Compiler
+
+  target-types:
+    - type: device
+      device: STM32H743AGIx
+
+  build-types:
+    - type: Debug
+      debug: on
+      optimize: none
+    - type: Release
+      debug: off
+      optimize: balanced
+
+  projects:
+    - project: ./test.cproject.yml

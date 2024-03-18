@@ -1,0 +1,7 @@
+project:
+  device: :CM7
+  components:
+    - component: ARM::CMSIS:CORE
+    - component: ARM::CMSIS-Compiler:CORE
+    - component: Keil::Device:Startup
+    - component: Device:Startup
