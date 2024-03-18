@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"strings"
 
 	readfile "github.com/open-cmsis-pack/generator-bridge/internal/readFile"
@@ -37,7 +38,12 @@ func configureGlobalCmd(cmd *cobra.Command, args []string) error {
 	}
 
 	log.SetLevel(log.InfoLevel)
-	log.SetOutput(cmd.OutOrStdout())
+	f, err := os.OpenFile("cbridge.log", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0600)
+	if err != nil {
+		log.SetOutput(cmd.OutOrStdout())
+	} else {
+		log.SetOutput(f)
+	}
 
 	if quiet {
 		log.SetLevel(log.ErrorLevel)
@@ -53,9 +59,11 @@ func configureGlobalCmd(cmd *cobra.Command, args []string) error {
 var flags struct {
 	version bool
 	help    bool
+	daemon  bool
 	inFile  string
 	inFile2 string
 	outPath string
+	logFile string
 }
 
 var Version string
@@ -99,6 +107,21 @@ func NewCli() *cobra.Command {
 		SilenceErrors:     true,
 		PersistentPreRunE: configureGlobalCmd,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if flags.logFile == "" {
+				log.SetOutput(os.Stdout)
+			} else {
+				f, err := os.OpenFile(flags.logFile, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0600)
+				if err != nil || f == nil {
+					log.SetOutput(os.Stdout)
+				} else {
+					defer func() {
+						_ = f.Close()
+						log.SetOutput(os.Stdout)
+					}()
+					log.SetOutput(f)
+				}
+			}
+			log.Println("Command line:", args)
 			if flags.version {
 				printVersionAndLicense(cmd.OutOrStdout())
 				return nil
@@ -114,7 +137,8 @@ func NewCli() *cobra.Command {
 
 			if len(args) == 1 {
 				cbuildYmlPath := args[0]
-				return stm32cubemx.Process(cbuildYmlPath, flags.outPath, "", "", true)
+				pid, _ := GetConfig().GetInt("process")
+				return stm32cubemx.Process(cbuildYmlPath, flags.outPath, "", pid == -1, pid)
 			}
 
 			return cmd.Help()
@@ -128,8 +152,11 @@ func NewCli() *cobra.Command {
 	rootCmd.Flags().StringVarP(&flags.inFile, "read", "r", "", "Reads an input file, type is auto determined")
 	rootCmd.Flags().StringVarP(&flags.inFile2, "file", "f", "", "Additional input file, type is auto determined")
 	rootCmd.Flags().StringVarP(&flags.outPath, "out", "o", "", "Output path for generated files")
+	rootCmd.Flags().StringVarP(&flags.logFile, "log", "l", "", "Log file")
 	rootCmd.PersistentFlags().BoolP("quiet", "q", false, "Run silently, printing only error messages")
 	rootCmd.PersistentFlags().BoolP("verbose", "v", false, "Sets verboseness level: None (Errors + Info + Warnings), -v (all + Debugging). Specify \"-q\" for no messages")
+	rootCmd.PersistentFlags().BoolP("daemon", "D", false, "run as a daemon, never exit")
+	rootCmd.PersistentFlags().IntP("process", "p", -1, "cubeMX process number")
 
 	for _, cmd := range AllCommands {
 		rootCmd.AddCommand(cmd)
