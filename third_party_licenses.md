@@ -2,12 +2,13 @@
 
 | __Name__ | __Version__ | __Licence__ |
 |----------|-------------|-------------|
+| github.com/fsnotify/fsnotify | v1.7.0  | [BSD-3-Clause](https://github.com/fsnotify/fsnotify/blob/v1.7.0/LICENSE) |
 | github.com/open-cmsis-pack/generator-bridge | Unknown  | [Apache-2.0](https://github.com/open-cmsis-pack/generator-bridge/blob/HEAD/LICENSE) |
 | github.com/sirupsen/logrus | v1.9.3  | [MIT](https://github.com/sirupsen/logrus/blob/v1.9.3/LICENSE) |
 | github.com/spf13/cobra | v1.7.0  | [Apache-2.0](https://github.com/spf13/cobra/blob/v1.7.0/LICENSE.txt) |
 | github.com/spf13/pflag | v1.0.5  | [BSD-3-Clause](https://github.com/spf13/pflag/blob/v1.0.5/LICENSE) |
 | golang.org/x/exp | v0.0.0-20230905200255-921286631fa9  | [BSD-3-Clause](https://cs.opensource.google/go/x/exp/+/92128663:LICENSE) |
-| golang.org/x/sys/unix | v0.12.0  | [BSD-3-Clause](https://cs.opensource.google/go/x/sys/+/v0.12.0:LICENSE) |
+| golang.org/x/sys/unix | v0.13.0  | [BSD-3-Clause](https://cs.opensource.google/go/x/sys/+/v0.13.0:LICENSE) |
 | gopkg.in/ini.v1 | v1.67.0  | [Apache-2.0](https://github.com/go-ini/ini/blob/v1.67.0/LICENSE) |
 | gopkg.in/yaml.v3 | v3.0.1  | [MIT](https://github.com/go-yaml/yaml/blob/v3.0.1/LICENSE) |
 
