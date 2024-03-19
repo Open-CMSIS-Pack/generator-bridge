@@ -17,7 +17,6 @@ import (
 
 func main() {
 	log.SetFormatter(new(LogFormatter))
-	log.SetOutput(os.Stdout)
 
 	utils.StartSignalWatcher()
 	start := time.Now()
