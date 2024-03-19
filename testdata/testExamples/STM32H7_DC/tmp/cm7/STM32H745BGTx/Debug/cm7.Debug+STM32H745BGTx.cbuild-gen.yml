@@ -1,0 +1,98 @@
+build-gen:
+  generated-by: csolution version 2.2.1
+  current-generator:
+    id: CubeMX
+  solution: D:/GitHub/DavidLesnjak/cbridge_test_framework/Examples/STM32H7_DC/AC6/test.csolution.yml
+  project: D:/GitHub/DavidLesnjak/cbridge_test_framework/Examples/STM32H7_DC/AC6/cm7/cm7.cproject.yml
+  context: cm7.Debug+STM32H745BGTx
+  compiler: AC6
+  device: STM32H745BGTx:CM7
+  device-pack: Keil::STM32H7xx_DFP@4.0.0-extgen0
+  processor:
+    endian: little
+    fpu: dp
+    core: Cortex-M7
+  packs:
+    - pack: ARM::CMSIS-Compiler@2.0.0
+      path: D:/PACK/ARM/CMSIS-Compiler/2.0.0
+    - pack: ARM::CMSIS@6.0.0
+      path: D:/PACK/ARM/CMSIS/6.0.0
+    - pack: Keil::STM32H7xx_DFP@4.0.0-extgen0
+      path: D:/GitHub/DavidLesnjak/cbridge_test_framework/Packs/STM32H7xx_DFP
+  optimize: none
+  debug: on
+  misc:
+    ASM:
+      - -masm=auto
+    C:
+      - -std=gnu11
+      - -Wno-macro-redefined
+      - -Wno-pragma-pack
+      - -Wno-parentheses-equality
+      - -Wno-license-management
+    CPP:
+      - -Wno-macro-redefined
+      - -Wno-pragma-pack
+      - -Wno-parentheses-equality
+      - -Wno-license-management
+    Link:
+      - --entry=Reset_Handler
+      - --map
+      - --info summarysizes
+      - --summary_stderr
+      - --diag_suppress=L6314W
+  define:
+    - CORE_CM7
+    - STM32H745xG
+    - _RTE_
+  add-path:
+    - D:/GitHub/DavidLesnjak/cbridge_test_framework/Examples/STM32H7_DC/AC6/cm7/RTE/_Debug_STM32H745BGTx
+    - D:/GitHub/DavidLesnjak/cbridge_test_framework/Packs/STM32H7xx_DFP/Drivers/CMSIS/Device/ST/STM32H7xx/Include
+    - D:/PACK/ARM/CMSIS/6.0.0/CMSIS/Core/Include
+  output-dirs:
+    intdir: D:/GitHub/DavidLesnjak/cbridge_test_framework/Examples/STM32H7_DC/AC6/tmp/cm7/STM32H745BGTx/Debug
+    outdir: D:/GitHub/DavidLesnjak/cbridge_test_framework/Examples/STM32H7_DC/AC6/out/cm7/STM32H745BGTx/Debug
+    rtedir: D:/GitHub/DavidLesnjak/cbridge_test_framework/Examples/STM32H7_DC/AC6/cm7/RTE
+  output:
+    - type: elf
+      file: cm7.axf
+  components:
+    - component: ARM::CMSIS-Compiler:CORE@1.0.0
+      condition: ARMCC CortexDevice
+      from-pack: ARM::CMSIS-Compiler@2.0.0
+      selected-by: ARM::CMSIS-Compiler:CORE
+      files:
+        - file: D:/PACK/ARM/CMSIS-Compiler/2.0.0/source/armcc/retarget_io.c
+          category: sourceC
+    - component: ARM::CMSIS:CORE@6.0.0
+      condition: ARMv6_7_8-M Device
+      from-pack: ARM::CMSIS@6.0.0
+      selected-by: ARM::CMSIS:CORE
+    - component: Keil::Device:Startup@2.0.0
+      condition: STM32H7 CMSIS
+      from-pack: Keil::STM32H7xx_DFP@4.0.0-extgen0
+      selected-by: Keil::Device:Startup
+  linker:
+    script: D:/GitHub/DavidLesnjak/cbridge_test_framework/Examples/STM32H7_DC/AC6/cm7/RTE/Device/STM32H745BGTx_CM7/ac6_linker_script.sct.src
+    regions: D:/GitHub/DavidLesnjak/cbridge_test_framework/Examples/STM32H7_DC/AC6/cm7/RTE/Device/STM32H745BGTx_CM7/regions_STM32H745BGTx_CM7.h
+  constructed-files:
+    - file: D:/GitHub/DavidLesnjak/cbridge_test_framework/Examples/STM32H7_DC/AC6/cm7/RTE/_Debug_STM32H745BGTx/RTE_Components.h
+      category: header
+  licenses:
+    - license: <unknown>
+      license-agreement: ${CMSIS_PACK_ROOT}/ARM/CMSIS-Compiler/2.0.0/LICENSE
+      packs:
+        - pack: ARM::CMSIS-Compiler@2.0.0
+      components:
+        - component: ARM::CMSIS-Compiler:CORE@1.0.0
+    - license: <unknown>
+      license-agreement: ${CMSIS_PACK_ROOT}/ARM/CMSIS/6.0.0/LICENSE
+      packs:
+        - pack: ARM::CMSIS@6.0.0
+      components:
+        - component: ARM::CMSIS:CORE@6.0.0
+    - license: <unknown>
+      packs:
+        - pack: Keil::STM32H7xx_DFP@4.0.0-extgen0
+      components:
+        - component: Keil::Device:Startup@2.0.0

@@ -1,0 +1,11 @@
+build-gen-idx:
+  generated-by: csolution version 2.2.1
+  generators:
+    - id: CubeMX
+      output: D:/GitHub/DavidLesnjak/cbridge_test_framework/Examples/STM32H7_SC/AC6/STM32CubeMX/device
+      device: STM32H743AGIx
+      project-type: single-core
+      cbuild-gens:
+        - cbuild-gen: D:/GitHub/DavidLesnjak/cbridge_test_framework/Examples/STM32H7_SC/AC6/tmp/test/device/Debug/test.Debug+device.cbuild-gen.yml
+          project: test
+          configuration: .Debug+device

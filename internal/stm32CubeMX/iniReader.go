@@ -30,7 +30,7 @@ type MxprojectType struct {
 	PreviousLibFiles struct {
 		LibFiles []string
 	}
-	PreviousUsedKeilFiles struct {
+	PreviousUsedFiles struct {
 		SourceFiles []string
 		HeaderPath  []string
 		CDefines    []string
@@ -188,7 +188,7 @@ func AppendToCores(iniSectionCore IniSectionCore, list *[]IniSectionCore) {
 	*list = append(*list, iniSectionCore)
 }
 
-func IniReader(path string, trustzone bool) (MxprojectAllType, error) {
+func IniReader(path string, compiler string, trustzone bool) (MxprojectAllType, error) {
 	var mxprojectAll MxprojectAllType
 
 	if !utils.FileExists(path) {
@@ -218,7 +218,7 @@ func IniReader(path string, trustzone bool) (MxprojectAllType, error) {
 		}
 		coreName := core.CoreName
 		trustzone := core.trustzone
-		mxproject, _ := GetData(inidata, iniName)
+		mxproject, _ := GetData(inidata, iniName, compiler)
 		mxproject.CoreName = coreName
 		mxproject.Trustzone = trustzone
 		mxprojectAll.Mxproject = append(mxprojectAll.Mxproject, mxproject)
@@ -283,20 +283,26 @@ func GetSections(inidata *ini.File, iniSections *IniSectionsType) error {
 	return nil
 }
 
-func GetData(inidata *ini.File, iniName string) (MxprojectType, error) {
+func GetData(inidata *ini.File, iniName string, compiler string) (MxprojectType, error) {
 	var mxproject MxprojectType
 	var sectionName string
-	const PreviousUsedKeilFilesID = "PreviousUsedKeilFiles"
+	var PreviousUsedFilesID string
+
+	PreviousUsedFilesID, err := GetPreviousUsedFilesID(compiler)
+	if err != nil {
+		return mxproject, err
+	}
+
 	if iniName != "" {
-		sectionName = iniName + ":" + PreviousUsedKeilFilesID
+		sectionName = iniName + ":" + PreviousUsedFilesID
 	} else {
-		sectionName = PreviousUsedKeilFilesID
+		sectionName = PreviousUsedFilesID
 	}
 	section := inidata.Section(sectionName)
 	if section != nil {
-		StoreItemCsv(&mxproject.PreviousUsedKeilFiles.SourceFiles, section, "SourceFiles")
-		StoreItemCsv(&mxproject.PreviousUsedKeilFiles.HeaderPath, section, "HeaderPath")
-		StoreItemCsv(&mxproject.PreviousUsedKeilFiles.CDefines, section, "CDefines")
+		StoreItemCsv(&mxproject.PreviousUsedFiles.SourceFiles, section, "SourceFiles")
+		StoreItemCsv(&mxproject.PreviousUsedFiles.HeaderPath, section, "HeaderPath")
+		StoreItemCsv(&mxproject.PreviousUsedFiles.CDefines, section, "CDefines")
 		PrintItemCsv(section, "SourceFiles")
 		PrintItemCsv(section, "HeaderPath")
 		PrintItemCsv(section, "CDefines")
@@ -342,4 +348,19 @@ func GetData(inidata *ini.File, iniName string) (MxprojectType, error) {
 	}
 
 	return mxproject, nil
+}
+
+func GetPreviousUsedFilesID(compiler string) (string, error) {
+	var sectionMapping = map[string]string{
+		"AC6":   "PreviousUsedKeilFiles",
+		"GCC":   "PreviousUsedCubeIDEFiles",
+		"IAR":   "PreviousUsedIarFiles",
+		"CLANG": "PreviousUsedCubeIDEFiles",
+	}
+
+	PreviousUsedFilesID, ok := sectionMapping[compiler]
+	if !ok {
+		return "", errors.New("unknown compiler")
+	}
+	return PreviousUsedFilesID, nil
 }

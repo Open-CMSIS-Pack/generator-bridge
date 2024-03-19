@@ -21,6 +21,8 @@ func main() {
 	utils.StartSignalWatcher()
 	start := time.Now()
 
+	log.Println("Command line:", os.Args[1:])
+
 	commands.Version = version
 	commands.Copyright = copyright
 	cmd := commands.NewCli()

@@ -1,0 +1,27 @@
+solution:
+
+  created-for: CMSIS-Toolbox@2.0.0
+  cdefault:
+
+  packs:
+    - pack: Keil::STM32U5xx_DFP
+      path: ../../../Packs/STM32U5xx_DFP
+    - pack: Keil::B-U585I-IOT02A_BSP@1.0.0
+    - pack: ARM::CMSIS
+    - pack: ARM::CMSIS-Compiler
+
+  target-types:
+    - type: Board
+      board: STMicroelectronics::B-U585I-IOT02A
+
+  build-types:
+    - type: Debug
+      debug: on
+      optimize: none
+    - type: Release
+      debug: off
+      optimize: balanced
+
+  projects:
+    - project: ./Secure_prj/secure.cproject.yml
+    - project: ./NonSecure_prj/nonsecure.cproject.yml
