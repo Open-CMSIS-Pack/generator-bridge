@@ -38,11 +38,19 @@ func configureGlobalCmd(cmd *cobra.Command, args []string) error {
 	}
 
 	log.SetLevel(log.InfoLevel)
-	f, err := os.OpenFile("cbridge.log", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0600)
-	if err != nil {
-		log.SetOutput(cmd.OutOrStdout())
+	if flags.logFile == "" {
+		log.SetOutput(io.Discard)
 	} else {
-		log.SetOutput(f)
+		f, err := os.OpenFile(flags.logFile, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0600)
+		if err != nil || f == nil {
+			log.SetOutput(io.Discard)
+		} else {
+			defer func() {
+				_ = f.Close()
+				log.SetOutput(io.Discard)
+			}()
+			log.SetOutput(f)
+		}
 	}
 
 	if quiet {
@@ -107,20 +115,6 @@ func NewCli() *cobra.Command {
 		SilenceErrors:     true,
 		PersistentPreRunE: configureGlobalCmd,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if flags.logFile == "" {
-				log.SetOutput(os.Stdout)
-			} else {
-				f, err := os.OpenFile(flags.logFile, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0600)
-				if err != nil || f == nil {
-					log.SetOutput(os.Stdout)
-				} else {
-					defer func() {
-						_ = f.Close()
-						log.SetOutput(os.Stdout)
-					}()
-					log.SetOutput(f)
-				}
-			}
 			log.Println("Command line:", args)
 			if flags.version {
 				printVersionAndLicense(cmd.OutOrStdout())

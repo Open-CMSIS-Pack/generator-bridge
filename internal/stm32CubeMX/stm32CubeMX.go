@@ -30,7 +30,7 @@ var watcher *fsnotify.Watcher
 
 func procWait(proc *os.Process) {
 	if proc != nil {
-		proc.Wait()
+		_, _ = proc.Wait()
 		log.Println("CubeMX ended")
 		watcher.Close()
 		log.Println("Watcher closed")
@@ -189,7 +189,7 @@ func Process(cbuildYmlPath, outPath, cubeMxPath string, runCubeMx bool, pid int)
 		cubeIocPath = path.Join(cubeIocPath, "STM32CubeMX.ioc")
 
 		var err error
-		pid := -1
+		var pid int
 		if utils.FileExists(cubeIocPath) {
 			log.Printf("CubeMX with: %s", cubeIocPath)
 			pid, err = Launch(cubeIocPath, "")
@@ -209,9 +209,9 @@ func Process(cbuildYmlPath, outPath, cubeMxPath string, runCubeMx bool, pid int)
 			}
 		}
 		log.Printf("pid of CubeMX in main: %d", pid)
-
 		// here cubeMX runs
-		cmd := exec.Command(os.Args[0])
+		ownPath := path.Base(os.Args[0]) //nolint
+		cmd := exec.Command(ownPath)     //nolint
 		cmd.Args = os.Args
 		cmd.Args = append(cmd.Args, "-p", fmt.Sprint(pid)) // pid of cubeMX
 		if err := cmd.Start(); err != nil {                // start myself as a daemon
