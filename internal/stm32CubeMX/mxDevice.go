@@ -13,6 +13,7 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -56,7 +57,7 @@ func ReadContexts(iocFile string, params cbuild.ParamsType) error {
 
 	var cfgPath string
 	if len(contexts) == 0 {
-		cfgPath = path.Join("drv_cfg", params.Subsystem[0].SubsystemIdx.Project)
+		cfgPath = path.Join("MX_Device", params.Subsystem[0].SubsystemIdx.Project)
 		err := writeMXdeviceH(contextMap, workDir, mainFolder, mspName, cfgPath, "", params)
 		if err != nil {
 			return err
@@ -95,11 +96,11 @@ func ReadContexts(iocFile string, params cbuild.ParamsType) error {
 			for _, subsystem := range params.Subsystem {
 				if subsystem.CoreName == coreName {
 					if len(subsystem.TrustZone) == 0 {
-						cfgPath = path.Join("drv_cfg", subsystem.SubsystemIdx.Project)
+						cfgPath = path.Join("MX_Device", subsystem.SubsystemIdx.Project)
 						break
 					}
 					if subsystem.TrustZone == projectPart {
-						cfgPath = path.Join("drv_cfg", subsystem.SubsystemIdx.Project)
+						cfgPath = path.Join("MX_Device", subsystem.SubsystemIdx.Project)
 						break
 					}
 				}
@@ -181,13 +182,19 @@ func writeMXdeviceH(contextMap map[string]map[string]string, workDir string, mai
 	if err != nil {
 		return err
 	}
+
 	peripherals, err := getPeripherals(contextMap, context)
 	if err != nil {
 		return err
 	}
+	sort.Strings(peripherals)
 	for _, peripheral := range peripherals {
 		vmode := getVirtualMode(contextMap, peripheral)
 		i2cInfo, err := getI2cInfo(fMain, peripheral)
+		if err != nil {
+			return err
+		}
+		usbdHandle, err := getUSBDHandle(fMain, peripheral)
 		if err != nil {
 			return err
 		}
@@ -195,12 +202,12 @@ func writeMXdeviceH(contextMap map[string]map[string]string, workDir string, mai
 		if err != nil {
 			return err
 		}
-		err = mxDeviceWritePeripheralCfg(out, peripheral, vmode, i2cInfo, pins)
+		err = mxDeviceWritePeripheralCfg(out, peripheral, vmode, i2cInfo, usbdHandle, pins)
 		if err != nil {
 			return err
 		}
 	}
-	_, err = out.WriteString("\n#endif  /* __MX_DEVICE_H */\n")
+	_, err = out.WriteString("\n#endif  /* MX_DEVICE_H__ */\n")
 	if err != nil {
 		return err
 	}
@@ -348,7 +355,9 @@ func getPins(contextMap map[string]map[string]string, fMsp *os.File, peripheral 
 		if err != nil {
 			return nil, err
 		}
-		pinsInfo[name] = info
+		if info.port != "" {
+			pinsInfo[name] = info
+		}
 	}
 	return pinsInfo, nil
 }
@@ -409,6 +418,44 @@ func getI2cInfo(fMain *os.File, peripheral string) (map[string]string, error) {
 		}
 	}
 	return info, nil
+}
+
+// Get USB Device Handle
+func getUSBDHandle(fMain *os.File, peripheral string) (string, error) {
+	if strings.HasPrefix(peripheral, "USB") && !strings.Contains(peripheral, "HOST") {
+		_, err := fMain.Seek(0, 0)
+		if err != nil {
+			return "", err
+		}
+
+		mainScan := bufio.NewScanner(fMain)
+		mainScan.Split(bufio.ScanLines)
+		for mainScan.Scan() {
+			line := mainScan.Text()
+			line = strings.TrimSpace(line)
+
+			if strings.HasPrefix(line, "PCD_HandleTypeDef") {
+				line = strings.TrimSuffix(line, ";")
+				lineSplit := strings.Split(line, " ")
+				if len(lineSplit) < 2 {
+					continue
+				}
+				handle := lineSplit[1]
+
+				index := getDigitAtEnd(peripheral)
+				if index != "" {
+					if getDigitAtEnd(handle) != index {
+						continue
+					}
+				}
+				if strings.Contains(peripheral, "_HS") && !strings.Contains(handle, "_HS") {
+					continue
+				}
+				return handle, nil
+			}
+		}
+	}
+	return "", nil
 }
 
 func getPinConfiguration(fMsp *os.File, peripheral string, pin string, label string) (PinDefinition, error) {
@@ -516,14 +563,20 @@ func mxDeviceWriteHeader(out *bufio.Writer, fName string) error {
 	if _, err = out.WriteString(" ******************************************************************************/\n\n"); err != nil {
 		return err
 	}
-	if _, err = out.WriteString("#ifndef __MX_DEVICE_H\n"); err != nil {
+	if _, err = out.WriteString("#ifndef MX_DEVICE_H__\n"); err != nil {
 		return err
 	}
-	_, err = out.WriteString("#define __MX_DEVICE_H\n\n")
+	if _, err = out.WriteString("#define MX_DEVICE_H__\n\n"); err != nil {
+		return err
+	}
+	if _, err = out.WriteString("/* MX_Device.h version */\n"); err != nil {
+		return err
+	}
+	_, err = out.WriteString("#define MX_DEVICE_VERSION                       0x01000000\n\n")
 	return err
 }
 
-func mxDeviceWritePeripheralCfg(out *bufio.Writer, peripheral string, vmode string, i2cInfo map[string]string, pins map[string]PinDefinition) error {
+func mxDeviceWritePeripheralCfg(out *bufio.Writer, peripheral string, vmode string, i2cInfo map[string]string, usbdHandle string, pins map[string]PinDefinition) error {
 	var err error
 
 	str := "\n/*------------------------------ " + peripheral
@@ -537,7 +590,7 @@ func mxDeviceWritePeripheralCfg(out *bufio.Writer, peripheral string, vmode stri
 	if err = writeDefine(out, peripheral, "1\n"); err != nil {
 		return err
 	}
-	if i2cInfo != nil {
+	if len(i2cInfo) > 0 {
 		if _, err = out.WriteString("/* Filter Settings */\n"); err != nil {
 			return err
 		}
@@ -545,6 +598,17 @@ func mxDeviceWritePeripheralCfg(out *bufio.Writer, peripheral string, vmode stri
 			if err = writeDefine(out, peripheral+"_"+item, value); err != nil {
 				return err
 			}
+		}
+		if _, err = out.WriteString("\n"); err != nil {
+			return err
+		}
+	}
+	if usbdHandle != "" {
+		if _, err = out.WriteString("/* Handle */\n"); err != nil {
+			return err
+		}
+		if err = writeDefine(out, peripheral+"_HANDLE", usbdHandle); err != nil {
+			return err
 		}
 		if _, err = out.WriteString("\n"); err != nil {
 			return err
@@ -560,12 +624,23 @@ func mxDeviceWritePeripheralCfg(out *bufio.Writer, peripheral string, vmode stri
 		if err = writeDefine(out, peripheral+"_"+vmode, "1"); err != nil {
 			return err
 		}
+		if _, err = out.WriteString("\n"); err != nil {
+			return err
+		}
 	}
 	if len(pins) != 0 {
 		if _, err = out.WriteString("/* Pins */\n"); err != nil {
 			return err
 		}
-		for pin, pinDef := range pins {
+
+		var pinNames []string
+		for pin := range pins {
+			pinNames = append(pinNames, pin)
+		}
+		sort.Strings(pinNames)
+		for pinName := range pinNames {
+			pin := pinNames[pinName]
+			pinDef := pins[pin]
 			if _, err = out.WriteString("\n/* " + pin + " */\n"); err != nil {
 				return err
 			}
@@ -607,8 +682,8 @@ func writeDefine(out *bufio.Writer, name string, value string) error {
 		value = strings.ReplaceAll(value, ch, "_")
 	}
 	name = "MX_" + name
-	if len(name) < 39 {
-		name += strings.Repeat(" ", 39-len(name))
+	if len(name) < 40 {
+		name += strings.Repeat(" ", 40-len(name))
 	}
 	_, err := out.WriteString("#define " + name + value + "\n")
 	return err
