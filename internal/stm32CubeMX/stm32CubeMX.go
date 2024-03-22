@@ -381,7 +381,7 @@ func WriteCgenYmlSub(outPath string, mxproject MxprojectType, subsystem *cbuild.
 		cgen.GeneratorImport.AddPath = append(cgen.GeneratorImport.AddPath, headerPath)
 	}
 
-	cfgPath := path.Join("drv_cfg", subsystem.SubsystemIdx.Project)
+	cfgPath := path.Join("MX_Device", subsystem.SubsystemIdx.Project)
 	cfgPath, _ = utils.ConvertFilename(outPath, cfgPath, "")
 	cgen.GeneratorImport.AddPath = append(cgen.GeneratorImport.AddPath, cfgPath)
 
