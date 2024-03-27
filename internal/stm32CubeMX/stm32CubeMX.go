@@ -110,6 +110,7 @@ func Process(cbuildYmlPath, outPath, cubeMxPath string, runCubeMx bool, pid int)
 		log.Printf("pid of CubeMX in daemon: %d", pid)
 		running = true
 		first := true
+		iocProjectWait := false
 		for {
 			proc, err := os.FindProcess(pid) // this only works for windows as it is now
 			if err == nil {                  // cubeMX already runs
@@ -122,8 +123,29 @@ func Process(cbuildYmlPath, outPath, cubeMxPath string, runCubeMx bool, pid int)
 				}
 				_, err := os.Stat(iocprojectPath)
 				if err != nil {
+					iocProjectWait = true
 					time.Sleep(time.Second)
 					continue
+				}
+				if iocProjectWait { // .ioc file was created new, there will not be multiple changes
+					log.Println("new project file:", iocprojectPath)
+					i := 1
+					for ; i < 100; i++ {
+						_, err := os.Stat(mxprojectPath)
+						if err == nil {
+							break
+						}
+						time.Sleep(time.Second)
+					}
+					if i < 100 {
+						mxproject, err := IniReader(mxprojectPath, parms.Subsystem[0].Compiler, false)
+						if err == nil {
+							err = ReadContexts(iocprojectPath, parms)
+							if err == nil {
+								_ = WriteCgenYml(workDir, mxproject, parms)
+							}
+						}
+					}
 				}
 				watcher, err = fsnotify.NewWatcher()
 				if err != nil {
@@ -141,7 +163,7 @@ func Process(cbuildYmlPath, outPath, cubeMxPath string, runCubeMx bool, pid int)
 						select {
 						case event := <-watcher.Events:
 							if event.Op&fsnotify.Write == fsnotify.Write {
-								log.Println("Modified file:", event.Name)
+								log.Println("Modified file:", event.Name, " changes ", changes)
 								if changes == 1 {
 									infomx0, _ = os.Stat(mxprojectPath)
 								}
