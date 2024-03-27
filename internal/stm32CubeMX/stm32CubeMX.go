@@ -27,13 +27,17 @@ import (
 )
 
 var watcher *fsnotify.Watcher
+var running bool // true if running in wait loop waiting for .ioc file
 
 func procWait(proc *os.Process) {
 	if proc != nil {
 		_, _ = proc.Wait()
 		log.Println("CubeMX ended")
-		watcher.Close()
-		log.Println("Watcher closed")
+		if watcher != nil {
+			watcher.Close()
+			log.Println("Watcher closed")
+		}
+		running = false // cubeMX ended, do not wait for .ioc file anymore
 	}
 }
 
@@ -103,11 +107,24 @@ func Process(cbuildYmlPath, outPath, cubeMxPath string, runCubeMx bool, pid int)
 		}
 		iocprojectPath := path.Join(cubeIocPath, "STM32CubeMX.ioc")
 		mxprojectPath := path.Join(cubeIocPath, ".mxproject")
+		log.Printf("pid of CubeMX in daemon: %d", pid)
+		running = true
+		first := true
 		for {
-			log.Printf("pid of CubeMX in daemon: %d", pid)
 			proc, err := os.FindProcess(pid) // this only works for windows as it is now
 			if err == nil {                  // cubeMX already runs
-				go procWait(proc)
+				if first { // only start wait thread once
+					go procWait(proc)
+					first = false
+				}
+				if !running {
+					break // out of loop if CubeMX does not run anymore
+				}
+				_, err := os.Stat(iocprojectPath)
+				if err != nil {
+					time.Sleep(time.Second)
+					continue
+				}
 				watcher, err = fsnotify.NewWatcher()
 				if err != nil {
 					log.Fatal(err)
@@ -176,6 +193,8 @@ func Process(cbuildYmlPath, outPath, cubeMxPath string, runCubeMx bool, pid int)
 				}
 				<-done
 				log.Println("Watcher raus")
+			} else {
+				break // CubeMX does not run anymore
 			}
 			log.Println("Process loop")
 		}
