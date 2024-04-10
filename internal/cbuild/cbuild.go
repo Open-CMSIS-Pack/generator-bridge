@@ -195,8 +195,8 @@ func ReadCbuildgenIdx(name, outPath string, params *ParamsType) error {
 		cbuildGenIdxType := cbuildGenIdx.ProjectType
 		cbuildGenIdxOutputPath := cbuildGenIdx.Output
 
-		log.Infof("Found CBuildGenIdx: #%v ID: %v, board: %v, device: %v, type: %v", idGen, cbuildGenIdxID, cbuildGenIdxBoard, cbuildGenIdxDevice, cbuildGenIdxType)
-		log.Infof("CBuildGenIdx Output path: %v", cbuildGenIdxOutputPath)
+		log.Debugf("Found CBuildGenIdx: #%v ID: %v, board: %v, device: %v, type: %v", idGen, cbuildGenIdxID, cbuildGenIdxBoard, cbuildGenIdxDevice, cbuildGenIdxType)
+		log.Debugf("CBuildGenIdx Output path: %v", cbuildGenIdxOutputPath)
 
 		params.Device = cbuildGenIdxDevice
 		params.OutPath = cbuildGenIdxOutputPath
@@ -281,7 +281,7 @@ func ReadCbuildgen(name string, subsystem *SubsystemType) error {
 	subsystem.CoreName = cbuildGen.BuildGen.Processor.Core
 	subsystem.TrustZone = cbuildGen.BuildGen.Processor.Trustzone
 
-	log.Infof("Found CBuildGen: board: %v, device: %v, core: %v, TZ: %v, compiler: %v, project: %v",
+	log.Debugf("Found CBuildGen: board: %v, device: %v, core: %v, TZ: %v, compiler: %v, project: %v",
 		subsystem.Board, subsystem.Device, subsystem.CoreName, subsystem.TrustZone, subsystem.Compiler, subsystem.Project)
 
 	// for id := range cbuildGen.BuildGen.Packs {
@@ -289,7 +289,7 @@ func ReadCbuildgen(name string, subsystem *SubsystemType) error {
 	// 	var pack PackType
 	// 	pack.Pack = genPack.Pack
 	// 	pack.Path = genPack.Path
-	// 	log.Infof("Found Pack: #%v Pack: %v, Path: %v", id, pack.Pack, pack.Path)
+	// 	log.Debugf("Found Pack: #%v Pack: %v, Path: %v", id, pack.Pack, pack.Path)
 	// 	subsystem.Packs = append(subsystem.Packs, pack)
 	// }
 

@@ -31,30 +31,39 @@ func GetConfig() *pflag.FlagSet {
 
 // configureInstaller configures generator-bridge installer for adding or removing pack/pdsc
 func configureGlobalCmd(cmd *cobra.Command, args []string) error {
+	log.SetLevel(log.InfoLevel)
+	pid, _ := GetConfig().GetInt("process")
+	if flags.logFile == "" {
+		if pid == -1 { // not the daemon
+			log.SetOutput(os.Stdout)
+		} else { // I am the daemon
+			log.SetOutput(io.Discard)
+		}
+	} else {
+		f, err := os.OpenFile(flags.logFile, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0600)
+		if err != nil || f == nil { // could not create or open the log file
+			if pid == -1 { // not the daemon
+				log.SetOutput(os.Stdout)
+			} else { // I am the daemon
+				log.SetOutput(io.Discard)
+			}
+		} else {
+			defer func() {
+				_ = f.Close()
+				log.SetOutput(io.Discard) // no more logging after closing the log file
+			}()
+			log.SetOutput(f)
+		}
+	}
+
 	verbosiness, _ := GetConfig().GetBool("verbose")
 	quiet, _ := GetConfig().GetBool("quiet")
 	if quiet && verbosiness {
 		return errors.New("both \"-q\" and \"-v\" were specified, please pick only one verboseness option")
 	}
 
-	log.SetLevel(log.InfoLevel)
-	if flags.logFile == "" {
-		log.SetOutput(io.Discard)
-	} else {
-		f, err := os.OpenFile(flags.logFile, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0600)
-		if err != nil || f == nil {
-			log.SetOutput(io.Discard)
-		} else {
-			defer func() {
-				_ = f.Close()
-				log.SetOutput(io.Discard)
-			}()
-			log.SetOutput(f)
-		}
-	}
-
 	if quiet {
-		log.SetLevel(log.ErrorLevel)
+		log.SetLevel(log.PanicLevel)
 	}
 
 	if verbosiness {
@@ -115,7 +124,7 @@ func NewCli() *cobra.Command {
 		SilenceErrors:     true,
 		PersistentPreRunE: configureGlobalCmd,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			log.Println("Command line:", args)
+			log.Debugln("Command line:", args)
 			if flags.version {
 				printVersionAndLicense(cmd.OutOrStdout())
 				return nil

@@ -18,7 +18,7 @@ func ReadYml(path string, out interface{}) error {
 
 	yamlFile, err := os.ReadFile(path)
 	if err != nil {
-		log.Infof("yamlFile.Get err %v ", err)
+		log.Errorf("yamlFile.Get err %v ", err)
 	}
 	err = yaml.Unmarshal(yamlFile, out)
 	if err != nil {

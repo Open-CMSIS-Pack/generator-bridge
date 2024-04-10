@@ -32,10 +32,10 @@ var running bool // true if running in wait loop waiting for .ioc file
 func procWait(proc *os.Process) {
 	if proc != nil {
 		_, _ = proc.Wait()
-		log.Println("CubeMX ended")
+		log.Debugln("CubeMX ended")
 		if watcher != nil {
 			watcher.Close()
-			log.Println("Watcher closed")
+			log.Debugln("Watcher closed")
 		}
 		running = false // cubeMX ended, do not wait for .ioc file anymore
 	}
@@ -107,7 +107,7 @@ func Process(cbuildYmlPath, outPath, cubeMxPath string, runCubeMx bool, pid int)
 		}
 		iocprojectPath := path.Join(cubeIocPath, "STM32CubeMX.ioc")
 		mxprojectPath := path.Join(cubeIocPath, ".mxproject")
-		log.Printf("pid of CubeMX in daemon: %d", pid)
+		log.Debugf("pid of CubeMX in daemon: %d", pid)
 		running = true
 		first := true
 		iocProjectWait := false
@@ -128,7 +128,7 @@ func Process(cbuildYmlPath, outPath, cubeMxPath string, runCubeMx bool, pid int)
 					continue
 				}
 				if iocProjectWait { // .ioc file was created new, there will not be multiple changes
-					log.Println("new project file:", iocprojectPath)
+					log.Debugln("new project file:", iocprojectPath)
 					i := 1
 					for ; i < 100; i++ {
 						_, err := os.Stat(mxprojectPath)
@@ -158,12 +158,12 @@ func Process(cbuildYmlPath, outPath, cubeMxPath string, runCubeMx bool, pid int)
 					changes := 0
 					for {
 						if changes == 0 {
-							log.Println("Waiting for CubeMX \"Generate Code\"")
+							log.Debugln("Waiting for CubeMX \"Generate Code\"")
 						}
 						select {
 						case event := <-watcher.Events:
 							if event.Op&fsnotify.Write == fsnotify.Write {
-								log.Println("Modified file:", event.Name, " changes ", changes)
+								log.Debugln("Modified file:", event.Name, " changes ", changes)
 								if changes == 1 {
 									infomx0, _ = os.Stat(mxprojectPath)
 								}
@@ -202,23 +202,23 @@ func Process(cbuildYmlPath, outPath, cubeMxPath string, runCubeMx bool, pid int)
 							}
 						case err := <-watcher.Errors:
 							if err != nil {
-								log.Println("Error:", err)
+								log.Errorln(err)
 							}
 							os.Exit(0)
 						}
 					}
 				}()
-				log.Printf("watching for: %s", iocprojectPath)
+				log.Debugln("watching for: ", iocprojectPath)
 				if err = watcher.Add(iocprojectPath); err != nil {
-					log.Println("Error:", err)
+					log.Errorln(err)
 					return err
 				}
 				<-done
-				log.Println("Watcher raus")
+				log.Debugln("Watcher raus")
 			} else {
 				break // CubeMX does not run anymore
 			}
-			log.Println("Process loop")
+			log.Debugln("Process loop")
 		}
 	}
 
@@ -232,7 +232,6 @@ func Process(cbuildYmlPath, outPath, cubeMxPath string, runCubeMx bool, pid int)
 		var err error
 		var pid int
 		if utils.FileExists(cubeIocPath) {
-			log.Printf("CubeMX with: %s", cubeIocPath)
 			pid, err = Launch(cubeIocPath, "")
 			if err != nil {
 				return errors.New("generator '" + gParms.ID + "' missing. Install from '" + gParms.DownloadURL + "'")
@@ -242,14 +241,14 @@ func Process(cbuildYmlPath, outPath, cubeMxPath string, runCubeMx bool, pid int)
 			if err != nil {
 				return nil
 			}
-			log.Infof("Generated file: %v", projectFile)
+			log.Debugf("Generated file: %v", projectFile)
 
 			pid, err = Launch("", projectFile)
 			if err != nil {
 				return errors.New("generator '" + gParms.ID + "' missing. Install from '" + gParms.DownloadURL + "'")
 			}
 		}
-		log.Printf("pid of CubeMX in main: %d", pid)
+		log.Debugf("pid of CubeMX in main: %d", pid)
 		// here cubeMX runs
 		ownPath := path.Base(os.Args[0]) //nolint
 		cmd := exec.Command(ownPath)     //nolint
@@ -264,7 +263,11 @@ func Process(cbuildYmlPath, outPath, cubeMxPath string, runCubeMx bool, pid int)
 }
 
 func Launch(iocFile, projectFile string) (int, error) {
-	log.Infof("Launching STM32CubeMX...")
+	if iocFile == "" {
+		log.Infoln("Launching STM32CubeMX...")
+	} else {
+		log.Infoln("Launching STM32CubeMX with ", iocFile)
+	}
 
 	const cubeEnvVar = "STM32CubeMX_PATH"
 	cubeEnv := os.Getenv(cubeEnvVar)
@@ -293,7 +296,7 @@ func Launch(iocFile, projectFile string) (int, error) {
 
 func WriteProjectFile(workDir string, parms *cbuild.ParamsType) (string, error) {
 	filePath := filepath.Join(workDir, "project.script")
-	log.Infof("Writing CubeMX project file %v", filePath)
+	log.Debugf("Writing CubeMX project file %v", filePath)
 
 	var text utils.TextBuilder
 	if parms.Board != "" {
@@ -329,7 +332,7 @@ func WriteProjectFile(workDir string, parms *cbuild.ParamsType) (string, error) 
 }
 
 func ReadCbuildYmlFile(path, outPath string, parms *cbuild.ParamsType) error {
-	log.Infof("Reading cbuild.yml file: '%v'", path)
+	log.Debugf("Reading cbuild.yml file: '%v'", path)
 	err := cbuild.Read(path, outPath, parms)
 	if err != nil {
 		return err
@@ -339,7 +342,7 @@ func ReadCbuildYmlFile(path, outPath string, parms *cbuild.ParamsType) error {
 }
 
 func ReadGeneratorYmlFile(path string, parms *generator.ParamsType) error {
-	log.Infof("Reading generator.yml file: '%v'", path)
+	log.Debugf("Reading generator.yml file: '%v'", path)
 	err := generator.Read(path, parms)
 	return err
 }
@@ -353,7 +356,7 @@ var filterFiles = map[string]string{
 func FilterFile(file string) bool {
 	for key, value := range filterFiles {
 		if strings.Contains(file, key) {
-			log.Infof("ignoring %v: %v", value, file)
+			log.Debugf("ignoring %v: %v", value, file)
 			return true
 		}
 	}

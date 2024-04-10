@@ -19,7 +19,7 @@ import (
 )
 
 func Process(inFile, inFile2, outPath string) error {
-	log.Infof("Reading file: %v", inFile)
+	log.Debugf("Reading file: %v", inFile)
 	if outPath == "" {
 		outPath = filepath.Dir(inFile)
 	}
