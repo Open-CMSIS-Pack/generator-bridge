@@ -228,7 +228,7 @@ func IniReader(path string, compiler string, trustzone bool) (MxprojectAllType, 
 }
 
 func GetIni(path string) (*ini.File, error) {
-	log.Infof("\nReading CubeMX config file: %v", path)
+	log.Debugf("\nReading CubeMX config file: %v", path)
 
 	inidata, err := ini.Load(path)
 	if err != nil {
