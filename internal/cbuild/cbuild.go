@@ -201,11 +201,18 @@ func ReadCbuildgenIdx(name, outPath string, params *ParamsType) error {
 		params.Device = cbuildGenIdxDevice
 		params.OutPath = cbuildGenIdxOutputPath
 
+		var board string
 		split := strings.SplitAfter(cbuildGenIdx.Board, "::")
 		if len(split) == 2 {
-			params.Board = split[1]
+			board = split[1]
 		} else {
-			params.Board = cbuildGenIdx.Board
+			board = cbuildGenIdx.Board
+		}
+		split = strings.Split(board, ":")
+		if len(split) == 2 {
+			params.Board = split[0]
+		} else {
+			params.Board = board
 		}
 
 		var secureContextName string
