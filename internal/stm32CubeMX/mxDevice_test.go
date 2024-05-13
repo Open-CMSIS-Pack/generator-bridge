@@ -15,8 +15,6 @@ import (
 	"reflect"
 	"testing"
 	"time"
-
-	"github.com/open-cmsis-pack/generator-bridge/internal/cbuild"
 )
 
 func Test_createContextMap(t *testing.T) {
@@ -65,28 +63,26 @@ func Test_writeMXdeviceH(t *testing.T) {
 
 	type args struct {
 		contextMap map[string]map[string]string
-		workDir    string
-		mainFolder string
+		srcFolder  string
 		mspName    string
 		cfgPath    string
 		context    string
-		params     cbuild.ParamsType
 	}
 	tests := []struct {
 		name    string
 		args    args
 		wantErr bool
 	}{
-		{"Mcu", args{mcuContext2, "../../testdata/stm32cubemx", "", "test_msp.c", "cfg", "", cbuild.ParamsType{}}, false},
-		{"wrong context", args{mcuContext0, "../../testdata/stm32cubemx", "", "test_msp.c", "cfg", "context", cbuild.ParamsType{}}, true},
-		{"Mcu Context", args{mcuContext1, "../../testdata/stm32cubemx", "", "test_msp.c", "cfg", "Mcu", cbuild.ParamsType{}}, false},
-		{"wrong myContext", args{mcuContext1, "../../testdata/stm32cubemx", "", "test_msp.c", "cfg", "context", cbuild.ParamsType{}}, true},
-		{"wrong msp", args{mcuContext1, "", "", "msp", "cfg", "context", cbuild.ParamsType{}}, true},
+		{"Mcu", args{mcuContext2, "../../testdata/stm32cubemx", "test_msp.c", "../../testdata/stm32cubemx/cfg", ""}, false},
+		{"wrong context", args{mcuContext0, "../../testdata/stm32cubemx", "test_msp.c", "../../testdata/stm32cubemx/cfg", "context"}, true},
+		{"Mcu Context", args{mcuContext1, "../../testdata/stm32cubemx", "test_msp.c", "../../testdata/stm32cubemx/cfg", "Mcu"}, false},
+		{"wrong myContext", args{mcuContext1, "../../testdata/stm32cubemx", "test_msp.c", "../../testdata/stm32cubemx/cfg", "context"}, true},
+		{"wrong msp", args{mcuContext1, "", "msp", "../../testdata/stm32cubemx/cfg", "context"}, true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			defer os.RemoveAll(tt.args.workDir + "/../" + tt.args.cfgPath)
-			if err := writeMXdeviceH(tt.args.contextMap, tt.args.workDir, tt.args.mainFolder, tt.args.mspName, tt.args.cfgPath, tt.args.context, tt.args.params); (err != nil) != tt.wantErr {
+			defer os.RemoveAll(tt.args.srcFolder + "/../" + tt.args.cfgPath)
+			if err := writeMXdeviceH(tt.args.contextMap, tt.args.srcFolder, tt.args.mspName, tt.args.cfgPath, tt.args.context); (err != nil) != tt.wantErr {
 				t.Errorf("writeMXdeviceH() %s error = %v, wantErr %v", tt.name, err, tt.wantErr)
 			}
 		})
@@ -103,6 +99,7 @@ func Test_getContexts(t *testing.T) {
 	mcuContext2["Mcu"] = map[string]string{"Context1": "myContext1", "Context2": "myContext2"}
 
 	var oneEmpty = make(map[int]string)
+	oneEmpty[0] = ""
 
 	var two1 = make(map[int]string)
 	two1[1] = "myContext1"
@@ -136,45 +133,6 @@ func Test_getContexts(t *testing.T) {
 			}
 			if !reflect.DeepEqual(got, tt.want1) && !reflect.DeepEqual(got, tt.want2) {
 				t.Errorf("getContexts() %s = %v, want %v", tt.name, got, tt.want1)
-			}
-		})
-	}
-}
-
-func Test_getDeviceFamily(t *testing.T) {
-	t.Parallel()
-
-	var parts = make(map[string]map[string]string)
-
-	parts["Mcu"] = map[string]string{"Family": "STM32U5"}
-
-	var parts1 = make(map[string]map[string]string)
-
-	parts1["Mcu"] = map[string]string{"xFamily": "STM32U5"}
-
-	type args struct {
-		contextMap map[string]map[string]string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    string
-		wantErr bool
-	}{
-		{"test", args{parts}, "STM32U5", false},
-		{"fail", args{parts1}, "", true},
-	}
-	for _, tt := range tests {
-		tt := tt
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-			got, err := getDeviceFamily(tt.args.contextMap)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("getDeviceFamily() %s error = %v, wantErr %v", tt.name, err, tt.wantErr)
-				return
-			}
-			if got != tt.want {
-				t.Errorf("getDeviceFamily() %s = %v, want %v", tt.name, got, tt.want)
 			}
 		})
 	}

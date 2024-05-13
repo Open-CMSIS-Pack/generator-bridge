@@ -10,7 +10,6 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
-	"regexp"
 	"strconv"
 	"strings"
 
@@ -25,8 +24,7 @@ type MxprojectAllType struct {
 }
 
 type MxprojectType struct {
-	CoreName         string
-	Trustzone        string
+	Context          string
 	PreviousLibFiles struct {
 		LibFiles []string
 	}
@@ -46,15 +44,9 @@ type MxprojectType struct {
 	}
 }
 
-type IniSectionCore struct {
-	CoreName  string
-	trustzone string
-	iniName   string
-}
-
 type IniSectionsType struct {
-	cores    []IniSectionCore
-	sections []string
+	Context string
+	Section string
 }
 
 func PrintKeyValStr(key, val string) {
@@ -137,58 +129,7 @@ func StoreItemIterator(data *[]string, section *ini.Section, key, iterator strin
 	}
 }
 
-func FindInList(name string, list *[]string) bool {
-	if name == "" {
-		return false
-	}
-
-	for _, item := range *list {
-		if item == name {
-			return true
-		}
-	}
-	return false
-}
-
-func AppendToList(name string, list *[]string) {
-	if name == "" {
-		return
-	}
-
-	if FindInList(name, list) {
-		return
-	}
-
-	*list = append(*list, name)
-}
-
-func FindInCores(name string, list *[]IniSectionCore) bool {
-	if name == "" {
-		return false
-	}
-
-	for _, item := range *list {
-		if item.iniName == name {
-			return true
-		}
-	}
-	return false
-}
-
-func AppendToCores(iniSectionCore IniSectionCore, list *[]IniSectionCore) {
-	name := iniSectionCore.iniName
-	if name == "" {
-		return
-	}
-
-	if FindInCores(name, list) {
-		return
-	}
-
-	*list = append(*list, iniSectionCore)
-}
-
-func IniReader(path string, compiler string, trustzone bool) (MxprojectAllType, error) {
+func IniReader(path string, params []BridgeParamType) (MxprojectAllType, error) {
 	var mxprojectAll MxprojectAllType
 
 	if !utils.FileExists(path) {
@@ -204,23 +145,17 @@ func IniReader(path string, compiler string, trustzone bool) (MxprojectAllType, 
 		return mxprojectAll, errors.New(text)
 	}
 
-	var iniSections IniSectionsType
+	var iniSections []IniSectionsType
 	err = GetSections(inidata, &iniSections)
 	if err != nil {
 		return mxprojectAll, err
 	}
 
-	for _, core := range iniSections.cores {
-		//		core := iniSections.cores[coreID]
-		iniName := core.iniName
-		if iniName == "Cortex" { // remove workaround for single-core .mxproject CubeMx files
-			iniName = ""
-		}
-		coreName := core.CoreName
-		trustzone := core.trustzone
-		mxproject, _ := GetData(inidata, iniName, compiler)
-		mxproject.CoreName = coreName
-		mxproject.Trustzone = trustzone
+	for _, param := range params {
+		context := param.CubeContext
+
+		mxproject, _ := GetData(inidata, context, param.Compiler)
+		mxproject.Context = context
 		mxprojectAll.Mxproject = append(mxprojectAll.Mxproject, mxproject)
 	}
 
@@ -239,45 +174,20 @@ func GetIni(path string) (*ini.File, error) {
 	return inidata, nil
 }
 
-func GetSections(inidata *ini.File, iniSections *IniSectionsType) error {
+func GetSections(inidata *ini.File, iniSections *[]IniSectionsType) error {
 	sectionsData := inidata.SectionStrings()
 	for _, section := range sectionsData {
-		var iniName string
-		var sectionName string
+		var iniSection IniSectionsType
 		sectionString := strings.Split(section, ":")
 		if len(sectionString) > 1 {
-			iniName = sectionString[0]
-			sectionName = sectionString[1]
+			iniSection.Context = sectionString[0]
+			iniSection.Section = sectionString[1]
 		} else {
-			iniName = "Cortex" // default
-			sectionName = section
+			iniSection.Context = ""
+			iniSection.Section = section
 		}
 
-		var coreName string
-		re := regexp.MustCompile("[0-9]+")
-		coreNameNumbers := re.FindAllString(iniName, -1)
-		if len(coreNameNumbers) == 1 {
-			coreName = "Cortex-M" + coreNameNumbers[0]
-		}
-
-		var trustzone string
-		iniLen := len(iniName)
-		if iniLen > 0 {
-			if strings.LastIndex(iniName, "S") == iniLen-1 {
-				if strings.LastIndex(iniName, "NS") == iniLen-2 {
-					trustzone = "non-secure"
-				} else {
-					trustzone = "secure"
-				}
-			}
-		}
-
-		var iniSectionCore IniSectionCore
-		iniSectionCore.iniName = iniName
-		iniSectionCore.CoreName = coreName
-		iniSectionCore.trustzone = trustzone
-		AppendToCores(iniSectionCore, &iniSections.cores)
-		AppendToList(sectionName, &iniSections.sections)
+		*iniSections = append(*iniSections, iniSection)
 	}
 
 	return nil
