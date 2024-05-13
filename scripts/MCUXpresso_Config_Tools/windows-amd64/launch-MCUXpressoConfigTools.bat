@@ -35,9 +35,9 @@ REM Launch tools from its folder
 pushd %tools_folder%
 if not defined mexFile (
     REM run wihout mex file
-    %tools_path% -CreateFromProject %folder% -OpencmsisGeneratorCgen MCUXCFG/hello_world.cgen.yml
+    %tools_path% -CreateFromProject %folder% -OpencmsisGeneratorCgen
 ) else (
     REM run with existing mex file
-    %tools_path% -Load %mexFile% -OpencmsisGeneratorCgen MCUXCFG/hello_world.cgen.yml -ProjectLink %folder%
+    %tools_path% -Load %mexFile% -OpencmsisGeneratorCgen -ProjectLink %folder%
 )
 popd
