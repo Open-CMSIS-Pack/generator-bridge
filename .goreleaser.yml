@@ -16,6 +16,8 @@ archives:
       - LICENSE
       - README.md
       - third_party_licenses.md
+      - src: scripts/MCUXpresso_Config_Tools/{{.Os}}-{{.Arch}}/launch-MCUXpressoConfigTools*
+        strip_parent: true
 
     format_overrides:
       - goos: windows
