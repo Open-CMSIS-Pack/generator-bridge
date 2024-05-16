@@ -8,47 +8,29 @@ package cbuild
 
 import (
 	"errors"
-	"path"
-	"path/filepath"
-	"strings"
 
 	"github.com/open-cmsis-pack/generator-bridge/internal/common"
 	"github.com/open-cmsis-pack/generator-bridge/internal/utils"
-	log "github.com/sirupsen/logrus"
 )
 
-type PackType struct {
-	Pack string
-	Path string
-}
-
-type SubsystemIdxType struct {
-	Project              string
-	CbuildGen            string
-	Configuration        string
-	ForProjectPart       string
-	ProjectType          string
-	SecureContextName    string
-	NonSecureContextName string
-}
-
-type SubsystemType struct {
-	SubsystemIdx SubsystemIdxType
-	Board        string
-	Device       string
-	Project      string
-	Compiler     string
-	TrustZone    string
-	CoreName     string
-	// Packs        []PackType
+type CbuildGensType struct {
+	CbuildGen      CbuildGenType
+	Project        string
+	Configuration  string
+	ForProjectPart string
+	Output         string
+	Name           string
+	Map            string
 }
 
 type ParamsType struct {
-	Board       string
+	GeneratedBy string
+	ID          string
+	Output      string
 	Device      string
-	OutPath     string
+	Board       string
 	ProjectType string
-	Subsystem   []SubsystemType
+	CbuildGens  []CbuildGensType
 }
 
 // https://zhwt.github.io/yaml-to-go/
@@ -69,6 +51,8 @@ type CbuildGenIdxType struct {
 				Configuration  string `yaml:"configuration"`
 				ForProjectPart string `yaml:"for-project-part"`
 				Output         string `yaml:"output"`
+				Name           string `yaml:"name"`
+				Map            string `yaml:"map"`
 			} `yaml:"cbuild-gens"`
 		} `yaml:"generators"`
 	} `yaml:"build-gen-idx"`
@@ -176,11 +160,11 @@ type GeneratorImportType struct {
 	Groups    []CgenGroupsType `yaml:"groups,omitempty"`
 }
 
-func Read(name, outPath string, params *ParamsType) error {
-	return ReadCbuildgenIdx(name, outPath, params)
+func Read(name, generatorID string, params *ParamsType) error {
+	return ReadCbuildgenIdx(name, generatorID, params)
 }
 
-func ReadCbuildgenIdx(name, outPath string, params *ParamsType) error {
+func ReadCbuildgenIdx(name, generatorID string, params *ParamsType) error {
 	var cbuildGenIdx CbuildGenIdxType
 
 	err := common.ReadYml(name, &cbuildGenIdx)
@@ -188,82 +172,37 @@ func ReadCbuildgenIdx(name, outPath string, params *ParamsType) error {
 		return err
 	}
 
-	for idGen, cbuildGenIdx := range cbuildGenIdx.BuildGenIdx.Generators {
-		cbuildGenIdxID := cbuildGenIdx.ID
-		cbuildGenIdxBoard := cbuildGenIdx.Board
-		cbuildGenIdxDevice := cbuildGenIdx.Device
-		cbuildGenIdxType := cbuildGenIdx.ProjectType
-		cbuildGenIdxOutputPath := cbuildGenIdx.Output
+	for _, cgen := range cbuildGenIdx.BuildGenIdx.Generators {
+		if cgen.ID == generatorID {
+			params.GeneratedBy = cbuildGenIdx.BuildGenIdx.GeneratedBy
+			params.ID = cgen.ID
+			params.Output = cgen.Output
+			params.Device = cgen.Device
+			params.Board = cgen.Board
+			params.ProjectType = cgen.ProjectType
 
-		log.Debugf("Found CBuildGenIdx: #%v ID: %v, board: %v, device: %v, type: %v", idGen, cbuildGenIdxID, cbuildGenIdxBoard, cbuildGenIdxDevice, cbuildGenIdxType)
-		log.Debugf("CBuildGenIdx Output path: %v", cbuildGenIdxOutputPath)
-
-		params.Device = cbuildGenIdxDevice
-		params.OutPath = cbuildGenIdxOutputPath
-
-		var board string
-		split := strings.SplitAfter(cbuildGenIdx.Board, "::")
-		if len(split) == 2 {
-			board = split[1]
-		} else {
-			board = cbuildGenIdx.Board
-		}
-		split = strings.Split(board, ":")
-		if len(split) == 2 {
-			params.Board = split[0]
-		} else {
-			params.Board = board
-		}
-
-		var secureContextName string
-		var nonsecureContextName string
-
-		for _, cbuildGen := range cbuildGenIdx.CbuildGens {
-			fileName := cbuildGen.CbuildGen
-			var subPath string
-			if filepath.IsAbs(fileName) {
-				subPath = fileName
-			} else {
-				subPath = path.Join(path.Dir(name), fileName)
-			}
-
-			var subsystem SubsystemType
-			subsystem.SubsystemIdx.Project = cbuildGen.Project
-			subsystem.SubsystemIdx.Configuration = cbuildGen.Configuration
-			subsystem.SubsystemIdx.CbuildGen = cbuildGen.CbuildGen
-			subsystem.SubsystemIdx.ProjectType = cbuildGenIdx.ProjectType
-			subsystem.SubsystemIdx.ForProjectPart = cbuildGen.ForProjectPart
-
-			err := ReadCbuildgen(subPath, &subsystem) // use copy, do not override for next instance
-			if err != nil {
-				return err
-			}
-
-			params.Subsystem = append(params.Subsystem, subsystem)
-
-			// store Reference project for TZ
-			if cbuildGenIdx.ProjectType == "trustzone" {
-				if cbuildGen.ForProjectPart == "secure" {
-					secureContextName = cbuildGen.Project
-				} else if cbuildGen.ForProjectPart == "non-secure" {
-					nonsecureContextName = cbuildGen.Project
+			for _, cbuildGen := range cgen.CbuildGens {
+				var tmpCbuildGen CbuildGensType
+				err := ReadCbuildgen(cbuildGen.CbuildGen, &tmpCbuildGen.CbuildGen)
+				if err != nil {
+					return err
 				}
-			}
-		}
+				tmpCbuildGen.Project = cbuildGen.Project
+				tmpCbuildGen.Configuration = cbuildGen.Configuration
+				tmpCbuildGen.ForProjectPart = cbuildGen.ForProjectPart
+				tmpCbuildGen.Output = cbuildGen.Output
+				tmpCbuildGen.Name = cbuildGen.Name
+				tmpCbuildGen.Map = cbuildGen.Map
 
-		// store Reference project for TZ-NS
-		for idSub := range params.Subsystem {
-			subsystem := &params.Subsystem[idSub]
-			subsystem.SubsystemIdx.SecureContextName = secureContextName
-			subsystem.SubsystemIdx.NonSecureContextName = nonsecureContextName
+				params.CbuildGens = append(params.CbuildGens, tmpCbuildGen)
+			}
 		}
 	}
 
 	return nil
 }
 
-func ReadCbuildgen(name string, subsystem *SubsystemType) error {
-	var cbuildGen CbuildGenType
+func ReadCbuildgen(name string, cbuildGen *CbuildGenType) error {
 
 	if !utils.FileExists(name) {
 		text := "File not found: "
@@ -275,30 +214,5 @@ func ReadCbuildgen(name string, subsystem *SubsystemType) error {
 	if err != nil {
 		return err
 	}
-
-	split := strings.SplitAfter(cbuildGen.BuildGen.Board, "::")
-	if len(split) == 2 {
-		subsystem.Board = split[1]
-	} else {
-		subsystem.Board = cbuildGen.BuildGen.Board
-	}
-	subsystem.Device = cbuildGen.BuildGen.Device
-	subsystem.Compiler = cbuildGen.BuildGen.Compiler
-	subsystem.Project = cbuildGen.BuildGen.Project
-	subsystem.CoreName = cbuildGen.BuildGen.Processor.Core
-	subsystem.TrustZone = cbuildGen.BuildGen.Processor.Trustzone
-
-	log.Debugf("Found CBuildGen: board: %v, device: %v, core: %v, TZ: %v, compiler: %v, project: %v",
-		subsystem.Board, subsystem.Device, subsystem.CoreName, subsystem.TrustZone, subsystem.Compiler, subsystem.Project)
-
-	// for id := range cbuildGen.BuildGen.Packs {
-	// 	genPack := cbuildGen.BuildGen.Packs[id]
-	// 	var pack PackType
-	// 	pack.Pack = genPack.Pack
-	// 	pack.Path = genPack.Path
-	// 	log.Debugf("Found Pack: #%v Pack: %v, Path: %v", id, pack.Pack, pack.Path)
-	// 	subsystem.Packs = append(subsystem.Packs, pack)
-	// }
-
 	return nil
 }

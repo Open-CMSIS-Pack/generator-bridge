@@ -26,6 +26,21 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+type BridgeParamType struct {
+	Board             string
+	Device            string
+	Output            string
+	ProjectName       string
+	ProjectType       string
+	ForProjectPart    string
+	PairedSecurePart  string
+	Compiler          string
+	GeneratorMap      string
+	CgenName          string
+	CubeContext       string
+	CubeContextFolder string
+}
+
 var watcher *fsnotify.Watcher
 var running bool // true if running in wait loop waiting for .ioc file
 
@@ -76,17 +91,23 @@ func Process(cbuildYmlPath, outPath, cubeMxPath string, runCubeMx bool, pid int)
 	}
 
 	var parms cbuild.ParamsType
-	err = ReadCbuildYmlFile(cbuildYmlPath, outPath, &parms)
+	err = ReadCbuildYmlFile(cbuildYmlPath, "CubeMX", &parms)
+	if err != nil {
+		return err
+	}
+
+	var bridgeParams []BridgeParamType
+	err = GetBridgeInfo(&parms, &bridgeParams)
 	if err != nil {
 		return err
 	}
 
 	workDir := path.Dir(cbuildYmlPath)
-	if parms.OutPath != "" {
-		if filepath.IsAbs(parms.OutPath) {
-			workDir = parms.OutPath
+	if parms.Output != "" {
+		if filepath.IsAbs(parms.Output) {
+			workDir = parms.Output
 		} else {
-			workDir = path.Join(workDir, parms.OutPath)
+			workDir = path.Join(workDir, parms.Output)
 		}
 	} else {
 		workDir = path.Join(workDir, outPath)
@@ -138,12 +159,17 @@ func Process(cbuildYmlPath, outPath, cubeMxPath string, runCubeMx bool, pid int)
 						time.Sleep(time.Second)
 					}
 					if i < 100 {
-						mxproject, err := IniReader(mxprojectPath, parms.Subsystem[0].Compiler, false)
-						if err == nil {
-							err = ReadContexts(iocprojectPath, parms)
-							if err == nil {
-								_ = WriteCgenYml(workDir, mxproject, parms)
-							}
+						mxproject, err := IniReader(mxprojectPath, bridgeParams)
+						if err != nil {
+							return err
+						}
+						err = ReadContexts(iocprojectPath, bridgeParams)
+						if err != nil {
+							return err
+						}
+						err = WriteCgenYml(workDir, mxproject, bridgeParams)
+						if err != nil {
+							return err
 						}
 					}
 				}
@@ -183,17 +209,15 @@ func Process(cbuildYmlPath, outPath, cubeMxPath string, runCubeMx bool, pid int)
 										}
 									}
 									if i < 100 {
-										mxproject, err := IniReader(mxprojectPath, parms.Subsystem[0].Compiler, false)
+										mxproject, err := IniReader(mxprojectPath, bridgeParams)
 										if err != nil {
 											return
 										}
-
-										err = ReadContexts(iocprojectPath, parms)
+										err = ReadContexts(iocprojectPath, bridgeParams)
 										if err != nil {
 											return
 										}
-
-										err = WriteCgenYml(workDir, mxproject, parms)
+										err = WriteCgenYml(workDir, mxproject, bridgeParams)
 										if err != nil {
 											return
 										}
@@ -237,7 +261,7 @@ func Process(cbuildYmlPath, outPath, cubeMxPath string, runCubeMx bool, pid int)
 				return errors.New("generator '" + gParms.ID + "' missing. Install from '" + gParms.DownloadURL + "'")
 			}
 		} else {
-			projectFile, err = WriteProjectFile(workDir, &parms)
+			projectFile, err = WriteProjectFile(workDir, bridgeParams[0])
 			if err != nil {
 				return nil
 			}
@@ -294,19 +318,19 @@ func Launch(iocFile, projectFile string) (int, error) {
 	return cmd.Process.Pid, nil
 }
 
-func WriteProjectFile(workDir string, parms *cbuild.ParamsType) (string, error) {
+func WriteProjectFile(workDir string, params BridgeParamType) (string, error) {
 	filePath := filepath.Join(workDir, "project.script")
 	log.Debugf("Writing CubeMX project file %v", filePath)
 
 	var text utils.TextBuilder
-	if parms.Board != "" {
-		text.AddLine("loadboard", parms.Board, "allmodes")
+	if params.Board != "" {
+		text.AddLine("loadboard", params.Board, "allmodes")
 	} else {
-		text.AddLine("load", parms.Device)
+		text.AddLine("load", params.Device)
 	}
 	text.AddLine("project name", "STM32CubeMX")
 
-	toolchain, err := GetToolchain(parms.Subsystem[0].Compiler)
+	toolchain, err := GetToolchain(params.Compiler)
 	if err != nil {
 		return "", err
 	}
@@ -331,9 +355,9 @@ func WriteProjectFile(workDir string, parms *cbuild.ParamsType) (string, error) 
 	return filePath, nil
 }
 
-func ReadCbuildYmlFile(path, outPath string, parms *cbuild.ParamsType) error {
+func ReadCbuildYmlFile(path, generatorID string, parms *cbuild.ParamsType) error {
 	log.Debugf("Reading cbuild.yml file: '%v'", path)
-	err := cbuild.Read(path, outPath, parms)
+	err := cbuild.Read(path, generatorID, parms)
 	if err != nil {
 		return err
 	}
@@ -345,6 +369,75 @@ func ReadGeneratorYmlFile(path string, parms *generator.ParamsType) error {
 	log.Debugf("Reading generator.yml file: '%v'", path)
 	err := generator.Read(path, parms)
 	return err
+}
+
+func GetBridgeInfo(parms *cbuild.ParamsType, bridgeParams *[]BridgeParamType) error {
+	var board string
+	var device string
+	var output string
+	var projectType string
+
+	split := strings.SplitAfter(parms.Board, "::")
+	if len(split) == 2 {
+		board = split[1]
+	} else {
+		board = parms.Board
+	}
+	split = strings.Split(board, ":")
+	if len(split) == 2 {
+		board = split[0]
+	}
+
+	device = parms.Device
+	projectType = parms.ProjectType
+	output = parms.Output
+
+	for _, gen := range parms.CbuildGens {
+		var bparm BridgeParamType
+
+		bparm.Board = board
+		bparm.Device = device
+		bparm.Output = output
+		bparm.ProjectName = gen.Project
+		bparm.ProjectType = projectType
+		bparm.ForProjectPart = gen.ForProjectPart
+		bparm.GeneratorMap = gen.Map
+		bparm.CgenName = gen.Name
+		bparm.Compiler = gen.CbuildGen.BuildGen.Compiler
+		if gen.Map != "" {
+			bparm.CubeContext = gen.Map
+			bparm.CubeContextFolder = gen.Map
+		} else {
+			switch parms.ProjectType {
+			case "single-core":
+				bparm.CubeContext = ""
+				bparm.CubeContextFolder = ""
+			case "multi-core":
+				core := gen.CbuildGen.BuildGen.Processor.Core
+				bparm.CubeContext = strings.ReplaceAll(core, "-", "")
+				bparm.CubeContextFolder = "C" + strings.Split(core, "-")[1]
+			case "trustzone":
+				core := gen.CbuildGen.BuildGen.Processor.Core
+				context := strings.ReplaceAll(core, "-", "")
+				if gen.ForProjectPart == "non-secure" {
+					bparm.CubeContext = context + "NS"
+					bparm.CubeContextFolder = "NonSecure"
+					for _, tmpGen := range parms.CbuildGens {
+						if tmpGen.ForProjectPart == "secure" {
+							bparm.PairedSecurePart = tmpGen.Project
+							break
+						}
+					}
+				}
+				if gen.ForProjectPart == "secure" {
+					bparm.CubeContext = context + "S"
+					bparm.CubeContextFolder = "Secure"
+				}
+			}
+		}
+		*bridgeParams = append(*bridgeParams, bparm)
+	}
+	return nil
 }
 
 var filterFiles = map[string]string{
@@ -364,7 +457,7 @@ func FilterFile(file string) bool {
 	return false
 }
 
-func FindMxProject(subsystem *cbuild.SubsystemType, mxprojectAll MxprojectAllType) (MxprojectType, error) {
+func FindMxProject(context string, mxprojectAll MxprojectAllType) (MxprojectType, error) {
 	if len(mxprojectAll.Mxproject) == 0 {
 		return MxprojectType{}, errors.New("no .mxproject read")
 	} else if len(mxprojectAll.Mxproject) == 1 {
@@ -372,13 +465,8 @@ func FindMxProject(subsystem *cbuild.SubsystemType, mxprojectAll MxprojectAllTyp
 		return mxproject, nil
 	}
 
-	coreName := subsystem.CoreName
-	trustzone := subsystem.TrustZone
-	if trustzone == "off" {
-		trustzone = ""
-	}
 	for _, mxproject := range mxprojectAll.Mxproject {
-		if mxproject.CoreName == coreName && mxproject.Trustzone == trustzone {
+		if mxproject.Context == context {
 			return mxproject, nil
 		}
 	}
@@ -386,15 +474,13 @@ func FindMxProject(subsystem *cbuild.SubsystemType, mxprojectAll MxprojectAllTyp
 	return MxprojectType{}, nil
 }
 
-func WriteCgenYml(outPath string, mxprojectAll MxprojectAllType, inParms cbuild.ParamsType) error {
-	for id := range inParms.Subsystem {
-		subsystem := &inParms.Subsystem[id]
-
-		mxproject, err := FindMxProject(subsystem, mxprojectAll)
+func WriteCgenYml(outPath string, mxprojectAll MxprojectAllType, bridgeParams []BridgeParamType) error {
+	for _, parm := range bridgeParams {
+		mxproject, err := FindMxProject(parm.CubeContext, mxprojectAll)
 		if err != nil {
 			continue
 		}
-		err = WriteCgenYmlSub(outPath, mxproject, subsystem)
+		err = WriteCgenYmlSub(outPath, mxproject, parm)
 		if err != nil {
 			return err
 		}
@@ -403,18 +489,16 @@ func WriteCgenYml(outPath string, mxprojectAll MxprojectAllType, inParms cbuild.
 	return nil
 }
 
-func WriteCgenYmlSub(outPath string, mxproject MxprojectType, subsystem *cbuild.SubsystemType) error {
-	outName := subsystem.SubsystemIdx.Project + ".cgen.yml"
-	outFile := path.Join(outPath, outName)
+func WriteCgenYmlSub(outPath string, mxproject MxprojectType, bridgeParam BridgeParamType) error {
 	var cgen cbuild.CgenType
 
-	relativePathAdd, err := GetRelativePathAdd(outPath, subsystem.Compiler)
+	relativePathAdd, err := GetRelativePathAdd(outPath, bridgeParam.Compiler)
 	if err != nil {
 		return err
 	}
 
-	cgen.GeneratorImport.ForBoard = subsystem.Board
-	cgen.GeneratorImport.ForDevice = subsystem.Device
+	cgen.GeneratorImport.ForBoard = bridgeParam.Board
+	cgen.GeneratorImport.ForDevice = bridgeParam.Device
 	cgen.GeneratorImport.Define = append(cgen.GeneratorImport.Define, mxproject.PreviousUsedFiles.CDefines...)
 
 	for _, headerPath := range mxproject.PreviousUsedFiles.HeaderPath {
@@ -425,7 +509,7 @@ func WriteCgenYmlSub(outPath string, mxproject MxprojectType, subsystem *cbuild.
 		cgen.GeneratorImport.AddPath = append(cgen.GeneratorImport.AddPath, headerPath)
 	}
 
-	cfgPath := path.Join("MX_Device", subsystem.SubsystemIdx.Project)
+	cfgPath := path.Join("MX_Device", bridgeParam.ProjectName)
 	cfgPath, _ = utils.ConvertFilename(outPath, cfgPath, "")
 	cgen.GeneratorImport.AddPath = append(cgen.GeneratorImport.AddPath, cfgPath)
 
@@ -454,7 +538,7 @@ func WriteCgenYmlSub(outPath string, mxproject MxprojectType, subsystem *cbuild.
 	}
 
 	var cgenFile cbuild.CgenFilesType
-	startupFile, err := GetStartupFile(outPath, subsystem)
+	startupFile, err := GetStartupFile(outPath, bridgeParam)
 	if err != nil {
 		return err
 	}
@@ -465,7 +549,7 @@ func WriteCgenYmlSub(outPath string, mxproject MxprojectType, subsystem *cbuild.
 	cgenFile.File = startupFile
 	groupSrc.Files = append(groupSrc.Files, cgenFile)
 
-	systemFile, err := GetSystemFile(outPath, subsystem)
+	systemFile, err := GetSystemFile(outPath, bridgeParam)
 	if err != nil {
 		return err
 	}
@@ -476,7 +560,7 @@ func WriteCgenYmlSub(outPath string, mxproject MxprojectType, subsystem *cbuild.
 	cgenFile.File = systemFile
 	groupSrc.Files = append(groupSrc.Files, cgenFile)
 
-	linkerFiles, err := GetLinkerScripts(outPath, subsystem)
+	linkerFiles, err := GetLinkerScripts(outPath, bridgeParam)
 	if err != nil {
 		return err
 	}
@@ -493,17 +577,17 @@ func WriteCgenYmlSub(outPath string, mxproject MxprojectType, subsystem *cbuild.
 	cgen.GeneratorImport.Groups = append(cgen.GeneratorImport.Groups, groupSrc)
 	cgen.GeneratorImport.Groups = append(cgen.GeneratorImport.Groups, groupHalDriver)
 
-	if subsystem.TrustZone == "non-secure" {
+	if bridgeParam.ForProjectPart == "non-secure" {
 		groupTz.Group = "CMSE Library"
 		var cgenFile cbuild.CgenFilesType
 		cgenFile.File = "$cmse-lib("
-		cgenFile.File += subsystem.SubsystemIdx.SecureContextName
+		cgenFile.File += bridgeParam.PairedSecurePart
 		cgenFile.File += ")$"
 		groupTz.Files = append(groupTz.Files, cgenFile)
 		cgen.GeneratorImport.Groups = append(cgen.GeneratorImport.Groups, groupTz)
 	}
 
-	return common.WriteYml(outFile, &cgen)
+	return common.WriteYml(bridgeParam.CgenName, &cgen)
 }
 
 func GetToolchain(compiler string) (string, error) {
@@ -567,32 +651,32 @@ func GetToolchainFolderPath(outPath string, compiler string) (string, error) {
 	return toolchainFolderPath, nil
 }
 
-func GetStartupFile(outPath string, subsystem *cbuild.SubsystemType) (string, error) {
+func GetStartupFile(outPath string, bridgeParams BridgeParamType) (string, error) {
 	var startupFolder string
 	var fileExtesion string
 	var fileFilter string
 
-	startupFolder, err := GetToolchainFolderPath(outPath, subsystem.Compiler)
+	startupFolder, err := GetToolchainFolderPath(outPath, bridgeParams.Compiler)
 	if err != nil {
 		return "", err
 	}
 
 	fileExtesion = ".s"
-	switch subsystem.Compiler {
+	switch bridgeParams.Compiler {
 	case "AC6", "IAR":
-		if subsystem.SubsystemIdx.ProjectType == "multi-core" {
-			fileFilter = "_" + subsystem.SubsystemIdx.ForProjectPart
+		if bridgeParams.ProjectType == "multi-core" {
+			fileFilter = "_" + bridgeParams.ForProjectPart
 		}
 
 	case "GCC", "CLANG":
-		switch subsystem.SubsystemIdx.ProjectType {
+		switch bridgeParams.ProjectType {
 		case "multi-core":
-			startupFolder = path.Join(startupFolder, subsystem.SubsystemIdx.ForProjectPart)
+			startupFolder = path.Join(startupFolder, bridgeParams.ForProjectPart)
 		case "trustzone":
-			if subsystem.SubsystemIdx.ForProjectPart == "secure" {
+			if bridgeParams.ForProjectPart == "secure" {
 				startupFolder = path.Join(startupFolder, "Secure")
 			}
-			if subsystem.SubsystemIdx.ForProjectPart == "non-secure" {
+			if bridgeParams.ForProjectPart == "non-secure" {
 				startupFolder = path.Join(startupFolder, "NonSecure")
 			}
 		}
@@ -634,16 +718,16 @@ func GetStartupFile(outPath string, subsystem *cbuild.SubsystemType) (string, er
 	return startupFile, err
 }
 
-func GetSystemFile(outPath string, subsystem *cbuild.SubsystemType) (string, error) {
+func GetSystemFile(outPath string, bridgeParams BridgeParamType) (string, error) {
 	var toolchainFolder string
 	var systemFolder string
 
-	toolchainFolder, err := GetToolchainFolderPath(outPath, subsystem.Compiler)
+	toolchainFolder, err := GetToolchainFolderPath(outPath, bridgeParams.Compiler)
 	if err != nil {
 		return "", err
 	}
 
-	if subsystem.SubsystemIdx.ProjectType == "multi-core" {
+	if bridgeParams.ProjectType == "multi-core" {
 		systemFolder = filepath.Dir(toolchainFolder)
 		systemFolder = path.Join(systemFolder, "Common")
 		systemFolder = path.Join(systemFolder, "Src")
@@ -654,14 +738,19 @@ func GetSystemFile(outPath string, subsystem *cbuild.SubsystemType) (string, err
 
 	if systemFolder == "" {
 		systemFolder = filepath.Dir(toolchainFolder)
-		switch subsystem.SubsystemIdx.ProjectType {
+
+		if bridgeParams.GeneratorMap != "" {
+			systemFolder = path.Join(systemFolder, bridgeParams.GeneratorMap)
+		}
+
+		switch bridgeParams.ProjectType {
 		case "multi-core":
-			systemFolder = path.Join(systemFolder, subsystem.SubsystemIdx.ForProjectPart)
+			systemFolder = path.Join(systemFolder, bridgeParams.ForProjectPart)
 		case "trustzone":
-			if subsystem.SubsystemIdx.ForProjectPart == "secure" {
+			if bridgeParams.ForProjectPart == "secure" {
 				systemFolder = path.Join(systemFolder, "Secure")
 			}
-			if subsystem.SubsystemIdx.ForProjectPart == "non-secure" {
+			if bridgeParams.ForProjectPart == "non-secure" {
 				systemFolder = path.Join(systemFolder, "NonSecure")
 			}
 		}
@@ -693,17 +782,17 @@ func GetSystemFile(outPath string, subsystem *cbuild.SubsystemType) (string, err
 	return systemFile, err
 }
 
-func GetLinkerScripts(outPath string, subsystem *cbuild.SubsystemType) ([]string, error) {
+func GetLinkerScripts(outPath string, bridgeParams BridgeParamType) ([]string, error) {
 	var linkerFolder string
 	var fileExtesion string
 	var fileFilter string
 
-	linkerFolder, err := GetToolchainFolderPath(outPath, subsystem.Compiler)
+	linkerFolder, err := GetToolchainFolderPath(outPath, bridgeParams.Compiler)
 	if err != nil {
 		return nil, err
 	}
 
-	switch subsystem.Compiler {
+	switch bridgeParams.Compiler {
 	case "AC6":
 		fileExtesion = ".sct"
 	case "IAR":
@@ -714,31 +803,35 @@ func GetLinkerScripts(outPath string, subsystem *cbuild.SubsystemType) ([]string
 		return nil, errors.New("unknown compiler")
 	}
 
-	switch subsystem.Compiler {
+	if bridgeParams.GeneratorMap != "" {
+		linkerFolder = path.Join(linkerFolder, bridgeParams.GeneratorMap)
+	}
+
+	switch bridgeParams.Compiler {
 	case "AC6", "IAR":
-		switch subsystem.SubsystemIdx.ProjectType {
+		switch bridgeParams.ProjectType {
 		case "single-core":
 			fileFilter = ""
 		case "multi-core":
-			fileFilter = "_" + subsystem.SubsystemIdx.ForProjectPart
+			fileFilter = "_" + bridgeParams.ForProjectPart
 		case "trustzone":
-			if subsystem.SubsystemIdx.ForProjectPart == "secure" {
+			if bridgeParams.ForProjectPart == "secure" {
 				fileFilter = "_s."
 			}
-			if subsystem.SubsystemIdx.ForProjectPart == "non-secure" {
+			if bridgeParams.ForProjectPart == "non-secure" {
 				fileFilter = "_ns."
 			}
 		}
 
 	case "GCC", "CLANG":
-		switch subsystem.SubsystemIdx.ProjectType {
+		switch bridgeParams.ProjectType {
 		case "multi-core":
-			linkerFolder = path.Join(linkerFolder, subsystem.SubsystemIdx.ForProjectPart)
+			linkerFolder = path.Join(linkerFolder, bridgeParams.ForProjectPart)
 		case "trustzone":
-			if subsystem.SubsystemIdx.ForProjectPart == "secure" {
+			if bridgeParams.ForProjectPart == "secure" {
 				linkerFolder = path.Join(linkerFolder, "Secure")
 			}
-			if subsystem.SubsystemIdx.ForProjectPart == "non-secure" {
+			if bridgeParams.ForProjectPart == "non-secure" {
 				linkerFolder = path.Join(linkerFolder, "NonSecure")
 			}
 		}

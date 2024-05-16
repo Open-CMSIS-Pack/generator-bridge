@@ -10,8 +10,6 @@ import (
 	"path/filepath"
 	"reflect"
 	"testing"
-
-	"github.com/open-cmsis-pack/generator-bridge/internal/cbuild"
 )
 
 func Test_GetToolchain(t *testing.T) {
@@ -131,71 +129,71 @@ func Test_GetStartupFile(t *testing.T) {
 
 	// Single core
 	outPathSC := "../../testdata/testExamples/STM32H7_SC/STM32CubeMX/device"
-	var subsystemScAC6 cbuild.SubsystemType
-	subsystemScAC6.Compiler = "AC6"
-	subsystemScAC6.SubsystemIdx.ProjectType = "single-core"
-	subsystemScAC6.SubsystemIdx.ForProjectPart = ""
-	var subsystemScGCC cbuild.SubsystemType
-	subsystemScGCC.Compiler = "GCC"
-	subsystemScGCC.SubsystemIdx.ProjectType = "single-core"
-	subsystemScGCC.SubsystemIdx.ForProjectPart = ""
-	var subsystemScCLANG cbuild.SubsystemType
-	subsystemScCLANG.Compiler = "CLANG"
-	subsystemScCLANG.SubsystemIdx.ProjectType = "single-core"
-	subsystemScCLANG.SubsystemIdx.ForProjectPart = ""
-	var subsystemScIAR cbuild.SubsystemType
-	subsystemScIAR.Compiler = "IAR"
-	subsystemScIAR.SubsystemIdx.ProjectType = "single-core"
-	subsystemScIAR.SubsystemIdx.ForProjectPart = ""
+	var infoScAC6 BridgeParamType
+	infoScAC6.Compiler = "AC6"
+	infoScAC6.ProjectType = "single-core"
+	infoScAC6.ForProjectPart = ""
+	var infoScGCC BridgeParamType
+	infoScGCC.Compiler = "GCC"
+	infoScGCC.ProjectType = "single-core"
+	infoScGCC.ForProjectPart = ""
+	var infoScCLANG BridgeParamType
+	infoScCLANG.Compiler = "CLANG"
+	infoScCLANG.ProjectType = "single-core"
+	infoScCLANG.ForProjectPart = ""
+	var infoScIAR BridgeParamType
+	infoScIAR.Compiler = "IAR"
+	infoScIAR.ProjectType = "single-core"
+	infoScIAR.ForProjectPart = ""
 
 	// Multi core
 	outPathDC := "../../testdata/testExamples/STM32H7_DC/STM32CubeMX/STM32H745BGTx"
-	var subsystemDcAC6 cbuild.SubsystemType
-	subsystemDcAC6.Compiler = "AC6"
-	subsystemDcAC6.SubsystemIdx.ProjectType = "multi-core"
-	subsystemDcAC6.SubsystemIdx.ForProjectPart = "CM4"
-	var subsystemDcGCC cbuild.SubsystemType
-	subsystemDcGCC.Compiler = "GCC"
-	subsystemDcGCC.SubsystemIdx.ProjectType = "multi-core"
-	subsystemDcGCC.SubsystemIdx.ForProjectPart = "CM7"
-	var subsystemDcCLANG cbuild.SubsystemType
-	subsystemDcCLANG.Compiler = "CLANG"
-	subsystemDcCLANG.SubsystemIdx.ProjectType = "multi-core"
-	subsystemDcCLANG.SubsystemIdx.ForProjectPart = "CM4"
-	var subsystemDcIAR cbuild.SubsystemType
-	subsystemDcIAR.Compiler = "IAR"
-	subsystemDcIAR.SubsystemIdx.ProjectType = "multi-core"
-	subsystemDcIAR.SubsystemIdx.ForProjectPart = "CM7"
+	var infoDcAC6 BridgeParamType
+	infoDcAC6.Compiler = "AC6"
+	infoDcAC6.ProjectType = "multi-core"
+	infoDcAC6.ForProjectPart = "CM4"
+	var infoDcGCC BridgeParamType
+	infoDcGCC.Compiler = "GCC"
+	infoDcGCC.ProjectType = "multi-core"
+	infoDcGCC.ForProjectPart = "CM7"
+	var infoDcCLANG BridgeParamType
+	infoDcCLANG.Compiler = "CLANG"
+	infoDcCLANG.ProjectType = "multi-core"
+	infoDcCLANG.ForProjectPart = "CM4"
+	var infoDcIAR BridgeParamType
+	infoDcIAR.Compiler = "IAR"
+	infoDcIAR.ProjectType = "multi-core"
+	infoDcIAR.ForProjectPart = "CM7"
 
 	// secure nonsecure
 	outPathTZ := "../../testdata/testExamples/STM32U5_TZ/STM32CubeMX/Board"
-	var subsystemTzAC6 cbuild.SubsystemType
-	subsystemTzAC6.Compiler = "AC6"
-	subsystemTzAC6.SubsystemIdx.ProjectType = "trustzone"
-	subsystemTzAC6.SubsystemIdx.ForProjectPart = "secure"
-	var subsystemTzGCC cbuild.SubsystemType
-	subsystemTzGCC.Compiler = "GCC"
-	subsystemTzGCC.SubsystemIdx.ProjectType = "trustzone"
-	subsystemTzGCC.SubsystemIdx.ForProjectPart = "non-secure"
-	var subsystemTzCLANG cbuild.SubsystemType
-	subsystemTzCLANG.Compiler = "CLANG"
-	subsystemTzCLANG.SubsystemIdx.ProjectType = "trustzone"
-	subsystemTzCLANG.SubsystemIdx.ForProjectPart = "secure"
-	var subsystemTzIAR cbuild.SubsystemType
-	subsystemTzIAR.Compiler = "IAR"
-	subsystemTzIAR.SubsystemIdx.ProjectType = "trustzone"
-	subsystemTzIAR.SubsystemIdx.ForProjectPart = "non-secure"
+	var infoTzAC6 BridgeParamType
+	infoTzAC6.Compiler = "AC6"
+	infoTzAC6.ProjectType = "trustzone"
+	infoTzAC6.ForProjectPart = "secure"
+	var infoTzGCC BridgeParamType
+	infoTzGCC.Compiler = "GCC"
+	infoTzGCC.ProjectType = "trustzone"
+	infoTzGCC.ForProjectPart = "non-secure"
+	var infoTzCLANG BridgeParamType
+	infoTzCLANG.Compiler = "CLANG"
+	infoTzCLANG.ProjectType = "trustzone"
+	infoTzCLANG.ForProjectPart = "secure"
+	var infoTzIAR BridgeParamType
+	infoTzIAR.Compiler = "IAR"
+	infoTzIAR.ProjectType = "trustzone"
+	infoTzIAR.ForProjectPart = "non-secure"
 
 	// invalid
 	outPathInv := "../../testdata/testExamples/STM32H7_DC/STM32CubeMX/STM32H745BGTx/invalid_folder"
-	var subsystemInv cbuild.SubsystemType
-	subsystemInv.Compiler = "AC6"
-	subsystemInv.SubsystemIdx.ProjectType = "single-core"
-	subsystemInv.SubsystemIdx.ForProjectPart = ""
+	var infoInv BridgeParamType
+	infoInv.Compiler = "AC6"
+	infoInv.ProjectType = "single-core"
+	infoInv.ForProjectPart = ""
 
 	type args struct {
-		outPath   string
-		subsystem cbuild.SubsystemType
+		outPath string
+		info    BridgeParamType
 	}
 	tests := []struct {
 		name    string
@@ -203,28 +201,28 @@ func Test_GetStartupFile(t *testing.T) {
 		want    string
 		wantErr bool
 	}{
-		{"test_sc_ac6", args{outPathSC, subsystemScAC6}, filepath.Clean(outPathSC + "/STM32CubeMX/MDK-ARM/startup_stm32h743xx.s"), false},
-		{"test_sc_gcc", args{outPathSC, subsystemScGCC}, filepath.Clean(outPathSC + "/STM32CubeMX/STM32CubeIDE/Application/Startup/startup_stm32h743agix.s"), false},
-		{"test_sc_clang", args{outPathSC, subsystemScCLANG}, filepath.Clean(outPathSC + "/STM32CubeMX/STM32CubeIDE/Application/Startup/startup_stm32h743agix.s"), false},
-		{"test_sc_iar", args{outPathSC, subsystemScIAR}, filepath.Clean(outPathSC + "/STM32CubeMX/EWARM/startup_stm32h743xx.s"), false},
+		{"test_sc_ac6", args{outPathSC, infoScAC6}, filepath.Clean(outPathSC + "/STM32CubeMX/MDK-ARM/startup_stm32h743xx.s"), false},
+		{"test_sc_gcc", args{outPathSC, infoScGCC}, filepath.Clean(outPathSC + "/STM32CubeMX/STM32CubeIDE/Application/Startup/startup_stm32h743agix.s"), false},
+		{"test_sc_clang", args{outPathSC, infoScCLANG}, filepath.Clean(outPathSC + "/STM32CubeMX/STM32CubeIDE/Application/Startup/startup_stm32h743agix.s"), false},
+		{"test_sc_iar", args{outPathSC, infoScIAR}, filepath.Clean(outPathSC + "/STM32CubeMX/EWARM/startup_stm32h743xx.s"), false},
 
-		{"test_dc_ac6", args{outPathDC, subsystemDcAC6}, filepath.Clean(outPathDC + "/STM32CubeMX/MDK-ARM/startup_stm32h745xx_CM4.s"), false},
-		{"test_dc_gcc", args{outPathDC, subsystemDcGCC}, filepath.Clean(outPathDC + "/STM32CubeMX/STM32CubeIDE/CM7/Application/Startup/startup_stm32h745bgtx.s"), false},
-		{"test_dc_clang", args{outPathDC, subsystemDcCLANG}, filepath.Clean(outPathDC + "/STM32CubeMX/STM32CubeIDE/CM4/Application/Startup/startup_stm32h745bgtx.s"), false},
-		{"test_dc_iar", args{outPathDC, subsystemDcIAR}, filepath.Clean(outPathDC + "/STM32CubeMX/EWARM/startup_stm32h745xx_CM7.s"), false},
+		{"test_dc_ac6", args{outPathDC, infoDcAC6}, filepath.Clean(outPathDC + "/STM32CubeMX/MDK-ARM/startup_stm32h745xx_CM4.s"), false},
+		{"test_dc_gcc", args{outPathDC, infoDcGCC}, filepath.Clean(outPathDC + "/STM32CubeMX/STM32CubeIDE/CM7/Application/Startup/startup_stm32h745bgtx.s"), false},
+		{"test_dc_clang", args{outPathDC, infoDcCLANG}, filepath.Clean(outPathDC + "/STM32CubeMX/STM32CubeIDE/CM4/Application/Startup/startup_stm32h745bgtx.s"), false},
+		{"test_dc_iar", args{outPathDC, infoDcIAR}, filepath.Clean(outPathDC + "/STM32CubeMX/EWARM/startup_stm32h745xx_CM7.s"), false},
 
-		{"test_tz_ac6", args{outPathTZ, subsystemTzAC6}, filepath.Clean(outPathTZ + "/STM32CubeMX/MDK-ARM/startup_stm32u585xx.s"), false},
-		{"test_tz_gcc", args{outPathTZ, subsystemTzGCC}, filepath.Clean(outPathTZ + "/STM32CubeMX/STM32CubeIDE/NonSecure/Application/Startup/startup_stm32u585aiixq.s"), false},
-		{"test_tz_clang", args{outPathTZ, subsystemTzCLANG}, filepath.Clean(outPathTZ + "/STM32CubeMX/STM32CubeIDE/Secure/Application/Startup/startup_stm32u585aiixq.s"), false},
-		{"test_tz_iar", args{outPathTZ, subsystemTzIAR}, filepath.Clean(outPathTZ + "/STM32CubeMX/EWARM/startup_stm32u585xx.s"), false},
+		{"test_tz_ac6", args{outPathTZ, infoTzAC6}, filepath.Clean(outPathTZ + "/STM32CubeMX/MDK-ARM/startup_stm32u585xx.s"), false},
+		{"test_tz_gcc", args{outPathTZ, infoTzGCC}, filepath.Clean(outPathTZ + "/STM32CubeMX/STM32CubeIDE/NonSecure/Application/Startup/startup_stm32u585aiixq.s"), false},
+		{"test_tz_clang", args{outPathTZ, infoTzCLANG}, filepath.Clean(outPathTZ + "/STM32CubeMX/STM32CubeIDE/Secure/Application/Startup/startup_stm32u585aiixq.s"), false},
+		{"test_tz_iar", args{outPathTZ, infoTzIAR}, filepath.Clean(outPathTZ + "/STM32CubeMX/EWARM/startup_stm32u585xx.s"), false},
 
-		{"fail", args{outPathInv, subsystemInv}, "", true}}
+		{"fail", args{outPathInv, infoInv}, "", true}}
 
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := GetStartupFile(tt.args.outPath, &tt.args.subsystem)
+			got, err := GetStartupFile(tt.args.outPath, tt.args.info)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GetStartupFile() %s error = %v, wantErr %v", tt.name, err, tt.wantErr)
 				return
@@ -241,71 +239,71 @@ func Test_GetSystemFile(t *testing.T) {
 
 	// Single core
 	outPathSC := "../../testdata/testExamples/STM32H7_SC/STM32CubeMX/device"
-	var subsystemScAC6 cbuild.SubsystemType
-	subsystemScAC6.Compiler = "AC6"
-	subsystemScAC6.SubsystemIdx.ProjectType = "single-core"
-	subsystemScAC6.SubsystemIdx.ForProjectPart = ""
-	var subsystemScGCC cbuild.SubsystemType
-	subsystemScGCC.Compiler = "GCC"
-	subsystemScGCC.SubsystemIdx.ProjectType = "single-core"
-	subsystemScGCC.SubsystemIdx.ForProjectPart = ""
-	var subsystemScCLANG cbuild.SubsystemType
-	subsystemScCLANG.Compiler = "CLANG"
-	subsystemScCLANG.SubsystemIdx.ProjectType = "single-core"
-	subsystemScCLANG.SubsystemIdx.ForProjectPart = ""
-	var subsystemScIAR cbuild.SubsystemType
-	subsystemScIAR.Compiler = "IAR"
-	subsystemScIAR.SubsystemIdx.ProjectType = "single-core"
-	subsystemScIAR.SubsystemIdx.ForProjectPart = ""
+	var infoScAC6 BridgeParamType
+	infoScAC6.Compiler = "AC6"
+	infoScAC6.ProjectType = "single-core"
+	infoScAC6.ForProjectPart = ""
+	var infoScGCC BridgeParamType
+	infoScGCC.Compiler = "GCC"
+	infoScGCC.ProjectType = "single-core"
+	infoScGCC.ForProjectPart = ""
+	var infoScCLANG BridgeParamType
+	infoScCLANG.Compiler = "CLANG"
+	infoScCLANG.ProjectType = "single-core"
+	infoScCLANG.ForProjectPart = ""
+	var infoScIAR BridgeParamType
+	infoScIAR.Compiler = "IAR"
+	infoScIAR.ProjectType = "single-core"
+	infoScIAR.ForProjectPart = ""
 
 	// Multi core
 	outPathDC := "../../testdata/testExamples/STM32H7_DC/STM32CubeMX/STM32H745BGTx"
-	var subsystemDcAC6 cbuild.SubsystemType
-	subsystemDcAC6.Compiler = "AC6"
-	subsystemDcAC6.SubsystemIdx.ProjectType = "multi-core"
-	subsystemDcAC6.SubsystemIdx.ForProjectPart = "CM4"
-	var subsystemDcGCC cbuild.SubsystemType
-	subsystemDcGCC.Compiler = "GCC"
-	subsystemDcGCC.SubsystemIdx.ProjectType = "multi-core"
-	subsystemDcGCC.SubsystemIdx.ForProjectPart = "CM7"
-	var subsystemDcCLANG cbuild.SubsystemType
-	subsystemDcCLANG.Compiler = "CLANG"
-	subsystemDcCLANG.SubsystemIdx.ProjectType = "multi-core"
-	subsystemDcCLANG.SubsystemIdx.ForProjectPart = "CM4"
-	var subsystemDcIAR cbuild.SubsystemType
-	subsystemDcIAR.Compiler = "IAR"
-	subsystemDcIAR.SubsystemIdx.ProjectType = "multi-core"
-	subsystemDcIAR.SubsystemIdx.ForProjectPart = "CM7"
+	var infoDcAC6 BridgeParamType
+	infoDcAC6.Compiler = "AC6"
+	infoDcAC6.ProjectType = "multi-core"
+	infoDcAC6.ForProjectPart = "CM4"
+	var infoDcGCC BridgeParamType
+	infoDcGCC.Compiler = "GCC"
+	infoDcGCC.ProjectType = "multi-core"
+	infoDcGCC.ForProjectPart = "CM7"
+	var infoDcCLANG BridgeParamType
+	infoDcCLANG.Compiler = "CLANG"
+	infoDcCLANG.ProjectType = "multi-core"
+	infoDcCLANG.ForProjectPart = "CM4"
+	var infoDcIAR BridgeParamType
+	infoDcIAR.Compiler = "IAR"
+	infoDcIAR.ProjectType = "multi-core"
+	infoDcIAR.ForProjectPart = "CM7"
 
 	// secure nonsecure
 	outPathTZ := "../../testdata/testExamples/STM32U5_TZ/STM32CubeMX/Board"
-	var subsystemTzAC6 cbuild.SubsystemType
-	subsystemTzAC6.Compiler = "AC6"
-	subsystemTzAC6.SubsystemIdx.ProjectType = "trustzone"
-	subsystemTzAC6.SubsystemIdx.ForProjectPart = "secure"
-	var subsystemTzGCC cbuild.SubsystemType
-	subsystemTzGCC.Compiler = "GCC"
-	subsystemTzGCC.SubsystemIdx.ProjectType = "trustzone"
-	subsystemTzGCC.SubsystemIdx.ForProjectPart = "non-secure"
-	var subsystemTzCLANG cbuild.SubsystemType
-	subsystemTzCLANG.Compiler = "CLANG"
-	subsystemTzCLANG.SubsystemIdx.ProjectType = "trustzone"
-	subsystemTzCLANG.SubsystemIdx.ForProjectPart = "secure"
-	var subsystemTzIAR cbuild.SubsystemType
-	subsystemTzIAR.Compiler = "IAR"
-	subsystemTzIAR.SubsystemIdx.ProjectType = "trustzone"
-	subsystemTzIAR.SubsystemIdx.ForProjectPart = "non-secure"
+	var infoTzAC6 BridgeParamType
+	infoTzAC6.Compiler = "AC6"
+	infoTzAC6.ProjectType = "trustzone"
+	infoTzAC6.ForProjectPart = "secure"
+	var infoTzGCC BridgeParamType
+	infoTzGCC.Compiler = "GCC"
+	infoTzGCC.ProjectType = "trustzone"
+	infoTzGCC.ForProjectPart = "non-secure"
+	var infoTzCLANG BridgeParamType
+	infoTzCLANG.Compiler = "CLANG"
+	infoTzCLANG.ProjectType = "trustzone"
+	infoTzCLANG.ForProjectPart = "secure"
+	var infoTzIAR BridgeParamType
+	infoTzIAR.Compiler = "IAR"
+	infoTzIAR.ProjectType = "trustzone"
+	infoTzIAR.ForProjectPart = "non-secure"
 
 	// invalid
 	outPathInv := "../../testdata/testExamples/STM32H7_DC/STM32CubeMX/STM32H745BGTx/invalid_folder"
-	var subsystemInv cbuild.SubsystemType
-	subsystemInv.Compiler = "AC6"
-	subsystemInv.SubsystemIdx.ProjectType = "single-core"
-	subsystemInv.SubsystemIdx.ForProjectPart = ""
+	var infoInv BridgeParamType
+	infoInv.Compiler = "AC6"
+	infoInv.ProjectType = "single-core"
+	infoInv.ForProjectPart = ""
 
 	type args struct {
-		outPath   string
-		subsystem cbuild.SubsystemType
+		outPath string
+		info    BridgeParamType
 	}
 	tests := []struct {
 		name    string
@@ -313,28 +311,28 @@ func Test_GetSystemFile(t *testing.T) {
 		want    string
 		wantErr bool
 	}{
-		{"test_sc_ac6", args{outPathSC, subsystemScAC6}, filepath.Clean(outPathSC + "/STM32CubeMX/Src/system_stm32h7xx.c"), false},
-		{"test_sc_gcc", args{outPathSC, subsystemScGCC}, filepath.Clean(outPathSC + "/STM32CubeMX/Src/system_stm32h7xx.c"), false},
-		{"test_sc_clang", args{outPathSC, subsystemScCLANG}, filepath.Clean(outPathSC + "/STM32CubeMX/Src/system_stm32h7xx.c"), false},
-		{"test_sc_iar", args{outPathSC, subsystemScIAR}, filepath.Clean(outPathSC + "/STM32CubeMX/Src/system_stm32h7xx.c"), false},
+		{"test_sc_ac6", args{outPathSC, infoScAC6}, filepath.Clean(outPathSC + "/STM32CubeMX/Src/system_stm32h7xx.c"), false},
+		{"test_sc_gcc", args{outPathSC, infoScGCC}, filepath.Clean(outPathSC + "/STM32CubeMX/Src/system_stm32h7xx.c"), false},
+		{"test_sc_clang", args{outPathSC, infoScCLANG}, filepath.Clean(outPathSC + "/STM32CubeMX/Src/system_stm32h7xx.c"), false},
+		{"test_sc_iar", args{outPathSC, infoScIAR}, filepath.Clean(outPathSC + "/STM32CubeMX/Src/system_stm32h7xx.c"), false},
 
-		{"test_dc_ac6", args{outPathDC, subsystemDcAC6}, filepath.Clean(outPathDC + "/STM32CubeMX/Common/Src/system_stm32h7xx_dualcore_boot_cm4_cm7.c"), false},
-		{"test_dc_gcc", args{outPathDC, subsystemDcGCC}, filepath.Clean(outPathDC + "/STM32CubeMX/Common/Src/system_stm32h7xx_dualcore_boot_cm4_cm7.c"), false},
-		{"test_dc_clang", args{outPathDC, subsystemDcCLANG}, filepath.Clean(outPathDC + "/STM32CubeMX/Common/Src/system_stm32h7xx_dualcore_boot_cm4_cm7.c"), false},
-		{"test_dc_iar", args{outPathDC, subsystemDcIAR}, filepath.Clean(outPathDC + "/STM32CubeMX/Common/Src/system_stm32h7xx_dualcore_boot_cm4_cm7.c"), false},
+		{"test_dc_ac6", args{outPathDC, infoDcAC6}, filepath.Clean(outPathDC + "/STM32CubeMX/Common/Src/system_stm32h7xx_dualcore_boot_cm4_cm7.c"), false},
+		{"test_dc_gcc", args{outPathDC, infoDcGCC}, filepath.Clean(outPathDC + "/STM32CubeMX/Common/Src/system_stm32h7xx_dualcore_boot_cm4_cm7.c"), false},
+		{"test_dc_clang", args{outPathDC, infoDcCLANG}, filepath.Clean(outPathDC + "/STM32CubeMX/Common/Src/system_stm32h7xx_dualcore_boot_cm4_cm7.c"), false},
+		{"test_dc_iar", args{outPathDC, infoDcIAR}, filepath.Clean(outPathDC + "/STM32CubeMX/Common/Src/system_stm32h7xx_dualcore_boot_cm4_cm7.c"), false},
 
-		{"test_tz_ac6", args{outPathTZ, subsystemTzAC6}, filepath.Clean(outPathTZ + "/STM32CubeMX/Secure/Src/system_stm32u5xx_s.c"), false},
-		{"test_tz_gcc", args{outPathTZ, subsystemTzGCC}, filepath.Clean(outPathTZ + "/STM32CubeMX/NonSecure/Src/system_stm32u5xx_ns.c"), false},
-		{"test_tz_clang", args{outPathTZ, subsystemTzCLANG}, filepath.Clean(outPathTZ + "/STM32CubeMX/Secure/Src/system_stm32u5xx_s.c"), false},
-		{"test_tz_iar", args{outPathTZ, subsystemTzIAR}, filepath.Clean(outPathTZ + "/STM32CubeMX/NonSecure/Src/system_stm32u5xx_ns.c"), false},
+		{"test_tz_ac6", args{outPathTZ, infoTzAC6}, filepath.Clean(outPathTZ + "/STM32CubeMX/Secure/Src/system_stm32u5xx_s.c"), false},
+		{"test_tz_gcc", args{outPathTZ, infoTzGCC}, filepath.Clean(outPathTZ + "/STM32CubeMX/NonSecure/Src/system_stm32u5xx_ns.c"), false},
+		{"test_tz_clang", args{outPathTZ, infoTzCLANG}, filepath.Clean(outPathTZ + "/STM32CubeMX/Secure/Src/system_stm32u5xx_s.c"), false},
+		{"test_tz_iar", args{outPathTZ, infoTzIAR}, filepath.Clean(outPathTZ + "/STM32CubeMX/NonSecure/Src/system_stm32u5xx_ns.c"), false},
 
-		{"fail", args{outPathInv, subsystemInv}, "", true}}
+		{"fail", args{outPathInv, infoInv}, "", true}}
 
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := GetSystemFile(tt.args.outPath, &tt.args.subsystem)
+			got, err := GetSystemFile(tt.args.outPath, tt.args.info)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GetSystemFile() %s error = %v, wantErr %v", tt.name, err, tt.wantErr)
 				return
@@ -351,71 +349,71 @@ func Test_GetLinkerScripts(t *testing.T) {
 
 	// Single core
 	outPathSC := "../../testdata/testExamples/STM32H7_SC/STM32CubeMX/device"
-	var subsystemScAC6 cbuild.SubsystemType
-	subsystemScAC6.Compiler = "AC6"
-	subsystemScAC6.SubsystemIdx.ProjectType = "single-core"
-	subsystemScAC6.SubsystemIdx.ForProjectPart = ""
-	var subsystemScGCC cbuild.SubsystemType
-	subsystemScGCC.Compiler = "GCC"
-	subsystemScGCC.SubsystemIdx.ProjectType = "single-core"
-	subsystemScGCC.SubsystemIdx.ForProjectPart = ""
-	var subsystemScCLANG cbuild.SubsystemType
-	subsystemScCLANG.Compiler = "CLANG"
-	subsystemScCLANG.SubsystemIdx.ProjectType = "single-core"
-	subsystemScCLANG.SubsystemIdx.ForProjectPart = ""
-	var subsystemScIAR cbuild.SubsystemType
-	subsystemScIAR.Compiler = "IAR"
-	subsystemScIAR.SubsystemIdx.ProjectType = "single-core"
-	subsystemScIAR.SubsystemIdx.ForProjectPart = ""
+	var infoScAC6 BridgeParamType
+	infoScAC6.Compiler = "AC6"
+	infoScAC6.ProjectType = "single-core"
+	infoScAC6.ForProjectPart = ""
+	var infoScGCC BridgeParamType
+	infoScGCC.Compiler = "GCC"
+	infoScGCC.ProjectType = "single-core"
+	infoScGCC.ForProjectPart = ""
+	var infoScCLANG BridgeParamType
+	infoScCLANG.Compiler = "CLANG"
+	infoScCLANG.ProjectType = "single-core"
+	infoScCLANG.ForProjectPart = ""
+	var infoScIAR BridgeParamType
+	infoScIAR.Compiler = "IAR"
+	infoScIAR.ProjectType = "single-core"
+	infoScIAR.ForProjectPart = ""
 
 	// Multi core
 	outPathDC := "../../testdata/testExamples/STM32H7_DC/STM32CubeMX/STM32H745BGTx"
-	var subsystemDcAC6 cbuild.SubsystemType
-	subsystemDcAC6.Compiler = "AC6"
-	subsystemDcAC6.SubsystemIdx.ProjectType = "multi-core"
-	subsystemDcAC6.SubsystemIdx.ForProjectPart = "CM4"
-	var subsystemDcGCC cbuild.SubsystemType
-	subsystemDcGCC.Compiler = "GCC"
-	subsystemDcGCC.SubsystemIdx.ProjectType = "multi-core"
-	subsystemDcGCC.SubsystemIdx.ForProjectPart = "CM7"
-	var subsystemDcCLANG cbuild.SubsystemType
-	subsystemDcCLANG.Compiler = "CLANG"
-	subsystemDcCLANG.SubsystemIdx.ProjectType = "multi-core"
-	subsystemDcCLANG.SubsystemIdx.ForProjectPart = "CM4"
-	var subsystemDcIAR cbuild.SubsystemType
-	subsystemDcIAR.Compiler = "IAR"
-	subsystemDcIAR.SubsystemIdx.ProjectType = "multi-core"
-	subsystemDcIAR.SubsystemIdx.ForProjectPart = "CM7"
+	var infoDcAC6 BridgeParamType
+	infoDcAC6.Compiler = "AC6"
+	infoDcAC6.ProjectType = "multi-core"
+	infoDcAC6.ForProjectPart = "CM4"
+	var infoDcGCC BridgeParamType
+	infoDcGCC.Compiler = "GCC"
+	infoDcGCC.ProjectType = "multi-core"
+	infoDcGCC.ForProjectPart = "CM7"
+	var infoDcCLANG BridgeParamType
+	infoDcCLANG.Compiler = "CLANG"
+	infoDcCLANG.ProjectType = "multi-core"
+	infoDcCLANG.ForProjectPart = "CM4"
+	var infoDcIAR BridgeParamType
+	infoDcIAR.Compiler = "IAR"
+	infoDcIAR.ProjectType = "multi-core"
+	infoDcIAR.ForProjectPart = "CM7"
 
 	// secure nonsecure
 	outPathTZ := "../../testdata/testExamples/STM32U5_TZ/STM32CubeMX/Board"
-	var subsystemTzAC6 cbuild.SubsystemType
-	subsystemTzAC6.Compiler = "AC6"
-	subsystemTzAC6.SubsystemIdx.ProjectType = "trustzone"
-	subsystemTzAC6.SubsystemIdx.ForProjectPart = "secure"
-	var subsystemTzGCC cbuild.SubsystemType
-	subsystemTzGCC.Compiler = "GCC"
-	subsystemTzGCC.SubsystemIdx.ProjectType = "trustzone"
-	subsystemTzGCC.SubsystemIdx.ForProjectPart = "non-secure"
-	var subsystemTzCLANG cbuild.SubsystemType
-	subsystemTzCLANG.Compiler = "CLANG"
-	subsystemTzCLANG.SubsystemIdx.ProjectType = "trustzone"
-	subsystemTzCLANG.SubsystemIdx.ForProjectPart = "secure"
-	var subsystemTzIAR cbuild.SubsystemType
-	subsystemTzIAR.Compiler = "IAR"
-	subsystemTzIAR.SubsystemIdx.ProjectType = "trustzone"
-	subsystemTzIAR.SubsystemIdx.ForProjectPart = "non-secure"
+	var infoTzAC6 BridgeParamType
+	infoTzAC6.Compiler = "AC6"
+	infoTzAC6.ProjectType = "trustzone"
+	infoTzAC6.ForProjectPart = "secure"
+	var infoTzGCC BridgeParamType
+	infoTzGCC.Compiler = "GCC"
+	infoTzGCC.ProjectType = "trustzone"
+	infoTzGCC.ForProjectPart = "non-secure"
+	var infoTzCLANG BridgeParamType
+	infoTzCLANG.Compiler = "CLANG"
+	infoTzCLANG.ProjectType = "trustzone"
+	infoTzCLANG.ForProjectPart = "secure"
+	var infoTzIAR BridgeParamType
+	infoTzIAR.Compiler = "IAR"
+	infoTzIAR.ProjectType = "trustzone"
+	infoTzIAR.ForProjectPart = "non-secure"
 
 	// invalid
 	outPathInv := "../../testdata/testExamples/STM32H7_DC/STM32CubeMX/STM32H745BGTx/invalid_folder"
-	var subsystemInv cbuild.SubsystemType
-	subsystemInv.Compiler = "AC6"
-	subsystemInv.SubsystemIdx.ProjectType = "single-core"
-	subsystemInv.SubsystemIdx.ForProjectPart = ""
+	var infoInv BridgeParamType
+	infoInv.Compiler = "AC6"
+	infoInv.ProjectType = "single-core"
+	infoInv.ForProjectPart = ""
 
 	type args struct {
-		outPath   string
-		subsystem cbuild.SubsystemType
+		outPath string
+		info    BridgeParamType
 	}
 	tests := []struct {
 		name    string
@@ -423,9 +421,9 @@ func Test_GetLinkerScripts(t *testing.T) {
 		want    []string
 		wantErr bool
 	}{
-		{"test_sc_ac6", args{outPathSC, subsystemScAC6}, nil, false},
+		{"test_sc_ac6", args{outPathSC, infoScAC6}, nil, false},
 		{
-			"test_sc_gcc", args{outPathSC, subsystemScGCC},
+			"test_sc_gcc", args{outPathSC, infoScGCC},
 			[]string{
 				filepath.Clean(outPathSC + "/STM32CubeMX/STM32CubeIDE/STM32H743AGIX_FLASH.ld"),
 				filepath.Clean(outPathSC + "/STM32CubeMX/STM32CubeIDE/STM32H743AGIX_RAM.ld"),
@@ -433,7 +431,7 @@ func Test_GetLinkerScripts(t *testing.T) {
 			false,
 		},
 		{
-			"test_sc_clang", args{outPathSC, subsystemScCLANG},
+			"test_sc_clang", args{outPathSC, infoScCLANG},
 			[]string{
 				filepath.Clean(outPathSC + "/STM32CubeMX/STM32CubeIDE/STM32H743AGIX_FLASH.ld"),
 				filepath.Clean(outPathSC + "/STM32CubeMX/STM32CubeIDE/STM32H743AGIX_RAM.ld"),
@@ -441,7 +439,7 @@ func Test_GetLinkerScripts(t *testing.T) {
 			false,
 		},
 		{
-			"test_sc_iar", args{outPathSC, subsystemScIAR},
+			"test_sc_iar", args{outPathSC, infoScIAR},
 			[]string{
 				filepath.Clean(outPathSC + "/STM32CubeMX/EWARM/stm32h743xg_flash.icf"),
 				filepath.Clean(outPathSC + "/STM32CubeMX/EWARM/stm32h743xg_flash_rw_sram1.icf"),
@@ -452,7 +450,7 @@ func Test_GetLinkerScripts(t *testing.T) {
 			false,
 		},
 		{
-			"test_dc_ac6", args{outPathDC, subsystemDcAC6},
+			"test_dc_ac6", args{outPathDC, infoDcAC6},
 			[]string{
 				filepath.Clean(outPathDC + "/STM32CubeMX/MDK-ARM/stm32h745xg_flash_CM4.sct"),
 				filepath.Clean(outPathDC + "/STM32CubeMX/MDK-ARM/stm32h745xx_sram2_CM4.sct"),
@@ -460,7 +458,7 @@ func Test_GetLinkerScripts(t *testing.T) {
 			false,
 		},
 		{
-			"test_dc_gcc", args{outPathDC, subsystemDcGCC},
+			"test_dc_gcc", args{outPathDC, infoDcGCC},
 			[]string{
 				filepath.Clean(outPathDC + "/STM32CubeMX/STM32CubeIDE/CM7/STM32H745BGTX_FLASH.ld"),
 				filepath.Clean(outPathDC + "/STM32CubeMX/STM32CubeIDE/CM7/STM32H745BGTX_RAM.ld"),
@@ -468,7 +466,7 @@ func Test_GetLinkerScripts(t *testing.T) {
 			false,
 		},
 		{
-			"test_dc_clang", args{outPathDC, subsystemDcCLANG},
+			"test_dc_clang", args{outPathDC, infoDcCLANG},
 			[]string{
 				filepath.Clean(outPathDC + "/STM32CubeMX/STM32CubeIDE/CM4/STM32H745BGTX_FLASH.ld"),
 				filepath.Clean(outPathDC + "/STM32CubeMX/STM32CubeIDE/CM4/STM32H745BGTX_RAM.ld"),
@@ -476,7 +474,7 @@ func Test_GetLinkerScripts(t *testing.T) {
 			false,
 		},
 		{
-			"test_dc_iar", args{outPathDC, subsystemDcIAR},
+			"test_dc_iar", args{outPathDC, infoDcIAR},
 			[]string{
 				filepath.Clean(outPathDC + "/STM32CubeMX/EWARM/stm32h745xg_flash_CM7.icf"),
 				filepath.Clean(outPathDC + "/STM32CubeMX/EWARM/stm32h745xx_dtcmram_CM7.icf"),
@@ -485,9 +483,9 @@ func Test_GetLinkerScripts(t *testing.T) {
 			},
 			false,
 		},
-		{"test_tz_ac6", args{outPathTZ, subsystemTzAC6}, nil, false},
+		{"test_tz_ac6", args{outPathTZ, infoTzAC6}, nil, false},
 		{
-			"test_tz_gcc", args{outPathTZ, subsystemTzGCC},
+			"test_tz_gcc", args{outPathTZ, infoTzGCC},
 			[]string{
 				filepath.Clean(outPathTZ + "/STM32CubeMX/STM32CubeIDE/NonSecure/STM32U585AIIXQ_FLASH.ld"),
 				filepath.Clean(outPathTZ + "/STM32CubeMX/STM32CubeIDE/NonSecure/STM32U585AIIXQ_RAM.ld"),
@@ -495,7 +493,7 @@ func Test_GetLinkerScripts(t *testing.T) {
 			false,
 		},
 		{
-			"test_tz_clang", args{outPathTZ, subsystemTzCLANG},
+			"test_tz_clang", args{outPathTZ, infoTzCLANG},
 			[]string{
 				filepath.Clean(outPathTZ + "/STM32CubeMX/STM32CubeIDE/Secure/STM32U585AIIXQ_FLASH.ld"),
 				filepath.Clean(outPathTZ + "/STM32CubeMX/STM32CubeIDE/Secure/STM32U585AIIXQ_RAM.ld"),
@@ -503,7 +501,7 @@ func Test_GetLinkerScripts(t *testing.T) {
 			false,
 		},
 		{
-			"test_tz_iar", args{outPathTZ, subsystemTzIAR},
+			"test_tz_iar", args{outPathTZ, infoTzIAR},
 			[]string{
 				filepath.Clean(outPathTZ + "/STM32CubeMX/EWARM/stm32u585xx_flash_ns.icf"),
 				filepath.Clean(outPathTZ + "/STM32CubeMX/EWARM/stm32u585xx_sram_ns.icf"),
@@ -511,13 +509,13 @@ func Test_GetLinkerScripts(t *testing.T) {
 			false,
 		},
 
-		{"fail", args{outPathInv, subsystemInv}, nil, true}}
+		{"fail", args{outPathInv, infoInv}, nil, true}}
 
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := GetLinkerScripts(tt.args.outPath, &tt.args.subsystem)
+			got, err := GetLinkerScripts(tt.args.outPath, tt.args.info)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GetLinkerScripts() %s error = %v, wantErr %v", tt.name, err, tt.wantErr)
 				return

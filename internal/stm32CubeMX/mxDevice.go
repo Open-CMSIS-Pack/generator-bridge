@@ -9,6 +9,7 @@ package stm32cubemx
 import (
 	"bufio"
 	"errors"
+	"io/fs"
 	"os"
 	"path"
 	"path/filepath"
@@ -17,8 +18,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/open-cmsis-pack/generator-bridge/internal/cbuild"
 )
 
 type PinDefinition struct {
@@ -31,7 +30,7 @@ type PinDefinition struct {
 	alternate string
 }
 
-func ReadContexts(iocFile string, params cbuild.ParamsType) error {
+func ReadContexts(iocFile string, params []BridgeParamType) error {
 	contextMap, err := createContextMap(iocFile)
 	if err != nil {
 		return err
@@ -42,75 +41,46 @@ func ReadContexts(iocFile string, params cbuild.ParamsType) error {
 		return err
 	}
 
-	deviceFamily, err := getDeviceFamily(contextMap)
-	if err != nil {
-		return err
-	}
-
 	workDir := path.Dir(iocFile)
 
 	mainFolder := contextMap["ProjectManager"]["MainLocation"]
 	if mainFolder == "" {
 		return errors.New("main location missing")
 	}
-	mspName := deviceFamily + "xx_hal_msp.c"
 
-	var cfgPath string
-	if len(contexts) == 0 {
-		cfgPath = path.Join("MX_Device", params.Subsystem[0].SubsystemIdx.Project)
-		err := writeMXdeviceH(contextMap, workDir, mainFolder, mspName, cfgPath, "", params)
-		if err != nil {
-			return err
-		}
-	} else {
-		for _, context := range contexts {
-			var coreName string
-			var contextFolder string
-			var projectPart string
-			re := regexp.MustCompile("[0-9]+")
-			coreNameNumbers := re.FindAllString(context, -1)
-			if len(coreNameNumbers) == 1 {
-				coreName = "Cortex-M" + coreNameNumbers[0]
-				contextFolder = "CM" + coreNameNumbers[0]
-				projectPart = contextFolder
-			}
+	for _, context := range contexts {
+		for _, parm := range params {
+			if parm.CubeContext == context {
+				srcFolderPath := path.Join(path.Join(workDir, parm.CubeContextFolder), mainFolder)
 
-			var trustzone string
-			contextLen := len(context)
-			if contextLen > 0 {
-				if strings.LastIndex(context, "S") == contextLen-1 {
-					if strings.LastIndex(context, "NS") == contextLen-2 {
-						trustzone = "NonSecure"
-						projectPart = "non-secure"
-					} else {
-						trustzone = "Secure"
-						projectPart = "secure"
+				var mspName string
+				err = filepath.Walk(srcFolderPath, func(path string, f fs.FileInfo, err error) error {
+					if f.Mode().IsRegular() && strings.HasSuffix(f.Name(), "_hal_msp.c") {
+						mspName = filepath.Base(path)
+						return nil
 					}
-					contextFolder = trustzone
+					return nil
+				})
+				if err != nil {
+					return err
 				}
-			}
-
-			if len(contextFolder) == 0 {
-				return errors.New("Cannot find context " + context)
-			}
-			for _, subsystem := range params.Subsystem {
-				if subsystem.CoreName == coreName {
-					if len(subsystem.TrustZone) == 0 {
-						cfgPath = path.Join("MX_Device", subsystem.SubsystemIdx.Project)
-						break
-					}
-					if subsystem.TrustZone == projectPart {
-						cfgPath = path.Join("MX_Device", subsystem.SubsystemIdx.Project)
-						break
-					}
+				if mspName == "" {
+					return errors.New("*_hal_msp.c not found")
 				}
-			}
-			err := writeMXdeviceH(contextMap, workDir, path.Join(contextFolder, mainFolder), mspName, cfgPath, context, params)
-			if err != nil {
-				return err
+
+				var cfgPath string
+				cfgPath = path.Dir(workDir)
+				cfgPath = path.Join(cfgPath, "MX_Device")
+				cfgPath = path.Join(cfgPath, parm.ProjectName)
+				err := writeMXdeviceH(contextMap, srcFolderPath, mspName, cfgPath, context)
+				if err != nil {
+					return err
+				}
+				break
 			}
 		}
 	}
+
 	return nil
 }
 
@@ -141,20 +111,25 @@ func createContextMap(iocFile string) (map[string]map[string]string, error) {
 	return contextMap, nil
 }
 
-func writeMXdeviceH(contextMap map[string]map[string]string, workDir string, mainFolder string, mspName string, cfgPath string, context string, params cbuild.ParamsType) error {
-	workDirAbs, err := filepath.Abs(workDir)
+func writeMXdeviceH(contextMap map[string]map[string]string, srcFolder string, mspName string, cfgPath string, context string) error {
+
+	srcFolderAbs, err := filepath.Abs(srcFolder)
 	if err != nil {
 		return err
 	}
 
-	main := path.Join(workDirAbs, mainFolder, "main.c")
+	main := path.Join(srcFolderAbs, "main.c")
+	main = filepath.Clean(main)
+	main = filepath.ToSlash(main)
 	fMain, err := os.Open(main)
 	if err != nil {
 		return err
 	}
 	defer fMain.Close()
 
-	msp := path.Join(workDirAbs, mainFolder, mspName)
+	msp := path.Join(srcFolderAbs, mspName)
+	msp = filepath.Clean(msp)
+	msp = filepath.ToSlash(msp)
 	fMsp, err := os.Open(msp)
 	if err != nil {
 		return err
@@ -162,7 +137,8 @@ func writeMXdeviceH(contextMap map[string]map[string]string, workDir string, mai
 	defer fMsp.Close()
 
 	fName := "MX_Device.h"
-	fPath := path.Join(path.Dir(workDir), cfgPath)
+	fPath := filepath.Clean(cfgPath)
+	fPath = filepath.ToSlash(fPath)
 	if _, err := os.Stat(fPath); err != nil {
 		err = os.MkdirAll(fPath, 0750)
 		if err != nil {
@@ -170,6 +146,8 @@ func writeMXdeviceH(contextMap map[string]map[string]string, workDir string, mai
 		}
 	}
 	fPath = path.Join(fPath, fName)
+	fPath = filepath.Clean(fPath)
+	fPath = filepath.ToSlash(fPath)
 	fMxDevice, err := os.Create(fPath)
 	if err != nil {
 		return err
@@ -267,17 +245,10 @@ func getContexts(contextMap map[string]map[string]string) (map[int]string, error
 			}
 		}
 	}
-	return contexts, nil
-}
-
-func getDeviceFamily(contextMap map[string]map[string]string) (string, error) {
-	family := contextMap["Mcu"]["Family"]
-	if family != "" {
-		if strings.HasPrefix(family, "STM32") {
-			return family, nil
-		}
+	if len(contexts) == 0 {
+		contexts[0] = ""
 	}
-	return "", errors.New("missing device family")
+	return contexts, nil
 }
 
 func getPeripherals(contextMap map[string]map[string]string, context string) ([]string, error) {
@@ -362,15 +333,6 @@ func getPins(contextMap map[string]map[string]string, fMsp *os.File, peripheral 
 	return pinsInfo, nil
 }
 
-func replaceSpecialChars(label string, ch string) string {
-	specialCharacter := [...]string{"!", "@", "#", "$", "%", "^", "&", "*", "(", "+", "=", "-", "_", "[", "]", "{", "}",
-		";", ":", ",", ".", "?", "/", "\\", "|", "~", "`", "\"", "'", "<", ">", " "}
-	for _, spec := range specialCharacter {
-		label = strings.ReplaceAll(label, spec, ch)
-	}
-	return label
-}
-
 func getDigitAtEnd(pin string) string {
 	re := regexp.MustCompile("[0-9]+$")
 	numbers := re.FindAllString(pin, -1)
@@ -378,6 +340,15 @@ func getDigitAtEnd(pin string) string {
 		return numbers[0]
 	}
 	return ""
+}
+
+func replaceSpecialChars(label string, ch string) string {
+	specialCharacter := [...]string{"!", "@", "#", "$", "%", "^", "&", "*", "(", "+", "=", "-", "_", "[", "]", "{", "}",
+		";", ":", ",", ".", "?", "/", "\\", "|", "~", "`", "\"", "'", "<", ">", " "}
+	for _, spec := range specialCharacter {
+		label = strings.ReplaceAll(label, spec, ch)
+	}
+	return label
 }
 
 // Get i2c info (filter, coefficients)
@@ -594,8 +565,13 @@ func mxDeviceWritePeripheralCfg(out *bufio.Writer, peripheral string, vmode stri
 		if _, err = out.WriteString("/* Filter Settings */\n"); err != nil {
 			return err
 		}
-		for item, value := range i2cInfo {
-			if err = writeDefine(out, peripheral+"_"+item, value); err != nil {
+		var i2cInfoItems []string
+		for item := range i2cInfo {
+			i2cInfoItems = append(i2cInfoItems, item)
+		}
+		sort.Strings(i2cInfoItems)
+		for _, item := range i2cInfoItems {
+			if err = writeDefine(out, peripheral+"_"+item, i2cInfo[item]); err != nil {
 				return err
 			}
 		}

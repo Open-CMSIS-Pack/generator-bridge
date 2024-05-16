@@ -21,28 +21,27 @@ import (
 func Process(inFile, inFile2, outPath string) error {
 	log.Debugf("Reading file: %v", inFile)
 	if outPath == "" {
-		outPath = filepath.Dir(inFile)
+		outPath = filepath.Dir(inFile2)
 	}
 
-	var params cbuild.ParamsType
+	var cbuildParams cbuild.ParamsType
+	var params []stm32cubemx.BridgeParamType
 
 	if strings.Contains(inFile, "cbuild-gen-idx.yml") {
-		err := cbuild.Read(inFile, outPath, &params)
+		err := cbuild.Read(inFile, "CubeMX", &cbuildParams)
 		if err != nil {
 			return err
 		}
-		_, err = stm32cubemx.WriteProjectFile(outPath, &params)
+
+		err = stm32cubemx.GetBridgeInfo(&cbuildParams, &params)
 		if err != nil {
 			return err
 		}
-	} else if strings.Contains(inFile, "cbuild-gen.yml") || strings.Contains(inFile, "cbuild.yml") {
-		params.OutPath = outPath
-		var subsystem cbuild.SubsystemType
-		err := cbuild.ReadCbuildgen(inFile, &subsystem)
+
+		_, err = stm32cubemx.WriteProjectFile(outPath, params[0])
 		if err != nil {
 			return err
 		}
-		params.Subsystem = append(params.Subsystem, subsystem)
 	}
 
 	var mxprojectFile string
@@ -54,25 +53,23 @@ func Process(inFile, inFile2, outPath string) error {
 	}
 
 	if mxprojectFile != "" {
-		mxprojectAll, _ := stm32cubemx.IniReader(mxprojectFile, params.Subsystem[0].Compiler, false)
+		mxprojectAll, _ := stm32cubemx.IniReader(mxprojectFile, params)
 
-		if params.Board == "" && params.Device == "" {
-			params.Board = "Test Board"
-			params.Device = "Test Device"
+		if params[0].Board == "" && params[0].Device == "" {
+			params[0].Board = "Test Board"
+			params[0].Device = "Test Device"
 		}
 
-		var parms cbuild.ParamsType
-
-		err := stm32cubemx.ReadCbuildYmlFile(inFile, outPath, &parms)
+		err := stm32cubemx.ReadCbuildYmlFile(inFile, "CubeMX", &cbuildParams)
 		if err != nil {
 			return err
 		}
 		workDir := path.Dir(inFile)
-		if parms.OutPath != "" {
-			if filepath.IsAbs(parms.OutPath) {
-				workDir = parms.OutPath
+		if params[0].Output != "" {
+			if filepath.IsAbs(params[0].Output) {
+				workDir = params[0].Output
 			} else {
-				workDir = path.Join(workDir, parms.OutPath)
+				workDir = path.Join(workDir, params[0].Output)
 			}
 		} else {
 			if filepath.IsAbs(outPath) {
@@ -88,7 +85,7 @@ func Process(inFile, inFile2, outPath string) error {
 			return err
 		}
 
-		err = stm32cubemx.ReadContexts(workDir+"/STM32CubeMX/STM32CubeMX.ioc", parms)
+		err = stm32cubemx.ReadContexts(workDir+"/STM32CubeMX/STM32CubeMX.ioc", params)
 		if err != nil {
 			return err
 		}
