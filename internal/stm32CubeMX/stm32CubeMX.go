@@ -509,7 +509,10 @@ func WriteCgenYmlSub(outPath string, mxproject MxprojectType, bridgeParam Bridge
 		cgen.GeneratorImport.AddPath = append(cgen.GeneratorImport.AddPath, headerPath)
 	}
 
-	cfgPath := path.Join("MX_Device", bridgeParam.ProjectName)
+	cfgPath := "MX_Device"
+	if bridgeParam.CubeContextFolder != "" {
+		cfgPath = path.Join(cfgPath, bridgeParam.CubeContextFolder)
+	}
 	cfgPath, _ = utils.ConvertFilename(outPath, cfgPath, "")
 	cgen.GeneratorImport.AddPath = append(cgen.GeneratorImport.AddPath, cfgPath)
 
