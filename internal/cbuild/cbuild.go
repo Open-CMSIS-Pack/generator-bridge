@@ -8,6 +8,7 @@ package cbuild
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/open-cmsis-pack/generator-bridge/internal/common"
 	"github.com/open-cmsis-pack/generator-bridge/internal/utils"
@@ -58,6 +59,10 @@ type CbuildGenIdxType struct {
 	} `yaml:"build-gen-idx"`
 }
 
+type DefineElement struct {
+	NameValue map[string]string `yaml:"define,omitempty"`
+}
+
 // Sub input file
 type CbuildGenType struct {
 	BuildGen struct {
@@ -86,8 +91,8 @@ type CbuildGenType struct {
 			CPP  []string `yaml:"CPP"`
 			Link []string `yaml:"Link"`
 		} `yaml:"misc"`
-		Define     []string `yaml:"define"`
-		AddPath    []string `yaml:"add-path"`
+		Define     []DefineElement `yaml:"define"`
+		AddPath    []string        `yaml:"add-path"`
 		OutputDirs struct {
 			Intdir string `yaml:"intdir"`
 			Outdir string `yaml:"outdir"`
@@ -158,6 +163,26 @@ type GeneratorImportType struct {
 	Define    []string         `yaml:"define,omitempty"`
 	AddPath   []string         `yaml:"add-path,omitempty"`
 	Groups    []CgenGroupsType `yaml:"groups,omitempty"`
+}
+
+func (d *DefineElement) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var val interface{}
+	err := unmarshal(&val)
+	if err != nil {
+		return err
+	}
+
+	d.NameValue = make(map[string]string)
+	if str, ok := val.(string); ok {
+		d.NameValue[str] = ""
+	} else if mapData, ok := val.(map[string]interface{}); ok {
+		for k, v := range mapData {
+			d.NameValue[k] = fmt.Sprintf("%v", v)
+		}
+	} else {
+		return fmt.Errorf("unexpected data type for DefineElement: %T", val)
+	}
+	return nil
 }
 
 func Read(name, generatorID string, params *ParamsType) error {
