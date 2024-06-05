@@ -71,7 +71,9 @@ func ReadContexts(iocFile string, params []BridgeParamType) error {
 				var cfgPath string
 				cfgPath = path.Dir(workDir)
 				cfgPath = path.Join(cfgPath, "MX_Device")
-				cfgPath = path.Join(cfgPath, parm.ProjectName)
+				if parm.CubeContextFolder != "" {
+					cfgPath = path.Join(cfgPath, parm.CubeContextFolder)
+				}
 				err := writeMXdeviceH(contextMap, srcFolderPath, mspName, cfgPath, context)
 				if err != nil {
 					return err
