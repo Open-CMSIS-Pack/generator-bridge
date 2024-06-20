@@ -16,6 +16,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/fsnotify/fsnotify"
@@ -46,7 +47,22 @@ var running bool // true if running in wait loop waiting for .ioc file
 
 func procWait(proc *os.Process) {
 	if proc != nil {
-		_, _ = proc.Wait()
+		if runtime.GOOS == "windows" {
+			_, err := proc.Wait()
+			if err != nil {
+				log.Infof("Cannot wait for CubeMX to end, err %v", err)
+				return
+			}
+		} else {
+			for {
+				err := proc.Signal(syscall.Signal(0))
+				if err != nil {
+					log.Infoln("Cannot Signal to CubeMX")
+					break
+				}
+				time.Sleep(time.Millisecond * 200)
+			}
+		}
 		log.Debugln("CubeMX ended")
 		if watcher != nil {
 			watcher.Close()
@@ -135,6 +151,10 @@ func Process(cbuildYmlPath, outPath, cubeMxPath string, runCubeMx bool, pid int)
 		for {
 			proc, err := os.FindProcess(pid) // this only works for windows as it is now
 			if err == nil {                  // cubeMX already runs
+				err = proc.Signal(syscall.Signal(0))
+				if err != nil {
+					break // out of loop if CubeMX does not run anymore
+				}
 				if first { // only start wait thread once
 					go procWait(proc)
 					first = false
@@ -275,7 +295,9 @@ func Process(cbuildYmlPath, outPath, cubeMxPath string, runCubeMx bool, pid int)
 		log.Debugf("pid of CubeMX in main: %d", pid)
 		// here cubeMX runs
 		ownPath := path.Base(os.Args[0]) //nolint
-		cmd := exec.Command(ownPath)     //nolint
+		ownPath, _ = filepath.Abs(ownPath)
+		cmd := exec.Command(ownPath) //nolint
+		log.Debugf("daemonize as %s", ownPath)
 		cmd.Args = os.Args
 		cmd.Args = append(cmd.Args, "-p", fmt.Sprint(pid)) // pid of cubeMX
 		if err := cmd.Start(); err != nil {                // start myself as a daemon
@@ -299,8 +321,16 @@ func Launch(iocFile, projectFile string) (int, error) {
 		return -1, errors.New("environment variable for CubeMX not set: " + cubeEnvVar)
 	}
 
-	pathJava := path.Join(cubeEnv, "jre", "bin", "java.exe")
-	pathCubeMx := path.Join(cubeEnv, "STM32CubeMX.exe")
+	var pathJava string
+	var pathCubeMx string
+	if runtime.GOOS == "windows" {
+		pathJava = path.Join(cubeEnv, "jre", "bin", "java.exe")
+		pathCubeMx = path.Join(cubeEnv, "STM32CubeMX.exe")
+	} else {
+		pathJava = path.Join(cubeEnv, "jre", "bin", "java")
+		pathCubeMx = path.Join(cubeEnv, "STM32CubeMX")
+
+	}
 
 	var cmd *exec.Cmd
 	if iocFile != "" {
