@@ -294,13 +294,15 @@ func Process(cbuildYmlPath, outPath, cubeMxPath string, runCubeMx bool, pid int)
 		}
 		log.Debugf("pid of CubeMX in main: %d", pid)
 		// here cubeMX runs
-		log.Debugf("Args[0] %s", os.Args[0])
-		ownPath := path.Base(os.Args[0]) //nolint
-		log.Debugf("Args[0] Base %s", ownPath)
-		ownPath, _ = filepath.Abs(ownPath)
-		log.Debugf("ownPath %s", ownPath)
-		wd, _ := os.Getwd()
-		log.Debugf("Getwd %s", wd)
+		exe, err := os.Executable()
+		if err != nil {
+			return err
+		}
+		log.Debugf("exe %s", exe)
+		ownPath, err := filepath.EvalSymlinks((exe))
+		if err != nil {
+			return err
+		}
 		cmd := exec.Command(ownPath) //nolint
 		log.Debugf("daemonize as %s", ownPath)
 		cmd.Args = os.Args
