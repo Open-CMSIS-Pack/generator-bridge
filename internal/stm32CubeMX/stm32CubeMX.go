@@ -294,13 +294,16 @@ func Process(cbuildYmlPath, outPath, cubeMxPath string, runCubeMx bool, pid int)
 		}
 		log.Debugf("pid of CubeMX in main: %d", pid)
 		// here cubeMX runs
+		log.Debugf("argv[0] %s", os.Args[0])
 		ownPath := path.Base(os.Args[0]) //nolint
+		log.Debugf("argv[0] Base %s", ownPath)
 		ownPath, _ = filepath.Abs(ownPath)
 		cmd := exec.Command(ownPath) //nolint
 		log.Debugf("daemonize as %s", ownPath)
 		cmd.Args = os.Args
 		cmd.Args = append(cmd.Args, "-p", fmt.Sprint(pid)) // pid of cubeMX
-		if err := cmd.Start(); err != nil {                // start myself as a daemon
+		log.Debugf("cmd.Start as %v", cmd)
+		if err := cmd.Start(); err != nil { // start myself as a daemon
 			log.Fatal(err)
 			return err
 		}
@@ -359,6 +362,7 @@ func Launch(iocFile, projectFile string) (int, error) {
 			cmd = exec.Command(pathJava, "-jar", pathCubeMx)
 		}
 	}
+	log.Debugf("Start CubeMX as %v", cmd)
 	if err := cmd.Start(); err != nil {
 		log.Fatal(err)
 		return -1, err
