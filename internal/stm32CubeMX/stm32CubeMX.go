@@ -322,23 +322,42 @@ func Launch(iocFile, projectFile string) (int, error) {
 	}
 
 	var pathJava string
+	var arg0 string
+	var arg1 string
 	var pathCubeMx string
-	if runtime.GOOS == "windows" {
+	var cmd *exec.Cmd
+
+	switch runtime.GOOS {
+	case "windows":
 		pathJava = path.Join(cubeEnv, "jre", "bin", "java.exe")
 		pathCubeMx = path.Join(cubeEnv, "STM32CubeMX.exe")
-	} else {
+	case "darwin":
+		pathJava = path.Join(cubeEnv, "jre", "Contents", "Home", "bin", "java")
+		arg0 = path.Join(cubeEnv, "stm32cubemx.icns")
+		arg0 = "-Xdock:icon=" + arg0
+		arg1 = "-Xdock:name=STM32CubeMX"
+		pathCubeMx = path.Join(cubeEnv, "STM32CubeMX")
+	default:
 		pathJava = path.Join(cubeEnv, "jre", "bin", "java")
 		pathCubeMx = path.Join(cubeEnv, "STM32CubeMX")
-
 	}
 
-	var cmd *exec.Cmd
-	if iocFile != "" {
-		cmd = exec.Command(pathJava, "-jar", pathCubeMx, iocFile)
-	} else if projectFile != "" {
-		cmd = exec.Command(pathJava, "-jar", pathCubeMx, "-s", projectFile)
+	if runtime.GOOS == "darwin" {
+		if iocFile != "" {
+			cmd = exec.Command(pathJava, arg0, arg1, "-jar", pathCubeMx, iocFile)
+		} else if projectFile != "" {
+			cmd = exec.Command(pathJava, arg0, arg1, "-jar", pathCubeMx, "-s", projectFile)
+		} else {
+			cmd = exec.Command(pathJava, arg0, arg1, "-jar", pathCubeMx)
+		}
 	} else {
-		cmd = exec.Command(pathJava, "-jar", pathCubeMx)
+		if iocFile != "" {
+			cmd = exec.Command(pathJava, "-jar", pathCubeMx, iocFile)
+		} else if projectFile != "" {
+			cmd = exec.Command(pathJava, "-jar", pathCubeMx, "-s", projectFile)
+		} else {
+			cmd = exec.Command(pathJava, "-jar", pathCubeMx)
+		}
 	}
 	if err := cmd.Start(); err != nil {
 		log.Fatal(err)
