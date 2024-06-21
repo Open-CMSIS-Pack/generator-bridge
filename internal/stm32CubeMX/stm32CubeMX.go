@@ -318,6 +318,8 @@ func Launch(iocFile, projectFile string) (int, error) {
 		log.Infoln("Launching STM32CubeMX with ", iocFile)
 	}
 
+	log.Debugln("Operating system ", runtime.GOOS)
+
 	const cubeEnvVar = "STM32CubeMX_PATH"
 	cubeEnv := os.Getenv(cubeEnvVar)
 	if cubeEnv == "" {
