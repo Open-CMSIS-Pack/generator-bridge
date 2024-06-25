@@ -7,6 +7,7 @@
 package stm32cubemx
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -165,111 +166,94 @@ func Process(cbuildYmlPath, outPath, cubeMxPath string, runCubeMx bool, pid int)
 					break // out of loop if CubeMX does not run anymore
 				}
 				_, err := os.Stat(iocprojectPath)
-				if err != nil {
+				if err != nil { // .ioc file not (yet) there
 					iocProjectWait = true
 					time.Sleep(time.Second)
-					continue
+					continue // stay in loop waiting for CubeMX end or change of .mxproject
 				}
 				if iocProjectWait { // .ioc file was created new, there will not be multiple changes
 					log.Debugln("new project file:", iocprojectPath)
 					i := 1
-					for ; i < 100; i++ {
+					for ; i < 100; i++ { // wait for .mxproject coming
 						_, err := os.Stat(mxprojectPath)
 						if err == nil {
-							break
+							break // .mxproject appeared
 						}
 						time.Sleep(time.Second)
 					}
 					if i < 100 {
 						mxproject, err := IniReader(mxprojectPath, bridgeParams)
 						if err != nil {
-							return err
+							continue // stay in loop waiting for CubeMX end or change of .mxproject
 						}
 						err = ReadContexts(iocprojectPath, bridgeParams)
 						if err != nil {
-							return err
+							continue // stay in loop waiting for CubeMX end or change of .mxproject
 						}
 						err = WriteCgenYml(workDir, mxproject, bridgeParams)
 						if err != nil {
-							return err
+							continue // stay in loop waiting for CubeMX end or change of .mxproject
 						}
 					}
-				}
-				watcher, err = fsnotify.NewWatcher()
-				if err != nil {
-					log.Fatal(err)
-				}
-				done := make(chan bool)
-				// use goroutine to start the watcher
-				go func() {
-					var infomx0 fs.FileInfo
-					changes := 0
-					for {
-						if changes == 0 {
-							log.Debugln("Waiting for CubeMX \"Generate Code\"")
+				} else {
+					st, err := os.Stat(mxprojectPath)
+					if err != nil {
+						continue // stay in loop waiting for CubeMX end or change of .mxproject
+					}
+					fIoc, err := os.Open(mxprojectPath)
+					if err != nil {
+						continue // stay in loop waiting for CubeMX end or change of .mxproject
+					}
+					defer fIoc.Close()
+					mxprojectBuf := make([]byte, st.Size())
+					_, err = fIoc.Read(mxprojectBuf)
+					if err != nil {
+						log.Fatal(err)
+					}
+					log.Debugf("mxproject len %d", st.Size())
+					for { // wait for .mxproject change
+						time.Sleep(time.Second)
+						st1, err := os.Stat(mxprojectPath)
+						if err != nil {
+							break // continue loop waiting for CubeMX end or change of .mxproject
 						}
-						select {
-						case event := <-watcher.Events:
-							if event.Op&fsnotify.Write == fsnotify.Write {
-								log.Debugln("Modified file:", event.Name, " changes ", changes)
-								if changes == 1 {
-									infomx0, _ = os.Stat(mxprojectPath)
+						if st.ModTime() != st1.ModTime() { // time changed
+							if st.Size() == st1.Size() { // no change in length, compare content
+								fIoc, err := os.Open(mxprojectPath)
+								if err != nil {
+									break // continue loop waiting for CubeMX end or change of .mxproject
 								}
-								changes++
-								if changes >= 2 {
-									changes = 0
-									i := 1
-									for ; i < 100; i++ {
-										time.Sleep(time.Second)
-										infomx, err := os.Stat(mxprojectPath)
-										if err == nil {
-											timeDiff := infomx.ModTime().Sub(infomx0.ModTime())
-											seconds := timeDiff.Abs().Seconds()
-											if seconds > 1 {
-												break
-											}
-										}
-									}
-									if i < 100 {
-										mxproject, err := IniReader(mxprojectPath, bridgeParams)
-										if err != nil {
-											return
-										}
-										err = ReadContexts(iocprojectPath, bridgeParams)
-										if err != nil {
-											return
-										}
-										log.Debugln("Writing Cgen.yml file")
-										err = WriteCgenYml(workDir, mxproject, bridgeParams)
-										if err != nil {
-											return
-										}
-									}
+								defer fIoc.Close()
+								mxprojectBuf1 := make([]byte, st1.Size())
+								_, err = fIoc.Read(mxprojectBuf1)
+								if err != nil {
+									log.Fatal(err)
 								}
-								if LogFile != nil {
-									_ = LogFile.Sync()
+								if bytes.Equal(mxprojectBuf, mxprojectBuf1) {
+									continue // wait for .mxproject change
 								}
 							}
-						case err := <-watcher.Errors:
+							mxproject, err := IniReader(mxprojectPath, bridgeParams)
 							if err != nil {
-								log.Errorln(err)
+								break // continue loop waiting for CubeMX end or change of .mxproject
 							}
-							os.Exit(0)
+							err = ReadContexts(iocprojectPath, bridgeParams)
+							if err != nil {
+								break // continue loop waiting for CubeMX end or change of .mxproject
+							}
+							log.Debugln("Writing Cgen.yml file")
+							err = WriteCgenYml(workDir, mxproject, bridgeParams)
+							if err != nil {
+								break // continue loop waiting for CubeMX end or change of .mxproject
+							}
 						}
 					}
-				}()
-				log.Debugln("watching for: ", iocprojectPath)
-				if err = watcher.Add(iocprojectPath); err != nil {
-					log.Errorln(err)
-					return err
 				}
-				<-done
-				log.Debugln("Watcher raus")
 			} else {
 				break // CubeMX does not run anymore
 			}
-			log.Debugln("Process loop")
 		}
+		// should only come here if CubeMX does not run anymore
 	}
 
 	if runCubeMx {
