@@ -34,7 +34,7 @@ func main() {
 
 	log.Debugf("Took %v", time.Since(start))
 	if stm32cubemx.LogFile != nil {
-		stm32cubemx.LogFile.Close()
+		_ = stm32cubemx.LogFile.Close()
 	}
 	log.SetOutput((io.Discard))
 	utils.StopSignalWatcher()
