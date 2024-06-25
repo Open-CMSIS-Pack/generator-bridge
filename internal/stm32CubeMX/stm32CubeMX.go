@@ -45,6 +45,8 @@ type BridgeParamType struct {
 var watcher *fsnotify.Watcher
 var running bool // true if running in wait loop waiting for .ioc file
 
+var LogFile *os.File
+
 func procWait(proc *os.Process) {
 	if proc != nil {
 		if runtime.GOOS == "windows" {
@@ -214,7 +216,7 @@ func Process(cbuildYmlPath, outPath, cubeMxPath string, runCubeMx bool, pid int)
 									infomx0, _ = os.Stat(mxprojectPath)
 								}
 								changes++
-								if changes >= 4 {
+								if changes >= 2 {
 									changes = 0
 									i := 1
 									for ; i < 100; i++ {
@@ -237,11 +239,15 @@ func Process(cbuildYmlPath, outPath, cubeMxPath string, runCubeMx bool, pid int)
 										if err != nil {
 											return
 										}
+										log.Debugln("Writing Cgen.yml file")
 										err = WriteCgenYml(workDir, mxproject, bridgeParams)
 										if err != nil {
 											return
 										}
 									}
+								}
+								if LogFile != nil {
+									_ = LogFile.Sync()
 								}
 							}
 						case err := <-watcher.Errors:
@@ -317,16 +323,18 @@ func Process(cbuildYmlPath, outPath, cubeMxPath string, runCubeMx bool, pid int)
 }
 
 func Launch(iocFile, projectFile string) (int, error) {
-	if iocFile == "" {
-		log.Infoln("Launching STM32CubeMX...")
-	} else {
-		log.Infoln("Launching STM32CubeMX with ", iocFile)
-	}
-
 	const cubeEnvVar = "STM32CubeMX_PATH"
 	cubeEnv := os.Getenv(cubeEnvVar)
 	if cubeEnv == "" {
 		return -1, errors.New("environment variable for CubeMX not set: " + cubeEnvVar)
+	}
+
+	if iocFile != "" {
+		log.Infoln("Launching STM32CubeMX with ", iocFile)
+	} else if projectFile != "" {
+		log.Infoln("Launching STM32CubeMX with -s ", projectFile)
+	} else {
+		log.Infoln("Launching STM32CubeMX...")
 	}
 
 	var pathJava string
