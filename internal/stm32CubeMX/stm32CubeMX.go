@@ -7,7 +7,6 @@
 package stm32cubemx
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -60,7 +59,7 @@ func procWait(proc *os.Process) {
 			for {
 				err := proc.Signal(syscall.Signal(0))
 				if err != nil {
-					log.Infoln("Cannot Signal to CubeMX")
+					log.Infoln("Cannot Signal to CubeMX, is not running")
 					break
 				}
 				time.Sleep(time.Millisecond * 200)
@@ -165,7 +164,7 @@ func Process(cbuildYmlPath, outPath, cubeMxPath string, runCubeMx bool, pid int)
 				if !running {
 					break // out of loop if CubeMX does not run anymore
 				}
-				_, err := os.Stat(iocprojectPath)
+				stIOC, err := os.Stat(iocprojectPath)
 				if err != nil { // .ioc file not (yet) there
 					iocProjectWait = true
 					time.Sleep(time.Second)
@@ -204,34 +203,42 @@ func Process(cbuildYmlPath, outPath, cubeMxPath string, runCubeMx bool, pid int)
 					if err != nil {
 						continue // stay in loop waiting for CubeMX end or change of .mxproject
 					}
-					defer fIoc.Close()
 					mxprojectBuf := make([]byte, st.Size())
 					_, err = fIoc.Read(mxprojectBuf)
 					if err != nil {
 						log.Fatal(err)
 					}
+					fIoc.Close()
 					log.Debugf("mxproject len %d", st.Size())
 					for { // wait for .mxproject change
+						if !running {
+							break // out of loop if CubeMX does not run anymore
+						}
 						time.Sleep(time.Second)
+						stIOC1, err := os.Stat(iocprojectPath)
+						if err != nil { // .ioc file not (yet) there
+							break // continue loop waiting for CubeMX end or change of .mxproject
+						}
 						st1, err := os.Stat(mxprojectPath)
 						if err != nil {
 							break // continue loop waiting for CubeMX end or change of .mxproject
 						}
-						if st.ModTime() != st1.ModTime() { // time changed
+						if stIOC.ModTime() != stIOC1.ModTime() && st.ModTime() != st1.ModTime() { // time changed
+							// it seems to me that the compare is superfluous because there are only in rare cases changes but the time always changes
 							if st.Size() == st1.Size() { // no change in length, compare content
 								fIoc, err := os.Open(mxprojectPath)
 								if err != nil {
 									break // continue loop waiting for CubeMX end or change of .mxproject
 								}
-								defer fIoc.Close()
 								mxprojectBuf1 := make([]byte, st1.Size())
 								_, err = fIoc.Read(mxprojectBuf1)
 								if err != nil {
 									log.Fatal(err)
 								}
-								if bytes.Equal(mxprojectBuf, mxprojectBuf1) {
-									continue // wait for .mxproject change
-								}
+								fIoc.Close()
+								// if bytes.Equal(mxprojectBuf, mxprojectBuf1) {
+								//	continue // wait for .mxproject change
+								// }
 							}
 							mxproject, err := IniReader(mxprojectPath, bridgeParams)
 							if err != nil {
@@ -246,6 +253,7 @@ func Process(cbuildYmlPath, outPath, cubeMxPath string, runCubeMx bool, pid int)
 							if err != nil {
 								break // continue loop waiting for CubeMX end or change of .mxproject
 							}
+							break // leave inner loop reload all
 						}
 					}
 				}
