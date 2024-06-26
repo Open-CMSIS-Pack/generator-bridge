@@ -153,9 +153,11 @@ func Process(cbuildYmlPath, outPath, cubeMxPath string, runCubeMx bool, pid int)
 		for {
 			proc, err := os.FindProcess(pid) // this only works for windows as it is now
 			if err == nil {                  // cubeMX already runs
-				err = proc.Signal(syscall.Signal(0))
-				if err != nil {
-					break // out of loop if CubeMX does not run anymore
+				if runtime.GOOS != "windows" {
+					err = proc.Signal(syscall.Signal(0))
+					if err != nil {
+						break // out of loop if CubeMX does not run anymore
+					}
 				}
 				if first { // only start wait thread once
 					go procWait(proc)
