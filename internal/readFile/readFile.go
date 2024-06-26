@@ -60,7 +60,7 @@ func Process(inFile, inFile2, outPath string) error {
 			params[0].Device = "Test Device"
 		}
 
-		err := stm32cubemx.ReadCbuildYmlFile(inFile, "CubeMX", &cbuildParams)
+		err := stm32cubemx.ReadCbuildGenIdxYmlFile(inFile, "CubeMX", &cbuildParams)
 		if err != nil {
 			return err
 		}

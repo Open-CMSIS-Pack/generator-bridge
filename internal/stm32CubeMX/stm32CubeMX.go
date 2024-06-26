@@ -74,7 +74,7 @@ func procWait(proc *os.Process) {
 	}
 }
 
-func Process(cbuildYmlPath, outPath, cubeMxPath string, runCubeMx bool, pid int) error {
+func Process(cbuildGenIdxYmlPath, outPath, cubeMxPath string, runCubeMx bool, pid int) error {
 	var projectFile string
 
 	cRoot := os.Getenv("CMSIS_COMPILER_ROOT")
@@ -109,7 +109,7 @@ func Process(cbuildYmlPath, outPath, cubeMxPath string, runCubeMx bool, pid int)
 	}
 
 	var parms cbuild.ParamsType
-	err = ReadCbuildYmlFile(cbuildYmlPath, "CubeMX", &parms)
+	err = ReadCbuildGenIdxYmlFile(cbuildGenIdxYmlPath, "CubeMX", &parms)
 	if err != nil {
 		return err
 	}
@@ -120,7 +120,7 @@ func Process(cbuildYmlPath, outPath, cubeMxPath string, runCubeMx bool, pid int)
 		return err
 	}
 
-	workDir := path.Dir(cbuildYmlPath)
+	workDir := path.Dir(cbuildGenIdxYmlPath)
 	if parms.Output != "" {
 		if filepath.IsAbs(parms.Output) {
 			workDir = parms.Output
@@ -409,14 +409,15 @@ func WriteProjectFile(workDir string, params BridgeParamType) (string, error) {
 
 	err = os.WriteFile(filePath, []byte(text.GetLine()), 0600)
 	if err != nil {
+		log.Infof("Error writing %v", err)
 		return "", err
 	}
 
 	return filePath, nil
 }
 
-func ReadCbuildYmlFile(path, generatorID string, parms *cbuild.ParamsType) error {
-	log.Debugf("Reading cbuild.yml file: '%v'", path)
+func ReadCbuildGenIdxYmlFile(path, generatorID string, parms *cbuild.ParamsType) error {
+	log.Debugf("Reading cbuild-gen-idx.yml file: '%v'", path)
 	err := cbuild.Read(path, generatorID, parms)
 	if err != nil {
 		return err

@@ -49,10 +49,6 @@ func configureGlobalCmd(cmd *cobra.Command, args []string) error {
 			}
 		} else {
 			stm32cubemx.LogFile = f
-			// defer func() {
-			//	_ = f.Close()
-			//	log.SetOutput(io.Discard) // no more logging after closing the log file
-			// }()
 			log.SetOutput(f)
 		}
 	}
