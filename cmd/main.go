@@ -7,10 +7,12 @@
 package main
 
 import (
+	"io"
 	"os"
 	"time"
 
 	"github.com/open-cmsis-pack/generator-bridge/cmd/commands"
+	stm32cubemx "github.com/open-cmsis-pack/generator-bridge/internal/stm32CubeMX"
 	"github.com/open-cmsis-pack/generator-bridge/internal/utils"
 	log "github.com/sirupsen/logrus"
 )
@@ -31,5 +33,9 @@ func main() {
 	}
 
 	log.Debugf("Took %v", time.Since(start))
+	if stm32cubemx.LogFile != nil {
+		_ = stm32cubemx.LogFile.Close()
+	}
+	log.SetOutput((io.Discard))
 	utils.StopSignalWatcher()
 }
