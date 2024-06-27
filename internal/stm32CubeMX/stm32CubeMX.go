@@ -464,7 +464,9 @@ func GetBridgeInfo(parms *cbuild.ParamsType, bridgeParams *[]BridgeParamType) er
 		bparm.ForProjectPart = gen.ForProjectPart
 		bparm.GeneratorMap = gen.Map
 		bparm.CgenName = gen.Name
-		bparm.Compiler = gen.CbuildGen.BuildGen.Compiler
+		compiler := gen.CbuildGen.BuildGen.Compiler
+		compiler = strings.Split(compiler, "@")[0]
+		bparm.Compiler = compiler
 		if gen.Map != "" {
 			bparm.CubeContext = gen.Map
 			bparm.CubeContextFolder = gen.Map
