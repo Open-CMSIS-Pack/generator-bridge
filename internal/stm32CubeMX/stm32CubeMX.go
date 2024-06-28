@@ -211,7 +211,6 @@ func Process(cbuildGenIdxYmlPath, outPath, cubeMxPath string, runCubeMx bool, pi
 						log.Fatal(err)
 					}
 					fIoc.Close()
-					log.Debugf("mxproject len %d", st.Size())
 					for { // wait for .mxproject change
 						if !running {
 							break // out of loop if CubeMX does not run anymore
@@ -283,7 +282,7 @@ func Process(cbuildGenIdxYmlPath, outPath, cubeMxPath string, runCubeMx bool, pi
 		} else {
 			projectFile, err = WriteProjectFile(workDir, bridgeParams[0])
 			if err != nil {
-				return nil
+				return err
 			}
 			log.Debugf("Generated file: %v", projectFile)
 
@@ -292,19 +291,16 @@ func Process(cbuildGenIdxYmlPath, outPath, cubeMxPath string, runCubeMx bool, pi
 				return errors.New("generator '" + gParms.ID + "' missing. Install from '" + gParms.DownloadURL + "'")
 			}
 		}
-		log.Debugf("pid of CubeMX in main: %d", pid)
 		// here cubeMX runs
 		exe, err := os.Executable()
 		if err != nil {
 			return err
 		}
-		log.Debugf("exe %s", exe)
 		ownPath, err := filepath.EvalSymlinks((exe))
 		if err != nil {
 			return err
 		}
 		cmd := exec.Command(ownPath) //nolint
-		log.Debugf("daemonize as %s", ownPath)
 		cmd.Args = os.Args
 		cmd.Args = append(cmd.Args, "-p", fmt.Sprint(pid)) // pid of cubeMX
 		log.Debugf("cmd.Start as %v", cmd)
@@ -409,7 +405,7 @@ func WriteProjectFile(workDir string, params BridgeParamType) (string, error) {
 
 	err = os.WriteFile(filePath, []byte(text.GetLine()), 0600)
 	if err != nil {
-		log.Infof("Error writing %v", err)
+		log.Errorf("Error writing %v", err)
 		return "", err
 	}
 
@@ -666,7 +662,7 @@ func GetToolchain(compiler string) (string, error) {
 
 	toolchain, ok := toolchainMapping[compiler]
 	if !ok {
-		return "", errors.New("unknown compiler")
+		return "", errors.New("unknown compiler '" + compiler + "'")
 	}
 	return toolchain, nil
 }
@@ -681,7 +677,7 @@ func GetRelativePathAdd(outPath string, compiler string) (string, error) {
 
 	folder, ok := pathMapping[compiler]
 	if !ok {
-		return "", errors.New("unknown compiler")
+		return "", errors.New("unknown compiler '" + compiler + "'")
 	}
 
 	lastPath := filepath.Base(outPath)
@@ -704,7 +700,7 @@ func GetToolchainFolderPath(outPath string, compiler string) (string, error) {
 
 	toolchainFolder, ok := toolchainFolderMapping[compiler]
 	if !ok {
-		return "", errors.New("unknown compiler")
+		return "", errors.New("unknown compiler '" + compiler + "'")
 	}
 
 	lastPath := filepath.Base(outPath)
@@ -866,7 +862,7 @@ func GetLinkerScripts(outPath string, bridgeParams BridgeParamType) ([]string, e
 	case "GCC", "CLANG":
 		fileExtesion = ".ld"
 	default:
-		return nil, errors.New("unknown compiler")
+		return nil, errors.New("unknown compiler '" + bridgeParams.Compiler + "'")
 	}
 
 	if bridgeParams.GeneratorMap != "" {
@@ -902,7 +898,7 @@ func GetLinkerScripts(outPath string, bridgeParams BridgeParamType) ([]string, e
 			}
 		}
 	default:
-		return nil, errors.New("unknown compiler")
+		return nil, errors.New("unknown compiler '" + bridgeParams.Compiler + "'")
 	}
 
 	if !utils.DirExists(linkerFolder) {
