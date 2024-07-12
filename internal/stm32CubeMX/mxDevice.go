@@ -174,7 +174,11 @@ func writeMXdeviceH(contextMap map[string]map[string]string, srcFolder string, m
 		if err != nil {
 			return err
 		}
-		usbdHandle, err := getUSBDHandle(fMain, peripheral)
+		usbHandle, err := getUSBHandle(fMain, peripheral)
+		if err != nil {
+			return err
+		}
+		mciMode, err := getMCIMode(fMain, peripheral)
 		if err != nil {
 			return err
 		}
@@ -182,7 +186,7 @@ func writeMXdeviceH(contextMap map[string]map[string]string, srcFolder string, m
 		if err != nil {
 			return err
 		}
-		err = mxDeviceWritePeripheralCfg(out, peripheral, vmode, i2cInfo, usbdHandle, pins)
+		err = mxDeviceWritePeripheralCfg(out, peripheral, vmode, i2cInfo, usbHandle, mciMode, pins)
 		if err != nil {
 			return err
 		}
@@ -393,9 +397,9 @@ func getI2cInfo(fMain *os.File, peripheral string) (map[string]string, error) {
 	return info, nil
 }
 
-// Get USB Device Handle
-func getUSBDHandle(fMain *os.File, peripheral string) (string, error) {
-	if strings.HasPrefix(peripheral, "USB") && !strings.Contains(peripheral, "HOST") {
+// Get USB Handle
+func getUSBHandle(fMain *os.File, peripheral string) (string, error) {
+	if strings.HasPrefix(peripheral, "USB") {
 		_, err := fMain.Seek(0, 0)
 		if err != nil {
 			return "", err
@@ -407,7 +411,7 @@ func getUSBDHandle(fMain *os.File, peripheral string) (string, error) {
 			line := mainScan.Text()
 			line = strings.TrimSpace(line)
 
-			if strings.HasPrefix(line, "PCD_HandleTypeDef") {
+			if strings.HasPrefix(line, "PCD_HandleTypeDef") || strings.HasPrefix(line, "HCD_HandleTypeDef") {
 				line = strings.TrimSuffix(line, ";")
 				lineSplit := strings.Split(line, " ")
 				if len(lineSplit) < 2 {
@@ -425,6 +429,50 @@ func getUSBDHandle(fMain *os.File, peripheral string) (string, error) {
 					continue
 				}
 				return handle, nil
+			}
+		}
+	}
+	return "", nil
+}
+
+// Get MCI Mode
+func getMCIMode(fMain *os.File, peripheral string) (string, error) {
+	if strings.HasPrefix(peripheral, "SDMMC") || strings.HasPrefix(peripheral, "SDIO") {
+		_, err := fMain.Seek(0, 0)
+		if err != nil {
+			return "", err
+		}
+
+		mainScan := bufio.NewScanner(fMain)
+		mainScan.Split(bufio.ScanLines)
+		for mainScan.Scan() {
+			line := mainScan.Text()
+			line = strings.TrimSpace(line)
+
+			if strings.HasPrefix(line, "MMC_HandleTypeDef") || strings.HasPrefix(line, "SD_HandleTypeDef") {
+				line = strings.TrimSuffix(line, ";")
+				lineSplit := strings.Split(line, " ")
+				if len(lineSplit) < 2 {
+					continue
+				}
+				handle := lineSplit[1]
+
+				index := getDigitAtEnd(peripheral)
+				if index != "" {
+					if getDigitAtEnd(handle) != index {
+						continue
+					}
+				}
+
+				mciMode := ""
+				if strings.HasPrefix(line, "MMC_HandleTypeDef") {
+					mciMode = "MMC"
+				}
+				if strings.HasPrefix(line, "SD_HandleTypeDef") {
+					mciMode = "SD"
+				}
+
+				return mciMode, nil
 			}
 		}
 	}
@@ -549,7 +597,7 @@ func mxDeviceWriteHeader(out *bufio.Writer, fName string) error {
 	return err
 }
 
-func mxDeviceWritePeripheralCfg(out *bufio.Writer, peripheral string, vmode string, i2cInfo map[string]string, usbdHandle string, pins map[string]PinDefinition) error {
+func mxDeviceWritePeripheralCfg(out *bufio.Writer, peripheral string, vmode string, i2cInfo map[string]string, usbHandle string, mciMode string, pins map[string]PinDefinition) error {
 	var err error
 
 	str := "\n/*------------------------------ " + peripheral
@@ -581,11 +629,22 @@ func mxDeviceWritePeripheralCfg(out *bufio.Writer, peripheral string, vmode stri
 			return err
 		}
 	}
-	if usbdHandle != "" {
+	if usbHandle != "" {
 		if _, err = out.WriteString("/* Handle */\n"); err != nil {
 			return err
 		}
-		if err = writeDefine(out, peripheral+"_HANDLE", usbdHandle); err != nil {
+		if err = writeDefine(out, peripheral+"_HANDLE", usbHandle); err != nil {
+			return err
+		}
+		if _, err = out.WriteString("\n"); err != nil {
+			return err
+		}
+	}
+	if mciMode != "" {
+		if _, err = out.WriteString("/* Mode */\n"); err != nil {
+			return err
+		}
+		if err = writeDefine(out, peripheral+"_MODE_"+mciMode, "1"); err != nil {
 			return err
 		}
 		if _, err = out.WriteString("\n"); err != nil {
