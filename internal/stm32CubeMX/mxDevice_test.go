@@ -498,7 +498,7 @@ func Test_mxDeviceWritePeripheralCfg(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.args.out = bufio.NewWriter(&b)
 
-			if err := mxDeviceWritePeripheralCfg(tt.args.out, tt.args.peripheral, tt.args.vmode, tt.args.i2cInfo, "", tt.args.pins); (err != nil) != tt.wantErr {
+			if err := mxDeviceWritePeripheralCfg(tt.args.out, tt.args.peripheral, tt.args.vmode, tt.args.i2cInfo, "", "", tt.args.pins); (err != nil) != tt.wantErr {
 				t.Errorf("mxDeviceWritePeripheralCfg() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			tt.args.out.Flush()
