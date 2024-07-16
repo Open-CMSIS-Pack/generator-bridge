@@ -314,7 +314,8 @@ func getPins(contextMap map[string]map[string]string, fMsp *os.File, peripheral 
 				pinsName[key] = peri
 				label, ok := signal["GPIO_Label"]
 				if ok {
-					label = strings.Split(label, " ")[0]
+					label = strings.Split(label, "[")[0]
+					label = strings.TrimRight(label, " ")
 					label = replaceSpecialChars(label, "_")
 					pinsLabel[key] = strings.ReplaceAll(label, ".", "_")
 				}
