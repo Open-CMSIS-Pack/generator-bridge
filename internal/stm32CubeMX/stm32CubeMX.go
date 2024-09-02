@@ -751,7 +751,7 @@ func GetStartupFile(outPath string, bridgeParams BridgeParamType) (string, error
 
 	if !utils.DirExists(startupFolder) {
 		errorString := "Directory not found: " + startupFolder
-		log.Errorf(errorString)
+		log.Error(errorString)
 		return "", errors.New(errorString)
 	}
 
@@ -773,7 +773,7 @@ func GetStartupFile(outPath string, bridgeParams BridgeParamType) (string, error
 
 	if startupFile == "" {
 		errorString := "startup file not found"
-		log.Errorf(errorString)
+		log.Error(errorString)
 		return "", errors.New(errorString)
 	}
 
@@ -821,7 +821,7 @@ func GetSystemFile(outPath string, bridgeParams BridgeParamType) (string, error)
 
 	if !utils.DirExists(systemFolder) {
 		errorString := "Directory not found: " + systemFolder
-		log.Errorf(errorString)
+		log.Error(errorString)
 		return "", errors.New(errorString)
 	}
 
@@ -837,7 +837,7 @@ func GetSystemFile(outPath string, bridgeParams BridgeParamType) (string, error)
 
 	if systemFile == "" {
 		errorString := "system file not found"
-		log.Errorf(errorString)
+		log.Error(errorString)
 		return "", errors.New(errorString)
 	}
 
@@ -903,7 +903,7 @@ func GetLinkerScripts(outPath string, bridgeParams BridgeParamType) ([]string, e
 
 	if !utils.DirExists(linkerFolder) {
 		errorString := "Directory not found: " + linkerFolder
-		log.Errorf(errorString)
+		log.Error(errorString)
 		return nil, errors.New(errorString)
 	}
 
