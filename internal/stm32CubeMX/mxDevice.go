@@ -10,6 +10,7 @@ import (
 	"bufio"
 	"errors"
 	"io/fs"
+	"math"
 	"os"
 	"path"
 	"path/filepath"
@@ -182,11 +183,17 @@ func writeMXdeviceH(contextMap map[string]map[string]string, srcFolder string, m
 		if err != nil {
 			return err
 		}
+
+		freq := getI2CFreq(contextMap, peripheral)
+		if freq == "" {
+			freq = getSPIFreq(fMain, contextMap, peripheral)
+		}
+
 		pins, err := getPins(contextMap, fMsp, peripheral)
 		if err != nil {
 			return err
 		}
-		err = mxDeviceWritePeripheralCfg(out, peripheral, vmode, i2cInfo, usbHandle, mciMode, pins)
+		err = mxDeviceWritePeripheralCfg(out, peripheral, vmode, freq, i2cInfo, usbHandle, mciMode, pins)
 		if err != nil {
 			return err
 		}
@@ -480,6 +487,166 @@ func getMCIMode(fMain *os.File, peripheral string) (string, error) {
 	return "", nil
 }
 
+// Get I2C Freq
+func getI2CFreq(contextMap map[string]map[string]string, peripheral string) string {
+	var freq string
+
+	if !strings.HasPrefix(peripheral, "I2C") {
+		return ""
+	}
+
+	freq = getUserConstant(contextMap, peripheral+"_PERIPH_CLOCK_FREQ")
+	if freq != "" {
+		// Frequency defined by user in CubeMX
+		return freq
+	}
+
+	peri := contextMap["RCC"]
+	if len(peri) > 0 {
+		for p, freq := range peri {
+			if strings.HasPrefix(p, "I2C") && strings.Contains(p, "Freq_Value") {
+				split := strings.Split(p, "I2C")[1]
+				pIdx := strings.Split(split, "Freq_Value")[0]
+
+				digit := getDigitAtEnd(peripheral)
+				if strings.Contains(pIdx, digit) {
+					return freq
+				}
+			}
+		}
+	}
+	return ""
+}
+
+// Get SPI Freq
+func getSPIFreq(fMain *os.File, contextMap map[string]map[string]string, peripheral string) string {
+	var freq string
+
+	if !strings.HasPrefix(peripheral, "SPI") {
+		return ""
+	}
+
+	freq = getUserConstant(contextMap, peripheral+"_PERIPH_CLOCK_FREQ")
+	if freq != "" {
+		// Frequency defined by user in CubeMX
+		return freq
+	}
+
+	// Search for "RCC.I2C1Freq_Value" in ioc
+	peri := contextMap["RCC"]
+	if len(peri) > 0 {
+		for key, value := range peri {
+			if strings.HasPrefix(key, "SPI") && strings.Contains(key, "Freq_Value") {
+				split := strings.Split(key, "SPI")[1]
+				pIdx := strings.Split(split, "Freq_Value")[0]
+
+				digit := getDigitAtEnd(peripheral)
+				if strings.Contains(pIdx, digit) {
+					return value
+				}
+			}
+		}
+	}
+
+	// Search for "SPIx.CalculateBaudRate=" and "SPIx.CalculateBaudRate=" in ioc
+	calcBR := ""
+	prescaler := ""
+	peri = contextMap[peripheral]
+	if len(peri) > 0 {
+		for key, value := range peri {
+			if key == "CalculateBaudRate" {
+				calcBR = value
+			}
+			if key == "BaudRatePrescaler" {
+				prescaler = value
+			}
+		}
+	}
+
+	if calcBR == "" {
+		// CalculateBaudRate should beavailable in .ioc
+		return ""
+	}
+
+	if prescaler == "" {
+		// try to find prescaler  in main.c
+
+		_, err := fMain.Seek(0, 0)
+		if err != nil {
+			return ""
+		}
+
+		section := false
+		mainScan := bufio.NewScanner(fMain)
+		mainScan.Split(bufio.ScanLines)
+		for mainScan.Scan() {
+			line := mainScan.Text()
+			if !section {
+				if strings.HasPrefix(line, "static void MX_"+peripheral+"_Init") && !strings.Contains(line, ";") {
+					section = true // Start of section: static void MX_SPIx_Init
+				}
+			} else { // Parse section: static void MX_SPIx_Init
+				if strings.HasPrefix(line, "}") {
+					break // End of section: static void MX_SPICx_Init
+				}
+				if strings.Contains(line, "BaudRatePrescaler") {
+					ps := strings.Split(line, "=")[1]
+					ps = strings.TrimSuffix(ps, ";")
+					ps = strings.Trim(ps, " ")
+					prescaler = ps
+					break
+				}
+			}
+		}
+	}
+
+	if prescaler != "" {
+		mul := 1
+		if strings.Contains(calcBR, "KBits") {
+			mul = 1000
+		}
+		if strings.Contains(calcBR, "MBits") {
+			mul = 1000000
+		}
+		calcBR = strings.Split(calcBR, " ")[0]
+		f, err := strconv.ParseFloat(calcBR, 32)
+		if err != nil {
+			return ""
+		}
+		br := f * float64(mul)
+
+		prescaler = strings.Split(prescaler, "SPI_BAUDRATEPRESCALER_")[1]
+		pr, err := strconv.Atoi(prescaler)
+		if err != nil {
+			return ""
+		}
+
+		freq = strconv.Itoa(int(math.Round(float64(pr) * br)))
+	}
+
+	return freq
+}
+
+func getUserConstant(contextMap map[string]map[string]string, constant string) string {
+	// Search for "Mcu.UserConstants" in ioc
+	peri := contextMap["Mcu"]
+	if len(peri) > 0 {
+		for key, value := range peri {
+			if key == "UserConstants" {
+				constants := strings.Split(value, ";")
+				for _, c := range constants {
+					split := strings.Split(c, ",")
+					if split[0] == constant {
+						return strings.Trim(split[1], " ")
+					}
+				}
+			}
+		}
+	}
+
+	return ""
+}
+
 func getPinConfiguration(fMsp *os.File, peripheral string, pin string, label string) (PinDefinition, error) {
 	var pinInfo PinDefinition
 
@@ -598,7 +765,7 @@ func mxDeviceWriteHeader(out *bufio.Writer, fName string) error {
 	return err
 }
 
-func mxDeviceWritePeripheralCfg(out *bufio.Writer, peripheral string, vmode string, i2cInfo map[string]string, usbHandle string, mciMode string, pins map[string]PinDefinition) error {
+func mxDeviceWritePeripheralCfg(out *bufio.Writer, peripheral string, vmode string, freq string, i2cInfo map[string]string, usbHandle string, mciMode string, pins map[string]PinDefinition) error {
 	var err error
 
 	str := "\n/*------------------------------ " + peripheral
@@ -660,6 +827,17 @@ func mxDeviceWritePeripheralCfg(out *bufio.Writer, peripheral string, vmode stri
 			return err
 		}
 		if err = writeDefine(out, peripheral+"_"+vmode, "1"); err != nil {
+			return err
+		}
+		if _, err = out.WriteString("\n"); err != nil {
+			return err
+		}
+	}
+	if freq != "" {
+		if _, err = out.WriteString("/* Peripheral Clock Frequency */\n"); err != nil {
+			return err
+		}
+		if err = writeDefine(out, peripheral+"_PERIPH_CLOCK_FREQ", freq); err != nil {
 			return err
 		}
 		if _, err = out.WriteString("\n"); err != nil {
