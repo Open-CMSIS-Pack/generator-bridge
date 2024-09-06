@@ -622,19 +622,19 @@ func WriteCgenYmlSub(outPath string, mxproject MxprojectType, bridgeParam Bridge
 	cgenFile.File = systemFile
 	groupSrc.Files = append(groupSrc.Files, cgenFile)
 
-	linkerFiles, err := GetLinkerScripts(outPath, bridgeParam)
-	if err != nil {
-		return err
-	}
-	for _, file := range linkerFiles {
-		file, err = utils.ConvertFilenameRel(outPath, file)
-		if err != nil {
-			return err
-		}
-		var cgenFile cbuild.CgenFilesType
-		cgenFile.File = file
-		groupSrc.Files = append(groupSrc.Files, cgenFile)
-	}
+	// linkerFiles, err := GetLinkerScripts(outPath, bridgeParam)
+	// if err != nil {
+	// 	return err
+	// }
+	// for _, file := range linkerFiles {
+	// 	file, err = utils.ConvertFilenameRel(outPath, file)
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// 	var cgenFile cbuild.CgenFilesType
+	// 	cgenFile.File = file
+	// 	groupSrc.Files = append(groupSrc.Files, cgenFile)
+	// }
 
 	cgen.GeneratorImport.Groups = append(cgen.GeneratorImport.Groups, groupSrc)
 	cgen.GeneratorImport.Groups = append(cgen.GeneratorImport.Groups, groupHalDriver)
@@ -844,82 +844,82 @@ func GetSystemFile(outPath string, bridgeParams BridgeParamType) (string, error)
 	return systemFile, err
 }
 
-func GetLinkerScripts(outPath string, bridgeParams BridgeParamType) ([]string, error) {
-	var linkerFolder string
-	var fileExtesion string
-	var fileFilter string
+// func GetLinkerScripts(outPath string, bridgeParams BridgeParamType) ([]string, error) {
+// 	var linkerFolder string
+// 	var fileExtesion string
+// 	var fileFilter string
 
-	linkerFolder, err := GetToolchainFolderPath(outPath, bridgeParams.Compiler)
-	if err != nil {
-		return nil, err
-	}
+// 	linkerFolder, err := GetToolchainFolderPath(outPath, bridgeParams.Compiler)
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	switch bridgeParams.Compiler {
-	case "AC6":
-		fileExtesion = ".sct"
-	case "IAR":
-		fileExtesion = ".icf"
-	case "GCC", "CLANG":
-		fileExtesion = ".ld"
-	default:
-		return nil, errors.New("unknown compiler '" + bridgeParams.Compiler + "'")
-	}
+// 	switch bridgeParams.Compiler {
+// 	case "AC6":
+// 		fileExtesion = ".sct"
+// 	case "IAR":
+// 		fileExtesion = ".icf"
+// 	case "GCC", "CLANG":
+// 		fileExtesion = ".ld"
+// 	default:
+// 		return nil, errors.New("unknown compiler '" + bridgeParams.Compiler + "'")
+// 	}
 
-	if bridgeParams.GeneratorMap != "" {
-		linkerFolder = path.Join(linkerFolder, bridgeParams.GeneratorMap)
-	}
+// 	if bridgeParams.GeneratorMap != "" {
+// 		linkerFolder = path.Join(linkerFolder, bridgeParams.GeneratorMap)
+// 	}
 
-	switch bridgeParams.Compiler {
-	case "AC6", "IAR":
-		switch bridgeParams.ProjectType {
-		case "single-core":
-			fileFilter = ""
-		case "multi-core":
-			fileFilter = "_" + bridgeParams.ForProjectPart
-		case "trustzone":
-			if bridgeParams.ForProjectPart == "secure" {
-				fileFilter = "_s."
-			}
-			if bridgeParams.ForProjectPart == "non-secure" {
-				fileFilter = "_ns."
-			}
-		}
+// 	switch bridgeParams.Compiler {
+// 	case "AC6", "IAR":
+// 		switch bridgeParams.ProjectType {
+// 		case "single-core":
+// 			fileFilter = ""
+// 		case "multi-core":
+// 			fileFilter = "_" + bridgeParams.ForProjectPart
+// 		case "trustzone":
+// 			if bridgeParams.ForProjectPart == "secure" {
+// 				fileFilter = "_s."
+// 			}
+// 			if bridgeParams.ForProjectPart == "non-secure" {
+// 				fileFilter = "_ns."
+// 			}
+// 		}
 
-	case "GCC", "CLANG":
-		switch bridgeParams.ProjectType {
-		case "multi-core":
-			linkerFolder = path.Join(linkerFolder, bridgeParams.ForProjectPart)
-		case "trustzone":
-			if bridgeParams.ForProjectPart == "secure" {
-				linkerFolder = path.Join(linkerFolder, "Secure")
-			}
-			if bridgeParams.ForProjectPart == "non-secure" {
-				linkerFolder = path.Join(linkerFolder, "NonSecure")
-			}
-		}
-	default:
-		return nil, errors.New("unknown compiler '" + bridgeParams.Compiler + "'")
-	}
+// 	case "GCC", "CLANG":
+// 		switch bridgeParams.ProjectType {
+// 		case "multi-core":
+// 			linkerFolder = path.Join(linkerFolder, bridgeParams.ForProjectPart)
+// 		case "trustzone":
+// 			if bridgeParams.ForProjectPart == "secure" {
+// 				linkerFolder = path.Join(linkerFolder, "Secure")
+// 			}
+// 			if bridgeParams.ForProjectPart == "non-secure" {
+// 				linkerFolder = path.Join(linkerFolder, "NonSecure")
+// 			}
+// 		}
+// 	default:
+// 		return nil, errors.New("unknown compiler '" + bridgeParams.Compiler + "'")
+// 	}
 
-	if !utils.DirExists(linkerFolder) {
-		errorString := "Directory not found: " + linkerFolder
-		log.Error(errorString)
-		return nil, errors.New(errorString)
-	}
+// 	if !utils.DirExists(linkerFolder) {
+// 		errorString := "Directory not found: " + linkerFolder
+// 		log.Error(errorString)
+// 		return nil, errors.New(errorString)
+// 	}
 
-	var linkerScripts []string
-	err = filepath.Walk(linkerFolder, func(path string, f fs.FileInfo, err error) error {
-		if f.Mode().IsRegular() && strings.HasSuffix(f.Name(), fileExtesion) {
-			if fileFilter != "" {
-				if strings.Contains(f.Name(), fileFilter) {
-					linkerScripts = append(linkerScripts, path)
-				}
-			} else {
-				linkerScripts = append(linkerScripts, path)
-			}
-		}
-		return nil
-	})
+// 	var linkerScripts []string
+// 	err = filepath.Walk(linkerFolder, func(path string, f fs.FileInfo, err error) error {
+// 		if f.Mode().IsRegular() && strings.HasSuffix(f.Name(), fileExtesion) {
+// 			if fileFilter != "" {
+// 				if strings.Contains(f.Name(), fileFilter) {
+// 					linkerScripts = append(linkerScripts, path)
+// 				}
+// 			} else {
+// 				linkerScripts = append(linkerScripts, path)
+// 			}
+// 		}
+// 		return nil
+// 	})
 
-	return linkerScripts, err
-}
+// 	return linkerScripts, err
+// }
