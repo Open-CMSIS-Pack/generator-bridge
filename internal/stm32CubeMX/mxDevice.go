@@ -186,6 +186,9 @@ func writeMXdeviceH(contextMap map[string]map[string]string, srcFolder string, m
 
 		freq := getI2CFreq(contextMap, peripheral)
 		if freq == "" {
+			freq = getMMCFreq(contextMap, peripheral)
+		}
+		if freq == "" {
 			freq = getSPIFreq(fMain, contextMap, peripheral)
 		}
 
@@ -485,6 +488,35 @@ func getMCIMode(fMain *os.File, peripheral string) (string, error) {
 		}
 	}
 	return "", nil
+}
+
+// Get MMC Freq
+func getMMCFreq(contextMap map[string]map[string]string, peripheral string) string {
+	var freq string
+
+	if !strings.HasPrefix(peripheral, "SDMMC") && !strings.HasPrefix(peripheral, "SDIO") {
+		return ""
+	}
+
+	freq = getUserConstant(contextMap, peripheral+"_PERIPH_CLOCK_FREQ")
+	if freq != "" {
+		// Frequency defined by user in CubeMX
+		return freq
+	}
+
+	peri := contextMap["RCC"]
+
+	if len(peri) > 0 {
+		periphStrings := [2]string{peripheral, strings.TrimRight(peripheral, getDigitAtEnd(peripheral))}
+		for _, ps := range periphStrings {
+			for p, freq := range peri {
+				if strings.HasPrefix(p, ps) && strings.Contains(p, "Freq_Value") {
+					return freq
+				}
+			}
+		}
+	}
+	return ""
 }
 
 // Get I2C Freq
