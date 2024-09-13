@@ -28,7 +28,8 @@ import (
 )
 
 type BridgeParamType struct {
-	Board             string
+	BoardName         string
+	BoardVendor       string
 	Device            string
 	Output            string
 	ProjectName       string
@@ -379,8 +380,8 @@ func WriteProjectFile(workDir string, params BridgeParamType) (string, error) {
 	log.Debugf("Writing CubeMX project file %v", filePath)
 
 	var text utils.TextBuilder
-	if params.Board != "" {
-		text.AddLine("loadboard", params.Board, "allmodes")
+	if params.BoardName != "" && params.BoardVendor == "STMicroelectronics" {
+		text.AddLine("loadboard", params.BoardName, "allmodes")
 	} else {
 		text.AddLine("load", params.Device)
 	}
@@ -429,20 +430,23 @@ func ReadGeneratorYmlFile(path string, parms *generator.ParamsType) error {
 }
 
 func GetBridgeInfo(parms *cbuild.ParamsType, bridgeParams *[]BridgeParamType) error {
-	var board string
+	var boardName string
+	var boardVendor string
 	var device string
 	var output string
 	var projectType string
 
-	split := strings.SplitAfter(parms.Board, "::")
+	split := strings.Split(parms.Board, "::")
 	if len(split) == 2 {
-		board = split[1]
+		boardVendor = split[0]
+		boardName = split[1]
 	} else {
-		board = parms.Board
+		boardVendor = ""
+		boardName = parms.Board
 	}
-	split = strings.Split(board, ":")
+	split = strings.Split(boardName, ":")
 	if len(split) == 2 {
-		board = split[0]
+		boardName = split[0]
 	}
 
 	device = parms.Device
@@ -452,7 +456,8 @@ func GetBridgeInfo(parms *cbuild.ParamsType, bridgeParams *[]BridgeParamType) er
 	for _, gen := range parms.CbuildGens {
 		var bparm BridgeParamType
 
-		bparm.Board = board
+		bparm.BoardName = boardName
+		bparm.BoardVendor = boardVendor
 		bparm.Device = device
 		bparm.Output = output
 		bparm.ProjectName = gen.Project
@@ -556,7 +561,7 @@ func WriteCgenYmlSub(outPath string, mxproject MxprojectType, bridgeParam Bridge
 		return err
 	}
 
-	cgen.GeneratorImport.ForBoard = bridgeParam.Board
+	cgen.GeneratorImport.ForBoard = bridgeParam.BoardName
 	cgen.GeneratorImport.ForDevice = bridgeParam.Device
 	cgen.GeneratorImport.Define = append(cgen.GeneratorImport.Define, mxproject.PreviousUsedFiles.CDefines...)
 
