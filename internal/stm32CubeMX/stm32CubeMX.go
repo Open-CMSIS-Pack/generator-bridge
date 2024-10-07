@@ -196,6 +196,7 @@ func Process(cbuildGenIdxYmlPath, outPath, cubeMxPath string, runCubeMx bool, pi
 						if err != nil {
 							continue // stay in loop waiting for CubeMX end or change of .mxproject
 						}
+						iocProjectWait = false // reset wait for iocProject flag
 					}
 				} else {
 					st, err := os.Stat(mxprojectPath)
