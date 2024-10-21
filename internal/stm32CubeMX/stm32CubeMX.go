@@ -740,23 +740,11 @@ func GetStartupFile(outPath string, bridgeParams BridgeParamType) (string, error
 	switch bridgeParams.Compiler {
 	case "AC6", "IAR":
 		if bridgeParams.ProjectType == "multi-core" {
-			fileFilter = "_" + bridgeParams.ForProjectPart
+			fileFilter = "_" + bridgeParams.CubeContextFolder
 		}
 
 	case "GCC", "CLANG":
-		switch bridgeParams.ProjectType {
-		case "multi-core":
-			startupFolder = path.Join(startupFolder, bridgeParams.ForProjectPart)
-		case "trustzone":
-			if bridgeParams.ForProjectPart == "secure" {
-				startupFolder = path.Join(startupFolder, "Secure")
-			}
-			if bridgeParams.ForProjectPart == "non-secure" {
-				startupFolder = path.Join(startupFolder, "NonSecure")
-			}
-		}
-		startupFolder = path.Join(startupFolder, "Application")
-		startupFolder = path.Join(startupFolder, "Startup")
+		startupFolder = path.Join(startupFolder, bridgeParams.CubeContextFolder, "Application", "Startup")
 
 	default:
 		return "", errors.New("unknown compiler")
@@ -774,7 +762,9 @@ func GetStartupFile(outPath string, bridgeParams BridgeParamType) (string, error
 			strings.HasSuffix(f.Name(), fileExtesion) &&
 			strings.HasPrefix(f.Name(), "startup_") {
 			if fileFilter != "" {
-				if strings.Contains(f.Name(), fileFilter) {
+				fileFilterLower := strings.ToLower(fileFilter)
+				nameLower := strings.ToLower(f.Name())
+				if strings.Contains(nameLower, fileFilterLower) {
 					startupFile = path
 				}
 			} else {
@@ -805,7 +795,6 @@ func GetSystemFile(outPath string, bridgeParams BridgeParamType) (string, error)
 	if bridgeParams.ProjectType == "multi-core" {
 		systemFolder = filepath.Dir(toolchainFolder)
 		systemFolder = path.Join(systemFolder, "Common")
-		systemFolder = path.Join(systemFolder, "Src")
 		if !utils.DirExists(toolchainFolder) {
 			systemFolder = ""
 		}
@@ -818,17 +807,10 @@ func GetSystemFile(outPath string, bridgeParams BridgeParamType) (string, error)
 			systemFolder = path.Join(systemFolder, bridgeParams.GeneratorMap)
 		}
 
-		switch bridgeParams.ProjectType {
-		case "multi-core":
-			systemFolder = path.Join(systemFolder, bridgeParams.ForProjectPart)
-		case "trustzone":
-			if bridgeParams.ForProjectPart == "secure" {
-				systemFolder = path.Join(systemFolder, "Secure")
-			}
-			if bridgeParams.ForProjectPart == "non-secure" {
-				systemFolder = path.Join(systemFolder, "NonSecure")
-			}
+		if bridgeParams.ProjectType == "multi-core" || bridgeParams.ProjectType == "trustzone" {
+			systemFolder = path.Join(systemFolder, bridgeParams.CubeContextFolder)
 		}
+
 		systemFolder = path.Join(systemFolder, "Src")
 	}
 
