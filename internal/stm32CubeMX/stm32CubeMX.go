@@ -479,8 +479,15 @@ func GetBridgeInfo(parms *cbuild.ParamsType, bridgeParams *[]BridgeParamType) er
 				bparm.CubeContextFolder = ""
 			case "multi-core":
 				core := gen.CbuildGen.BuildGen.Processor.Core
-				bparm.CubeContext = strings.ReplaceAll(core, "-", "")
-				bparm.CubeContextFolder = "C" + strings.Split(core, "-")[1]
+
+				cubeContext := strings.ReplaceAll(core, "-", "")
+				cubeContext = strings.ReplaceAll(cubeContext, "+", "Plus") // Cortex-M0+ -> CortexM0Plus
+				bparm.CubeContext = cubeContext
+
+				cubeContextFolder := "C" + strings.Split(core, "-")[1]
+				cubeContextFolder = strings.ReplaceAll(cubeContextFolder, "+", "PLUS") // Cortex-M0+ -> CM0PLUS
+				bparm.CubeContextFolder = cubeContextFolder
+
 			case "trustzone":
 				core := gen.CbuildGen.BuildGen.Processor.Core
 				context := strings.ReplaceAll(core, "-", "")
