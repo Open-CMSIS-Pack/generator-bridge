@@ -19,6 +19,9 @@ concurrency:
 env:
   program: "cbridge"
 
+# Declare default permissions as read only.
+permissions: read-all
+
 jobs:
   copyright:
     runs-on: ubuntu-20.04
@@ -129,7 +132,7 @@ jobs:
           check-latest: true
 
       - name: Install go-junit-report
-        run: go install github.com/jstemmer/go-junit-report/v2@latest
+        run: go install github.com/jstemmer/go-junit-report/v2@14d61e6e75e3f3c74551d757ad936e8e88014464 # v2.1.0
 
       - name: Run tests
         run: |
@@ -154,6 +157,9 @@ jobs:
     name: "Publish Tests Results"
     needs: [ test ]
     runs-on: ubuntu-latest
+    permissions:
+      checks: write
+      pull-requests: write
     steps:
       - name: Harden Runner
         uses: step-security/harden-runner@91182cccc01eb5e619899d80e4e971d6181294a7 # v2.10.1
