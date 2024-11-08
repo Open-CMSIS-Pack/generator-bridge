@@ -1,0 +1,112 @@
+build-gen:
+  generated-by: csolution version 2.6.0
+  current-generator:
+    id: CubeMX
+  solution: D:/GitHub/Open-CMSIS-Pack/generator-bridge/testdata/testExamples/STM32U5_TZ/test.csolution.yml
+  project: D:/GitHub/Open-CMSIS-Pack/generator-bridge/testdata/testExamples/STM32U5_TZ/NonSecure_prj/nonsecure.cproject.yml
+  context: nonsecure.Debug+Board
+  compiler: AC6
+  board: STMicroelectronics::B-U585I-IOT02A
+  board-pack: Keil::B-U585I-IOT02A_BSP@2.0.0
+  device: STM32U585AIIx
+  device-pack: Keil::STM32U5xx_DFP@3.0.0
+  processor:
+    dsp: on
+    endian: little
+    fpu: sp
+    trustzone: non-secure
+    core: Cortex-M33
+  packs:
+    - pack: ARM::CMSIS-Compiler@2.1.0
+      path: D:/PACK_test/ARM/CMSIS-Compiler/2.1.0
+    - pack: ARM::CMSIS@6.1.0
+      path: D:/PACK_test/ARM/CMSIS/6.1.0
+    - pack: Keil::B-U585I-IOT02A_BSP@2.0.0
+      path: D:/PACK_test/Keil/B-U585I-IOT02A_BSP/2.0.0
+    - pack: Keil::STM32U5xx_DFP@3.0.0
+      path: D:/PACK_test/Keil/STM32U5xx_DFP/3.0.0
+  optimize: none
+  debug: on
+  misc:
+    ASM:
+      - -masm=auto
+    C:
+      - -std=gnu11
+      - -Wno-macro-redefined
+      - -Wno-pragma-pack
+      - -Wno-parentheses-equality
+      - -Wno-license-management
+    CPP:
+      - -Wno-macro-redefined
+      - -Wno-pragma-pack
+      - -Wno-parentheses-equality
+      - -Wno-license-management
+    Link:
+      - --entry=Reset_Handler
+      - --map
+      - --info summarysizes
+      - --summary_stderr
+      - --diag_suppress=L6314W
+  define:
+    - STM32U585xx
+    - _RTE_
+  define-asm:
+    - STM32U585xx
+    - _RTE_
+  add-path:
+    - D:/GitHub/Open-CMSIS-Pack/generator-bridge/testdata/testExamples/STM32U5_TZ/NonSecure_prj/RTE/_Debug_Board
+    - D:/PACK_test/ARM/CMSIS/6.1.0/CMSIS/Core/Include
+  add-path-asm:
+    - D:/GitHub/Open-CMSIS-Pack/generator-bridge/testdata/testExamples/STM32U5_TZ/NonSecure_prj/RTE/_Debug_Board
+    - D:/PACK_test/ARM/CMSIS/6.1.0/CMSIS/Core/Include
+  output-dirs:
+    intdir: D:/GitHub/Open-CMSIS-Pack/generator-bridge/testdata/testExamples/STM32U5_TZ/tmp
+    outdir: D:/GitHub/Open-CMSIS-Pack/generator-bridge/testdata/testExamples/STM32U5_TZ/out/nonsecure/Board/Debug
+    rtedir: D:/GitHub/Open-CMSIS-Pack/generator-bridge/testdata/testExamples/STM32U5_TZ/NonSecure_prj/RTE
+  output:
+    - type: elf
+      file: nonsecure.axf
+  components:
+    - component: ARM::CMSIS-Compiler:CORE@1.1.0
+      condition: ARMCC CortexDevice
+      from-pack: ARM::CMSIS-Compiler@2.1.0
+      selected-by: ARM::CMSIS-Compiler:CORE
+      files:
+        - file: D:/PACK_test/ARM/CMSIS-Compiler/2.1.0/source/armcc/retarget_io.c
+          category: sourceC
+          version: 1.1.0
+    - component: ARM::CMSIS:CORE@6.1.0
+      condition: ARMv6_7_8-M Device
+      from-pack: ARM::CMSIS@6.1.0
+      selected-by: ARM::CMSIS:CORE
+      files:
+        - file: D:/PACK_test/ARM/CMSIS/6.1.0/CMSIS/Core/Include
+          category: include
+          version: 6.1.0
+        - file: D:/PACK_test/ARM/CMSIS/6.1.0/CMSIS/Core/Include/tz_context.h
+          category: header
+          version: 6.1.0
+        - file: D:/PACK_test/ARM/CMSIS/6.1.0/CMSIS/Documentation/html/Core/index.html
+          category: doc
+          version: 6.1.0
+    - component: Keil::Device:CubeMX@1.0.0
+      condition: STM32U5 CMSIS
+      from-pack: Keil::STM32U5xx_DFP@3.0.0
+      selected-by: Device:CubeMX
+      generator:
+        id: CubeMX
+        path: D:/GitHub/Open-CMSIS-Pack/generator-bridge/testdata/testExamples/STM32U5_TZ/STM32CubeMX/Board/nonsecure.cgen.yml
+  linker:
+    script: D:/GitHub/Open-CMSIS-Pack/generator-bridge/testdata/testExamples/STM32U5_TZ/NonSecure_prj/RTE/Device/STM32U585AIIx/ac6_linker_script.sct.src
+    regions: D:/GitHub/Open-CMSIS-Pack/generator-bridge/testdata/testExamples/STM32U5_TZ/NonSecure_prj/RTE/Device/STM32U585AIIx/regions_B-U585I-IOT02A.h
+  licenses:
+    - license: Apache-2.0
+      packs:
+        - pack: ARM::CMSIS-Compiler@2.1.0
+        - pack: ARM::CMSIS@6.1.0
+        - pack: Keil::B-U585I-IOT02A_BSP@2.0.0
+        - pack: Keil::STM32U5xx_DFP@3.0.0
+      components:
+        - component: ARM::CMSIS-Compiler:CORE@1.1.0
+        - component: ARM::CMSIS:CORE@6.1.0
+        - component: Keil::Device:CubeMX@1.0.0

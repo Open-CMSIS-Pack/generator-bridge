@@ -4,7 +4,6 @@
 
 LR_IROM1 0x08000000 0x00200000  {  ; load_region size_region
   ER_IROM1 0x08000000 0x00200000  {  ; load address = excetion address
-   *.o (RESET, +First)
    .ANY (+XO)
    .ANY (+RO)
   }

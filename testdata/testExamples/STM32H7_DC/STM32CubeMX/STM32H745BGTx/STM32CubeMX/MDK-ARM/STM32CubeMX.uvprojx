@@ -11,7 +11,7 @@
         <TargetCommonOption>
           <Device>STM32H745BGTx:CM4</Device>
           <Vendor>STMicroelectronics</Vendor>
-          <Cpu>IRAM(0x10000000-0x10047FFF) IRAM2(0x18000000-0x1800FFFF) IROM(0x8100000-0x81FFFFF) CLOCK(12000000) FPU2 CPUTYPE("Cortex-M4")</Cpu>
+          <Cpu>IRAM(0x10000000-0x10047FFF) IROM(0x8100000-0x81FFFFF) CLOCK(12000000) FPU2 CPUTYPE("Cortex-M4")</Cpu>
           <FlashUtilSpec />
           <StartupFile />
           <FlashDriverDll />
@@ -238,7 +238,7 @@
             <Ra2Chk>0</Ra2Chk>
             <Ra3Chk>0</Ra3Chk>
             <Im1Chk>1</Im1Chk>
-            <Im2Chk>1</Im2Chk>
+            <Im2Chk>0</Im2Chk>
             <OnChipMemories>
               <Ocm1>
                 <Type>0</Type>

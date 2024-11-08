@@ -1,11 +1,10 @@
 solution:
 
-  created-for: CMSIS-Toolbox@2.0.0
+  created-for: CMSIS-Toolbox@2.6.0
   cdefault:
 
   packs:
     - pack: Keil::STM32H7xx_DFP
-      path: ../../../Packs/STM32H7xx_DFP
     - pack: ARM::CMSIS
     - pack: ARM::CMSIS-Compiler
 

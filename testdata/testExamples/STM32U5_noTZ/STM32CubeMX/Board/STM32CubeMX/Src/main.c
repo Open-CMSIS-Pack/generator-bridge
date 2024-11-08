@@ -93,20 +93,21 @@ static void MX_GTZC_Init(void);
   */
 int main(void)
 {
+
   /* USER CODE BEGIN 1 */
 
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
 
-  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-  HAL_Init();
-
   /* Configure The Vector Table address */
   SCB->VTOR = 0x08000000;
 
   /* MPU Configuration--------------------------------------------------------*/
   MPU_Config();
+
+  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
+  HAL_Init();
 
   /* USER CODE BEGIN Init */
 
@@ -313,13 +314,11 @@ static void MX_FLASH_Init(void)
   {
     Error_Handler();
   }
-  pOBInit.OptionType = OPTIONBYTE_BOOTADDR;
-  pOBInit.BootAddrConfig = OB_BOOTADDR_NS0;
-  pOBInit.BootAddr = 0x08000000;
-  if (HAL_FLASHEx_OBProgram(&pOBInit) != HAL_OK)
-  {
-    Error_Handler();
-  }
+
+   //!!! HAL_FLASHEx_OBProgram is commented because some parameters are missing
+  //pOBInit.OptionType = OPTIONBYTE_USER|OPTIONBYTE_BOOTADDR;
+  //pOBInit.BootAddr = 0x08000000;
+    //HAL_FLASHEx_OBProgram(&pOBInit);
   if (HAL_FLASH_OB_Lock() != HAL_OK)
   {
     Error_Handler();
@@ -333,17 +332,13 @@ static void MX_FLASH_Init(void)
   FLASH_BBSecInitStruct.BBAttributes_array[1] =   0xFFFFFFFF
                               ;
   FLASH_BBSecInitStruct.BBAttributes_array[2] =   0xFFFFFFFF;
-  FLASH_BBSecInitStruct.BBAttributes_array[3] =   0xFFFFFFFF;
-  if (HAL_FLASHEx_ConfigBBAttributes(&FLASH_BBSecInitStruct) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  FLASH_BBSecInitStruct.Bank = FLASH_BANK_2;
-  FLASH_BBSecInitStruct.BBAttributes_array[0] =   0xFFFFFFFF;
-  FLASH_BBSecInitStruct.BBAttributes_array[1] =   0xFFFFFFFF
+  FLASH_BBSecInitStruct.BBAttributes_array[3] =   0xFFFFFFFF
                               ;
-  FLASH_BBSecInitStruct.BBAttributes_array[2] =   0xFFFFFFFF;
-  FLASH_BBSecInitStruct.BBAttributes_array[3] =   0xFFFFFFFF;
+  FLASH_BBSecInitStruct.BBAttributes_array[4] =   0xFFFFFFFF;
+  FLASH_BBSecInitStruct.BBAttributes_array[5] =   0xFFFFFFFF
+                              ;
+  FLASH_BBSecInitStruct.BBAttributes_array[6] =   0xFFFFFFFF;
+  FLASH_BBSecInitStruct.BBAttributes_array[7] =   0xFFFFFFFF;
   if (HAL_FLASHEx_ConfigBBAttributes(&FLASH_BBSecInitStruct) != HAL_OK)
   {
     Error_Handler();
@@ -984,7 +979,7 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE END 4 */
 
-/* MPU Configuration */
+ /* MPU Configuration */
 
 void MPU_Config(void)
 {

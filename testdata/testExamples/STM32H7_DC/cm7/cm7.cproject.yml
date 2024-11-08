@@ -3,5 +3,4 @@ project:
   components:
     - component: ARM::CMSIS:CORE
     - component: ARM::CMSIS-Compiler:CORE
-    - component: Keil::Device:Startup
-    - component: Device:Startup
+    - component: Device:CubeMX
