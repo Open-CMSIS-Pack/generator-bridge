@@ -1,0 +1,5 @@
+load STM32WL54CCUx
+project name STM32CubeMX
+project toolchain "MDK-ARM V5"
+project path "D:\GitHub\Open-CMSIS-Pack\generator-bridge\testdata\testExamples\STM32WL_DC\test\STM32CubeMX\STM32WL54CCUx"
+SetCopyLibrary "copy only"

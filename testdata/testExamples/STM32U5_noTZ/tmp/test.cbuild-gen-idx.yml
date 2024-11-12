@@ -1,0 +1,13 @@
+build-gen-idx:
+  generated-by: csolution version 2.6.0
+  generators:
+    - id: CubeMX
+      output: D:/GitHub/Open-CMSIS-Pack/generator-bridge/testdata/testExamples/STM32U5_noTZ/STM32CubeMX/Board
+      device: STM32U585AIIx
+      board: STMicroelectronics::B-U585I-IOT02A
+      project-type: single-core
+      cbuild-gens:
+        - cbuild-gen: D:/GitHub/Open-CMSIS-Pack/generator-bridge/testdata/testExamples/STM32U5_noTZ/tmp/test.Debug+Board.cbuild-gen.yml
+          project: test
+          configuration: .Debug+Board
+          name: D:/GitHub/Open-CMSIS-Pack/generator-bridge/testdata/testExamples/STM32U5_noTZ/STM32CubeMX/Board/test.cgen.yml

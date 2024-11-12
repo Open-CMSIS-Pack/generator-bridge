@@ -1,0 +1,20 @@
+build-idx:
+  generated-by: csolution version 2.6.0
+  cdefault: cdefault.yml
+  csolution: test.csolution.yml
+  tmpdir: tmp
+  cprojects:
+    - cproject: test.cproject.yml
+  cbuilds:
+    - cbuild: test.Debug+device.cbuild.yml
+      project: test
+      configuration: .Debug+device
+      clayers:
+        - clayer: STM32CubeMX/device/test.cgen.yml
+      messages:
+        warnings:
+          - "'compiler' setting in cdefault.yml will be deprecated in CMSIS-Toolbox 3.0.0"
+        info:
+          - test.cbuild-set.yml - file is already up-to-date
+          - test.cbuild-pack.yml - file is already up-to-date
+          - test.Debug+device.cbuild.yml - file is already up-to-date

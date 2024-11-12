@@ -1,12 +1,11 @@
 solution:
 
-  created-for: CMSIS-Toolbox@2.0.0
+  created-for: CMSIS-Toolbox@2.6.0
   cdefault:
 
   packs:
     - pack: Keil::STM32U5xx_DFP
-      path: ../../../Packs/STM32U5xx_DFP
-    - pack: Keil::B-U585I-IOT02A_BSP@1.0.0
+    - pack: Keil::B-U585I-IOT02A_BSP
     - pack: ARM::CMSIS
     - pack: ARM::CMSIS-Compiler
 

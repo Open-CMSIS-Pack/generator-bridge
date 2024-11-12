@@ -1,0 +1,18 @@
+build-gen-idx:
+  generated-by: csolution version 2.6.0
+  generators:
+    - id: CubeMX
+      output: D:/GitHub/Open-CMSIS-Pack/generator-bridge/testdata/testExamples/STM32H7_DC/STM32CubeMX/STM32H745BGTx
+      device: STM32H745BGTx
+      project-type: multi-core
+      cbuild-gens:
+        - cbuild-gen: D:/GitHub/Open-CMSIS-Pack/generator-bridge/testdata/testExamples/STM32H7_DC/tmp/cm4.Debug+STM32H745BGTx.cbuild-gen.yml
+          project: cm4
+          configuration: .Debug+STM32H745BGTx
+          for-project-part: CM4
+          name: D:/GitHub/Open-CMSIS-Pack/generator-bridge/testdata/testExamples/STM32H7_DC/STM32CubeMX/STM32H745BGTx/cm4.cgen.yml
+        - cbuild-gen: D:/GitHub/Open-CMSIS-Pack/generator-bridge/testdata/testExamples/STM32H7_DC/tmp/cm7.Debug+STM32H745BGTx.cbuild-gen.yml
+          project: cm7
+          configuration: .Debug+STM32H745BGTx
+          for-project-part: CM7
+          name: D:/GitHub/Open-CMSIS-Pack/generator-bridge/testdata/testExamples/STM32H7_DC/STM32CubeMX/STM32H745BGTx/cm7.cgen.yml

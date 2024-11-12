@@ -1,0 +1,35 @@
+generator-import:
+  for-device: STM32WL54CCUx
+  define:
+    - CORE_CM0+
+    - STM32WL54xx
+  add-path:
+    - ./STM32CubeMX/Drivers/STM32WLxx_HAL_Driver/Inc
+    - ./STM32CubeMX/Drivers/STM32WLxx_HAL_Driver/Inc/Legacy
+    - ./STM32CubeMX/Drivers/CMSIS/Device/ST/STM32WLxx/Include
+    - ./STM32CubeMX/CM0PLUS/Inc
+    - ./MX_Device/CM0PLUS
+  groups:
+    - group: CubeMX
+      files:
+        - file: ./STM32CubeMX/CM0PLUS/Src/main.c
+        - file: ./STM32CubeMX/CM0PLUS/Src/stm32wlxx_it.c
+        - file: ./STM32CubeMX/CM0PLUS/Src/stm32wlxx_hal_msp.c
+        - file: ./STM32CubeMX/MDK-ARM/startup_stm32wl54xx_cm0plus.s
+        - file: ./STM32CubeMX/Common/System/system_stm32wlxx.c
+    - group: STM32 HAL Driver
+      files:
+        - file: ./STM32CubeMX/Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_tim.c
+        - file: ./STM32CubeMX/Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_tim_ex.c
+        - file: ./STM32CubeMX/Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_pwr.c
+        - file: ./STM32CubeMX/Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_pwr_ex.c
+        - file: ./STM32CubeMX/Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_rcc.c
+        - file: ./STM32CubeMX/Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_rcc_ex.c
+        - file: ./STM32CubeMX/Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_flash.c
+        - file: ./STM32CubeMX/Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_flash_ex.c
+        - file: ./STM32CubeMX/Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_gpio.c
+        - file: ./STM32CubeMX/Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_dma.c
+        - file: ./STM32CubeMX/Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_dma_ex.c
+        - file: ./STM32CubeMX/Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_cortex.c
+        - file: ./STM32CubeMX/Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal.c
+        - file: ./STM32CubeMX/Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_exti.c
