@@ -1,5 +1,34 @@
-#!/bin/sh
-# Script launch MCUXpresso Config Tools in OpenCMSIS generator mode.
+#!/bin/bash
+# Script launch MCUXpresso Config Tools in OpenCMSIS generator mode on Ubuntu. It is supported since MCUXpresso Config Tools v16
 
-echo Platform is not supported for MCUXpresso Config Tools in OpenCMSIS generator mode!
-exit 1
+# path to .cbuild-gen.idx.yml file
+idxFile=$1
+
+# Find all applications with the given package identifier
+package_id="mcuxpresso-config"
+apps=$(ls /usr/share/applications | grep -i "$package_id")
+#if [ ${#apps[@]} -eq 0 ]; then
+if  [ -z "@apps" ]; then
+  echo "No apps found"
+  exit 1
+fi
+# Find the latest
+latest_app=""
+latest_version="0"
+for app in $apps; do
+  version=$(grep -i "Version" /usr/share/applications/$app | cut -d '=' -f 2)
+  if [ -z "$version" ]; then
+    continue
+  fi
+  if [ $(echo "$version > $latest_version" | bc) -eq 1 ]; then
+    latest_version="$version"
+    latest_app="$app"
+  fi
+done
+tools_path=$(grep -i "Exec" /usr/share/applications/$latest_app | cut -d '=' -f 2-)
+tools_folder=$(grep -i "Path" /usr/share/applications/$latest_app | cut -d '=' -f 2-)
+
+# Launch config tools from its folder, hide console output
+pushd $tools_folder
+$tools_path -CreateFromProject $idxFile -OpencmsisGeneratorCgen &> /dev/null
+popd
