@@ -1,5 +1,37 @@
-#!/bin/sh
-# Script launch MCUXpresso Config Tools in OpenCMSIS generator mode.
+#!/bin/bash
+# Script launch MCUXpresso Config Tools in OpenCMSIS generator mode. It is supported since MCUXpresso Config Tools v16
 
-echo Platform is not supported for MCUXpresso Config Tools in OpenCMSIS generator mode!
-exit 1
+# path to .cbuild-gen.idx.yml file
+idxFile=$1
+
+#  Get Config Tools Location
+package_id="com.nxp.*MCUXpresso*Config*"
+
+latest_version="0"
+latest_app_path=""
+
+# Find all applications with the given package identifier
+while IFS= read -r line; do
+    apps+=("$line")
+done < <(mdfind "kMDItemKind == 'Application' && kMDItemCFBundleIdentifier == '$package_id'")
+# Find the latest version
+for app_path in "${apps[@]}"; do
+  version=$(defaults read "$app_path/Contents/Info.plist" CFBundleShortVersionString)
+  if [ -z "$version" ]; then
+    continue
+  fi
+  if [ $(echo "$version > $latest_version" | bc) -eq 1 ]; then
+    latest_version="$version"
+    latest_app_path="$app_path"
+  fi
+done
+
+# Exit script config tools was not found
+if [[ -z "$latest_app_path" ]]; then
+  echo "MCUXpresso config tools was not found!"
+  exit 1
+fi
+tools_path=$latest_app_path
+
+# Launch config tools
+open -W -n "$tools_path" --args -CreateFromProject $idxFile -OpencmsisGeneratorCgen
