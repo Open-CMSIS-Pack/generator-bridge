@@ -1,18 +1,18 @@
 @echo off
-REM Script launch MCUXpresso Config Tools in OpenCMSIS generator mode. It is supported since MCUXpresso Config Tools v16
+REM Launch MCUXpresso Config Tools in OpenCMSIS generator mode. It supports MCUXpresso Config Tools v16 and newer.
 
-REM path to .cbuild-gen.idx.yml file
+REM Path to .cbuild-gen.idx.yml file
 set idxFile=%1
 
-REM  Get Config Tools Location
+REM Get Config Tools Location
 set cmd=REG QUERY "HKEY_CLASSES_ROOT\NXP Semiconductors.MCUXpresso Config Tools.mex\shell\open\command" /ve
 FOR /F usebackq^ tokens^=2^ delims^=^"  %%F IN (`%cmd%`) DO (
   SET tools_path=%%F
 )
 
-REM Exit script config tools was not found
+REM Exit script if config tools are not found
 if not defined tools_path (
-    echo MCUXpresso config tools was not found!
+    echo MCUXpresso config tools were not found!
     exit /b 1
 )
 
