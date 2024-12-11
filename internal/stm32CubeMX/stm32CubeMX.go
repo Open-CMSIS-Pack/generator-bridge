@@ -765,12 +765,15 @@ func GetStartupFile(outPath string, bridgeParams BridgeParamType) (string, error
 	var defaultStartupFile string
 	var startupFileList []string
 
+	fExt := make(map[string]bool)
+	for _, element := range fileExtensions {
+		fExt[element] = true
+	}
+
 	err = filepath.Walk(startupFolder, func(path string, f fs.FileInfo, err error) error {
 		if f.Mode().IsRegular() &&
 			strings.HasPrefix(f.Name(), "startup_") &&
-			(strings.HasSuffix(f.Name(), fileExtensions[0]) ||
-				strings.HasSuffix(f.Name(), fileExtensions[1]) ||
-				strings.HasSuffix(f.Name(), fileExtensions[2])) {
+			fExt[filepath.Ext(f.Name())] {
 
 			startupFileList = append(startupFileList, path)
 		}
