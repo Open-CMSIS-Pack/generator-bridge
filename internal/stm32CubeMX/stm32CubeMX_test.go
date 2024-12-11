@@ -9,7 +9,250 @@ package stm32cubemx
 import (
 	"path/filepath"
 	"testing"
+
+	"github.com/open-cmsis-pack/generator-bridge/internal/cbuild"
 )
+
+func Test_GetBridgeInfo(t *testing.T) {
+
+	// Single core Device
+	var paramsSC cbuild.ParamsType
+	var cgParamsSCTmp cbuild.CbuildGensType
+	paramsSC.Board = "BVendorX::BoardY:RevZ"
+	paramsSC.Device = "DVendorX::DeviceY"
+	paramsSC.ProjectType = "single-core"
+	cgParamsSCTmp.Project = "TestProject"
+	paramsSC.CbuildGens = append(paramsSC.CbuildGens, cgParamsSCTmp)
+
+	var bParamsSCTmp BridgeParamType
+	var bParamsSC []BridgeParamType
+	bParamsSCTmp.BoardName = "BoardY"
+	bParamsSCTmp.BoardVendor = "BVendorX"
+	bParamsSCTmp.Device = "DVendorX::DeviceY"
+	bParamsSCTmp.ProjectName = "TestProject"
+	bParamsSCTmp.ProjectType = "single-core"
+	bParamsSC = append(bParamsSC, bParamsSCTmp)
+
+	// Multi core Device
+	var paramsDC cbuild.ParamsType
+	var cgParamsDCTmp cbuild.CbuildGensType
+	paramsDC.Board = "BoardY"
+	paramsDC.Device = "DVendorX::DeviceY"
+	paramsDC.ProjectType = "multi-core"
+	cgParamsDCTmp.Project = "TestProject1"
+	cgParamsDCTmp.ForProjectPart = "CM0P"
+	cgParamsDCTmp.CbuildGen.BuildGen.Processor.Core = "Cortex-M0+"
+	paramsDC.CbuildGens = append(paramsDC.CbuildGens, cgParamsDCTmp)
+	cgParamsDCTmp.Project = "TestProject2"
+	cgParamsDCTmp.ForProjectPart = "CM4"
+	cgParamsDCTmp.CbuildGen.BuildGen.Processor.Core = "Cortex-M4"
+	paramsDC.CbuildGens = append(paramsDC.CbuildGens, cgParamsDCTmp)
+
+	var bParamsDCTmp BridgeParamType
+	var bParamsDC []BridgeParamType
+	bParamsDCTmp.BoardName = "BoardY"
+	bParamsDCTmp.BoardVendor = ""
+	bParamsDCTmp.Device = "DVendorX::DeviceY"
+	bParamsDCTmp.ProjectName = "TestProject1"
+	bParamsDCTmp.ProjectType = "multi-core"
+	bParamsDCTmp.ForProjectPart = "CM0P"
+	bParamsDCTmp.CubeContext = "CortexM0Plus"
+	bParamsDCTmp.CubeContextFolder = "CM0PLUS"
+	bParamsDC = append(bParamsDC, bParamsDCTmp)
+	bParamsDCTmp.ProjectName = "TestProject2"
+	bParamsDCTmp.ProjectType = "multi-core"
+	bParamsDCTmp.ForProjectPart = "CM4"
+	bParamsDCTmp.CubeContext = "CortexM4"
+	bParamsDCTmp.CubeContextFolder = "CM4"
+	bParamsDC = append(bParamsDC, bParamsDCTmp)
+
+	// TZ enabled: Secure Non-Secure
+	var paramsTZ cbuild.ParamsType
+	var cgParamsTZTmp cbuild.CbuildGensType
+	paramsTZ.Board = "BoardY:RevZ"
+	paramsTZ.Device = "DeviceY"
+	paramsTZ.ProjectType = "trustzone"
+	cgParamsTZTmp.Project = "TestProject1"
+	cgParamsTZTmp.ForProjectPart = "non-secure"
+	cgParamsTZTmp.CbuildGen.BuildGen.Processor.Core = "Cortex-M33"
+	paramsTZ.CbuildGens = append(paramsTZ.CbuildGens, cgParamsTZTmp)
+	cgParamsTZTmp.Project = "TestProject2"
+	cgParamsTZTmp.ForProjectPart = "secure"
+	cgParamsTZTmp.CbuildGen.BuildGen.Processor.Core = "Cortex-M33"
+	paramsTZ.CbuildGens = append(paramsTZ.CbuildGens, cgParamsTZTmp)
+
+	var bParamsTZTmp BridgeParamType
+	var bParamsTZ []BridgeParamType
+	bParamsTZTmp.BoardName = "BoardY"
+	bParamsTZTmp.BoardVendor = ""
+	bParamsTZTmp.Device = "DeviceY"
+	bParamsTZTmp.ProjectName = "TestProject1"
+	bParamsTZTmp.ProjectType = "trustzone"
+	bParamsTZTmp.ForProjectPart = "non-secure"
+	bParamsTZTmp.PairedSecurePart = "TestProject2"
+	bParamsTZTmp.CubeContext = "CortexM33NS"
+	bParamsTZTmp.CubeContextFolder = "NonSecure"
+	bParamsTZ = append(bParamsTZ, bParamsTZTmp)
+	bParamsTZTmp.ProjectName = "TestProject2"
+	bParamsTZTmp.ForProjectPart = "secure"
+	bParamsTZTmp.PairedSecurePart = ""
+	bParamsTZTmp.CubeContext = "CortexM33S"
+	bParamsTZTmp.CubeContextFolder = "Secure"
+	bParamsTZ = append(bParamsTZ, bParamsTZTmp)
+
+	// Boot / Appli
+	var paramsBA cbuild.ParamsType
+	var cgParamsBATmp cbuild.CbuildGensType
+	paramsBA.Board = "DVendorX::BoardY"
+	paramsBA.Device = "DVendorX::DeviceY"
+	paramsBA.ProjectType = "single-core"
+	cgParamsBATmp.Project = "TestProject1"
+	cgParamsBATmp.Map = "Appli"
+	cgParamsBATmp.CbuildGen.BuildGen.Processor.Core = "Cortex-M7"
+	paramsBA.CbuildGens = append(paramsBA.CbuildGens, cgParamsBATmp)
+	cgParamsBATmp.Project = "TestProject2"
+	cgParamsBATmp.Map = "Boot"
+	paramsBA.CbuildGens = append(paramsBA.CbuildGens, cgParamsBATmp)
+
+	var bParamsBATmp BridgeParamType
+	var bParamsBA []BridgeParamType
+	bParamsBATmp.BoardName = "BoardY"
+	bParamsBATmp.BoardVendor = "DVendorX"
+	bParamsBATmp.Device = "DVendorX::DeviceY"
+	bParamsBATmp.ProjectName = "TestProject1"
+	bParamsBATmp.ProjectType = "single-core"
+	bParamsBATmp.GeneratorMap = "Appli"
+	bParamsBATmp.CubeContext = "Appli"
+	bParamsBATmp.CubeContextFolder = "Appli"
+	bParamsBA = append(bParamsBA, bParamsBATmp)
+	bParamsBATmp.ProjectName = "TestProject2"
+	bParamsBATmp.GeneratorMap = "Boot"
+	bParamsBATmp.CubeContext = "Boot"
+	bParamsBATmp.CubeContextFolder = "Boot"
+	bParamsBA = append(bParamsBA, bParamsBATmp)
+
+	// Boot / Appli + Trust Zone
+	var paramsBATZ cbuild.ParamsType
+	var cgParamsBATZTmp cbuild.CbuildGensType
+	paramsBATZ.Board = "DVendorX::BoardY"
+	paramsBATZ.Device = "DVendorX::DeviceY"
+	paramsBATZ.ProjectType = "trustzone"
+	cgParamsBATZTmp.Project = "TestProject1"
+	cgParamsBATZTmp.ForProjectPart = "non-secure"
+	cgParamsBATZTmp.Map = "AppliNonSecure"
+	cgParamsBATZTmp.CbuildGen.BuildGen.Processor.Core = "Cortex-M55"
+	paramsBATZ.CbuildGens = append(paramsBATZ.CbuildGens, cgParamsBATZTmp)
+	cgParamsBATZTmp.Project = "TestProject2"
+	cgParamsBATZTmp.ForProjectPart = "secure"
+	cgParamsBATZTmp.Map = "AppliSecure"
+	cgParamsBATZTmp.CbuildGen.BuildGen.Processor.Core = "Cortex-M55"
+	paramsBATZ.CbuildGens = append(paramsBATZ.CbuildGens, cgParamsBATZTmp)
+	cgParamsBATZTmp.Project = "TestProject3"
+	cgParamsBATZTmp.ForProjectPart = "secure"
+	cgParamsBATZTmp.Map = "FSBL"
+	cgParamsBATZTmp.CbuildGen.BuildGen.Processor.Core = "Cortex-M55"
+	paramsBATZ.CbuildGens = append(paramsBATZ.CbuildGens, cgParamsBATZTmp)
+
+	var bParamsBATZTmp BridgeParamType
+	var bParamsBATZ []BridgeParamType
+	bParamsBATZTmp.BoardName = "BoardY"
+	bParamsBATZTmp.BoardVendor = "DVendorX"
+	bParamsBATZTmp.Device = "DVendorX::DeviceY"
+	bParamsBATZTmp.ProjectName = "TestProject1"
+	bParamsBATZTmp.ProjectType = "trustzone"
+	bParamsBATZTmp.ForProjectPart = "non-secure"
+	bParamsBATZTmp.PairedSecurePart = "TestProject2"
+	bParamsBATZTmp.GeneratorMap = "AppliNonSecure"
+	bParamsBATZTmp.CubeContext = "AppliNonSecure"
+	bParamsBATZTmp.CubeContextFolder = "AppliNonSecure"
+	bParamsBATZ = append(bParamsBATZ, bParamsBATZTmp)
+	bParamsBATZTmp.ProjectName = "TestProject2"
+	bParamsBATZTmp.ForProjectPart = "secure"
+	bParamsBATZTmp.PairedSecurePart = ""
+	bParamsBATZTmp.GeneratorMap = "AppliSecure"
+	bParamsBATZTmp.CubeContext = "AppliSecure"
+	bParamsBATZTmp.CubeContextFolder = "AppliSecure"
+	bParamsBATZ = append(bParamsBATZ, bParamsBATZTmp)
+	bParamsBATZTmp.ProjectName = "TestProject3"
+	bParamsBATZTmp.ForProjectPart = "secure"
+	bParamsBATZTmp.PairedSecurePart = ""
+	bParamsBATZTmp.GeneratorMap = "FSBL"
+	bParamsBATZTmp.CubeContext = "FSBL"
+	bParamsBATZTmp.CubeContextFolder = "FSBL"
+	bParamsBATZ = append(bParamsBATZ, bParamsBATZTmp)
+
+	type args struct {
+		params *cbuild.ParamsType
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    []BridgeParamType
+		wantErr error
+	}{
+		{"testSC", args{&paramsSC}, bParamsSC, nil},
+		{"testDC", args{&paramsDC}, bParamsDC, nil},
+		{"testTZ", args{&paramsTZ}, bParamsTZ, nil},
+		{"testBA", args{&paramsBA}, bParamsBA, nil},
+		{"testBATZ", args{&paramsBATZ}, bParamsBATZ, nil},
+	}
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			var retBridgeParams []BridgeParamType
+			err := GetBridgeInfo(tt.args.params, &retBridgeParams)
+			if err != tt.wantErr {
+				t.Errorf("GetBridgeInfo() %s error = %v, wantErr %v", tt.name, err, tt.wantErr)
+				return
+			}
+			if len(retBridgeParams) != len(tt.want) {
+				t.Errorf("GetBridgeInfo() %s: Un-expected length of returned BridgeParams", tt.name)
+			} else {
+				for i := range tt.want {
+					if retBridgeParams[i].BoardName != tt.want[i].BoardName {
+						t.Errorf("GetBridgeInfo() %s BoardName = %v, want %v", tt.name, retBridgeParams[i].BoardName, tt.want[i].BoardName)
+					}
+					if retBridgeParams[i].BoardVendor != tt.want[i].BoardVendor {
+						t.Errorf("GetBridgeInfo() %s BoardVendor = %v, want %v", tt.name, retBridgeParams[i].BoardVendor, tt.want[i].BoardVendor)
+					}
+					if retBridgeParams[i].Device != tt.want[i].Device {
+						t.Errorf("GetBridgeInfo() %s Device = %v, want %v", tt.name, retBridgeParams[i].Device, tt.want[i].Device)
+					}
+					if retBridgeParams[i].Output != tt.want[i].Output {
+						t.Errorf("GetBridgeInfo() %s Output = %v, want %v", tt.name, retBridgeParams[i].Output, tt.want[i].Output)
+					}
+					if retBridgeParams[i].ProjectName != tt.want[i].ProjectName {
+						t.Errorf("GetBridgeInfo() %s ProjectName = %v, want %v", tt.name, retBridgeParams[i].ProjectName, tt.want[i].ProjectName)
+					}
+					if retBridgeParams[i].ProjectType != tt.want[i].ProjectType {
+						t.Errorf("GetBridgeInfo() %s ProjectType = %v, want %v", tt.name, retBridgeParams[i].ProjectType, tt.want[i].ProjectType)
+					}
+					if retBridgeParams[i].ForProjectPart != tt.want[i].ForProjectPart {
+						t.Errorf("GetBridgeInfo() %s ForProjectPart = %v, want %v", tt.name, retBridgeParams[i].ForProjectPart, tt.want[i].ForProjectPart)
+					}
+					if retBridgeParams[i].PairedSecurePart != tt.want[i].PairedSecurePart {
+						t.Errorf("GetBridgeInfo() %s PairedSecurePart = %v, want %v", tt.name, retBridgeParams[i].PairedSecurePart, tt.want[i].PairedSecurePart)
+					}
+					if retBridgeParams[i].Compiler != tt.want[i].Compiler {
+						t.Errorf("GetBridgeInfo() %s Compiler = %v, want %v", tt.name, retBridgeParams[i].Compiler, tt.want[i].Compiler)
+					}
+					if retBridgeParams[i].GeneratorMap != tt.want[i].GeneratorMap {
+						t.Errorf("GetBridgeInfo() %s GeneratorMap = %v, want %v", tt.name, retBridgeParams[i].GeneratorMap, tt.want[i].GeneratorMap)
+					}
+					if retBridgeParams[i].CgenName != tt.want[i].CgenName {
+						t.Errorf("GetBridgeInfo() %s CgenName = %v, want %v", tt.name, retBridgeParams[i].CgenName, tt.want[i].CgenName)
+					}
+					if retBridgeParams[i].CubeContext != tt.want[i].CubeContext {
+						t.Errorf("GetBridgeInfo() %s CubeContext = %v, want %v", tt.name, retBridgeParams[i].CubeContext, tt.want[i].CubeContext)
+					}
+					if retBridgeParams[i].CubeContextFolder != tt.want[i].CubeContextFolder {
+						t.Errorf("GetBridgeInfo() %s CubeContextFolder = %v, want %v", tt.name, retBridgeParams[i].CubeContextFolder, tt.want[i].CubeContextFolder)
+					}
+				}
+			}
+		})
+	}
+}
 
 func Test_GetToolchain(t *testing.T) {
 	t.Parallel()
