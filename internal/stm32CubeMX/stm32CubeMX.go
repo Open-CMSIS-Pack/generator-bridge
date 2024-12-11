@@ -472,6 +472,17 @@ func GetBridgeInfo(parms *cbuild.ParamsType, bridgeParams *[]BridgeParamType) er
 		if gen.Map != "" {
 			bparm.CubeContext = gen.Map
 			bparm.CubeContextFolder = gen.Map
+			if (parms.ProjectType == "trustzone") && (gen.ForProjectPart == "non-secure") {
+				nonSecureSecurePairs := map[string]string{
+					// can be extended
+					"AppliNonSecure": "AppliSecure",
+				}
+				for _, tmpGen := range parms.CbuildGens {
+					if (tmpGen.ForProjectPart == "secure") && (tmpGen.Map == nonSecureSecurePairs[gen.Map]) {
+						bparm.PairedSecurePart = tmpGen.Project
+					}
+				}
+			}
 		} else {
 			switch parms.ProjectType {
 			case "single-core":
@@ -728,26 +739,20 @@ func GetToolchainFolderPath(outPath string, compiler string) (string, error) {
 
 func GetStartupFile(outPath string, bridgeParams BridgeParamType) (string, error) {
 	var startupFolder string
-	var fileExtesion string
 	var fileFilter string
+	var fileExtensions = []string{".s", ".S", ".c"}
 
 	startupFolder, err := GetToolchainFolderPath(outPath, bridgeParams.Compiler)
 	if err != nil {
 		return "", err
 	}
 
-	fileExtesion = ".s"
-	switch bridgeParams.Compiler {
-	case "AC6", "IAR":
-		if bridgeParams.ProjectType == "multi-core" {
-			fileFilter = "_" + bridgeParams.CubeContextFolder
-		}
+	if bridgeParams.CubeContextFolder != "" {
+		fileFilter = "_" + bridgeParams.CubeContextFolder
+	}
 
-	case "GCC", "CLANG":
+	if bridgeParams.Compiler == "GCC" || bridgeParams.Compiler == "CLANG" {
 		startupFolder = path.Join(startupFolder, bridgeParams.CubeContextFolder, "Application", "Startup")
-
-	default:
-		return "", errors.New("unknown compiler")
 	}
 
 	if !utils.DirExists(startupFolder) {
@@ -757,22 +762,42 @@ func GetStartupFile(outPath string, bridgeParams BridgeParamType) (string, error
 	}
 
 	var startupFile string
+	var defaultStartupFile string
+	var startupFileList []string
+
 	err = filepath.Walk(startupFolder, func(path string, f fs.FileInfo, err error) error {
 		if f.Mode().IsRegular() &&
-			strings.HasSuffix(f.Name(), fileExtesion) &&
-			strings.HasPrefix(f.Name(), "startup_") {
-			if fileFilter != "" {
-				fileFilterLower := strings.ToLower(fileFilter)
-				nameLower := strings.ToLower(f.Name())
-				if strings.Contains(nameLower, fileFilterLower) {
-					startupFile = path
-				}
-			} else {
-				startupFile = path
-			}
+			strings.HasPrefix(f.Name(), "startup_") &&
+			(strings.HasSuffix(f.Name(), fileExtensions[0]) ||
+				strings.HasSuffix(f.Name(), fileExtensions[1]) ||
+				strings.HasSuffix(f.Name(), fileExtensions[2])) {
+
+			startupFileList = append(startupFileList, path)
 		}
 		return nil
 	})
+
+	if len(startupFileList) == 1 {
+		startupFile = startupFileList[0]
+	} else if len(startupFileList) > 1 {
+		for _, file := range startupFileList {
+			fileName := strings.Split(filepath.Base(file), ".")[0]
+			split := strings.Split(fileName, "_")
+			if len(split) == 2 {
+				defaultStartupFile = file
+			} else {
+				fileFilterLower := strings.ToLower(fileFilter)
+				nameLower := strings.ToLower(fileName)
+				if strings.Contains(nameLower, fileFilterLower) {
+					startupFile = file
+					break
+				}
+			}
+		}
+		if startupFile == "" {
+			startupFile = defaultStartupFile
+		}
+	}
 
 	if startupFile == "" {
 		errorString := "startup file not found"
@@ -803,11 +828,7 @@ func GetSystemFile(outPath string, bridgeParams BridgeParamType) (string, error)
 	if systemFolder == "" {
 		systemFolder = filepath.Dir(toolchainFolder)
 
-		if bridgeParams.GeneratorMap != "" {
-			systemFolder = path.Join(systemFolder, bridgeParams.GeneratorMap)
-		}
-
-		if bridgeParams.ProjectType == "multi-core" || bridgeParams.ProjectType == "trustzone" {
+		if bridgeParams.CubeContextFolder != "" {
 			systemFolder = path.Join(systemFolder, bridgeParams.CubeContextFolder)
 		}
 
