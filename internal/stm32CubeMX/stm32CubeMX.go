@@ -18,6 +18,7 @@ import (
 	"strings"
 	"syscall"
 	"time"
+	"unicode"
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/open-cmsis-pack/generator-bridge/internal/cbuild"
@@ -540,6 +541,25 @@ func FilterFile(file string) bool {
 	return false
 }
 
+func FilterDefine(define string) bool {
+	if len(define) == 0 {
+		return true
+	}
+
+	// First character must be a letter or underscore
+	if !unicode.IsLetter(rune(define[0])) && define[0] != '_' {
+		return true
+	}
+
+	// Subsequent characters must be letters, numbers, or underscores
+	for _, r := range define[1:] {
+		if !unicode.IsLetter(r) && !unicode.IsDigit(r) && r != '_' {
+			return true
+		}
+	}
+	return false
+}
+
 func FindMxProject(context string, mxprojectAll MxprojectAllType) (MxprojectType, error) {
 	if len(mxprojectAll.Mxproject) == 0 {
 		return MxprojectType{}, errors.New("no .mxproject read")
@@ -582,7 +602,13 @@ func WriteCgenYmlSub(outPath string, mxproject MxprojectType, bridgeParam Bridge
 
 	cgen.GeneratorImport.ForBoard = bridgeParam.BoardName
 	cgen.GeneratorImport.ForDevice = bridgeParam.Device
-	cgen.GeneratorImport.Define = append(cgen.GeneratorImport.Define, mxproject.PreviousUsedFiles.CDefines...)
+
+	for _, define := range mxproject.PreviousUsedFiles.CDefines {
+		if FilterDefine(define) {
+			continue
+		}
+		cgen.GeneratorImport.Define = append(cgen.GeneratorImport.Define, define)
+	}
 
 	for _, headerPath := range mxproject.PreviousUsedFiles.HeaderPath {
 		headerPath, _ = utils.ConvertFilename(outPath, headerPath, relativePathAdd)
