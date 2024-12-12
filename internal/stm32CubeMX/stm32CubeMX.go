@@ -800,6 +800,7 @@ func GetStartupFile(outPath string, bridgeParams BridgeParamType) (string, error
 		if f.Mode().IsRegular() &&
 			strings.HasPrefix(f.Name(), "startup_") &&
 			fExt[filepath.Ext(f.Name())] {
+
 			startupFileList = append(startupFileList, path)
 		}
 		return nil
