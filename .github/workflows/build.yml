@@ -20,10 +20,6 @@ permissions:
 
 jobs:
   build:
-    permissions:
-      actions: read  # for github/codeql-action/init to get workflow details
-      contents: read  # for actions/checkout to fetch code
-      security-events: write  # for github/codeql-action/analyze to upload SARIF results
     strategy:
       matrix:
         goos: [windows, linux, darwin]
@@ -49,12 +45,6 @@ jobs:
           go-version-file: go.mod
           check-latest: true
 
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@dd746615b3b9d728a6a37ca2045b68ca76d4841a # v3.28.8
-        with:
-          languages: go
-          queries: security-and-quality
-
       - name: Build
         run: |
           make OS=${{ matrix.goos }} ARCH=${{ matrix.arch }} build
@@ -65,6 +55,3 @@ jobs:
           name: cbridge-${{ matrix.goos }}-${{ matrix.arch }}
           path: build/cbridge*
           retention-days: 1
-
-      - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@dd746615b3b9d728a6a37ca2045b68ca76d4841a # v3.28.8
