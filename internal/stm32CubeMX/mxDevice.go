@@ -121,6 +121,7 @@ func writeMXdeviceH(contextMap map[string]map[string]string, srcFolder string, m
 		return err
 	}
 
+	generatedAsPair := contextMap["ProjectManager"]["CoupleFile"]
 	main := path.Join(srcFolderAbs, "main.c")
 	main = filepath.Clean(main)
 	main = filepath.ToSlash(main)
@@ -171,15 +172,57 @@ func writeMXdeviceH(contextMap map[string]map[string]string, srcFolder string, m
 	sort.Strings(peripherals)
 	for _, peripheral := range peripherals {
 		vmode := getVirtualMode(contextMap, peripheral)
-		i2cInfo, err := getI2cInfo(fMain, peripheral)
+		var i2cInfo map[string]string
+		if generatedAsPair == "false" {
+			i2cInfo, err = getI2cInfo(fMain, peripheral)
+		} else {
+			i2c := path.Join(srcFolderAbs, "i2c.c")
+			i2c = filepath.Clean(i2c)
+			i2c = filepath.ToSlash(i2c)
+			var fI2C *os.File
+			fI2C, err = os.Open(i2c)
+			if err != nil {
+				return err
+			}
+			defer fI2C.Close()
+			i2cInfo, err = getI2cInfo(fI2C, peripheral)
+		}
 		if err != nil {
 			return err
 		}
-		usbHandle, err := getUSBHandle(fMain, peripheral)
+		var usbHandle string
+		if generatedAsPair == "false" {
+			usbHandle, err = getUSBHandle(fMain, peripheral)
+		} else {
+			usb := path.Join(srcFolderAbs, "usb.c")
+			usb = filepath.Clean(usb)
+			usb = filepath.ToSlash(usb)
+			var fUsb *os.File
+			fUsb, err = os.Open(usb)
+			if err != nil {
+				return err
+			}
+			defer fUsb.Close()
+			usbHandle, err = getUSBHandle(fUsb, peripheral)
+		}
 		if err != nil {
 			return err
 		}
-		mciMode, err := getMCIMode(fMain, peripheral)
+		var mciMode string
+		if generatedAsPair == "false" {
+			mciMode, err = getMCIMode(fMain, peripheral)
+		} else {
+			mmc := path.Join(srcFolderAbs, "sdmmc.c")
+			mmc = filepath.Clean(mmc)
+			mmc = filepath.ToSlash(mmc)
+			var fMMC *os.File
+			fMMC, err = os.Open(mmc)
+			if err != nil {
+				return err
+			}
+			defer fMMC.Close()
+			mciMode, err = getMCIMode(fMMC, peripheral)
+		}
 		if err != nil {
 			return err
 		}
@@ -383,7 +426,7 @@ func getI2cInfo(fMain *os.File, peripheral string) (map[string]string, error) {
 		for mainScan.Scan() {
 			line := mainScan.Text()
 			if !section {
-				if strings.HasPrefix(line, "static void MX_"+peripheral+"_Init") && !strings.Contains(line, ";") {
+				if strings.HasPrefix(line, "void MX_"+peripheral+"_Init") && !strings.Contains(line, ";") {
 					section = true // Start of section: static void MX_I2Cx_Init
 				}
 			} else { // Parse section: static void MX_I2Cx_Init
