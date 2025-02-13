@@ -8,4 +8,4 @@ package main
 
 var version string
 
-const copyright = "(C) 2023-2024 Arm Ltd."
+const copyright = "(C) 2023-2025 Arm Ltd."
