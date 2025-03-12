@@ -186,7 +186,11 @@ func writeMXdeviceH(contextMap map[string]map[string]string, srcFolder string, m
 					defer fI2C.Close()
 				}
 			} else if strings.Contains(peripheral, "USB") {
-				usb := path.Join(srcFolderAbs, "usb.c")
+				usbFileName := "usb.c"
+				if strings.Contains(peripheral, "OTG") {
+					usbFileName = "usb_otg.c"
+				}
+				usb := path.Join(srcFolderAbs, usbFileName)
 				usb = filepath.Clean(usb)
 				usb = filepath.ToSlash(usb)
 				fUsb, errUsb := os.Open(usb)
