@@ -215,6 +215,7 @@ func Process(cbuildGenIdxYmlPath, outPath, cubeMxPath string, runCubeMx bool, pi
 					}
 					fIoc.Close()
 					for { // wait for .mxproject change
+						//nolint:staticcheck // intentional logic for clarity
 						if !running {
 							break // out of loop if CubeMX does not run anymore
 						}
