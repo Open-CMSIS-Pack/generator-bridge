@@ -1,0 +1,13 @@
+build-gen-idx:
+  generated-by: csolution version 2.6.0
+  generators:
+    - id: CubeMX
+      output: C:/github/minicarpet/generator-bridge/testdata/testExamples/STM32H7/STM32CubeMX/STM32H743XIHx
+      device: STM32H743XIHx
+      board: STMicroelectronics::STM32H743I-EVAL
+      project-type: single-core
+      cbuild-gens:
+        - cbuild-gen: C:/github/minicarpet/generator-bridge/testdata/testExamples/STM32H7/tmp/CubeMX.Debug+STM32H743XIHx.cbuild-gen.yml
+          project: CubeMX
+          configuration: .Debug+STM32H743XIHx
+          name: C:/github/minicarpet/generator-bridge/testdata/testExamples/STM32H7/STM32CubeMX/STM32H743XIHx/CubeMX.cgen.yml

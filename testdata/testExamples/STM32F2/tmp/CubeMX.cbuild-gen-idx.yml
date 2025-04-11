@@ -1,0 +1,12 @@
+build-gen-idx:
+  generated-by: csolution version 2.6.0
+  generators:
+    - id: CubeMX
+      output: C:/github/minicarpet/generator-bridge/testdata/testExamples/STM32F2/STM32CubeMX/STM32F217IGHx
+      device: STM32F217IGHx
+      project-type: single-core
+      cbuild-gens:
+        - cbuild-gen: C:/github/minicarpet/generator-bridge/testdata/testExamples/STM32F2/tmp/CubeMX.Debug+STM32F217IGHx.cbuild-gen.yml
+          project: CubeMX
+          configuration: .Debug+STM32F217IGHx
+          name: C:/github/minicarpet/generator-bridge/testdata/testExamples/STM32F2/STM32CubeMX/STM32F217IGHx/CubeMX.cgen.yml

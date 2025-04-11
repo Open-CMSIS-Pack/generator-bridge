@@ -1,7 +1,6 @@
 generator-import:
   for-device: STM32WL54CCUx
   define:
-    - CORE_CM0+
     - STM32WL54xx
   add-path:
     - ./STM32CubeMX/Drivers/STM32WLxx_HAL_Driver/Inc
@@ -19,8 +18,6 @@ generator-import:
         - file: ./STM32CubeMX/Common/System/system_stm32wlxx.c
     - group: STM32 HAL Driver
       files:
-        - file: ./STM32CubeMX/Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_tim.c
-        - file: ./STM32CubeMX/Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_tim_ex.c
         - file: ./STM32CubeMX/Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_pwr.c
         - file: ./STM32CubeMX/Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_pwr_ex.c
         - file: ./STM32CubeMX/Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_rcc.c

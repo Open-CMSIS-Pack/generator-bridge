@@ -1,0 +1,13 @@
+build-gen-idx:
+  generated-by: csolution version 2.6.0
+  generators:
+    - id: CubeMX
+      output: C:/github/minicarpet/generator-bridge/testdata/testExamples/STM32G4/STM32CubeMX/STM32G474QETx
+      device: STM32G474RETx
+      board: STMicroelectronics::STM32G474E-EVAL1:Rev.B
+      project-type: single-core
+      cbuild-gens:
+        - cbuild-gen: C:/github/minicarpet/generator-bridge/testdata/testExamples/STM32G4/tmp/CubeMX.Debug+STM32G474QETx.cbuild-gen.yml
+          project: CubeMX
+          configuration: .Debug+STM32G474QETx
+          name: C:/github/minicarpet/generator-bridge/testdata/testExamples/STM32G4/STM32CubeMX/STM32G474QETx/CubeMX.cgen.yml

@@ -2,18 +2,18 @@ build-gen-idx:
   generated-by: csolution version 2.6.0
   generators:
     - id: CubeMX
-      output: D:/GitHub/Open-CMSIS-Pack/generator-bridge/testdata/testExamples/STM32U5_TZ/STM32CubeMX/Board
+      output: C:/github/minicarpet/generator-bridge/testdata/testExamples/STM32U5_TZ/STM32CubeMX/Board
       device: STM32U585AIIx
       board: STMicroelectronics::B-U585I-IOT02A
       project-type: trustzone
       cbuild-gens:
-        - cbuild-gen: D:/GitHub/Open-CMSIS-Pack/generator-bridge/testdata/testExamples/STM32U5_TZ/tmp/nonsecure.Debug+Board.cbuild-gen.yml
+        - cbuild-gen: C:/github/minicarpet/generator-bridge/testdata/testExamples/STM32U5_TZ/tmp/nonsecure.Debug+Board.cbuild-gen.yml
           project: nonsecure
           configuration: .Debug+Board
           for-project-part: non-secure
-          name: D:/GitHub/Open-CMSIS-Pack/generator-bridge/testdata/testExamples/STM32U5_TZ/STM32CubeMX/Board/nonsecure.cgen.yml
-        - cbuild-gen: D:/GitHub/Open-CMSIS-Pack/generator-bridge/testdata/testExamples/STM32U5_TZ/tmp/secure.Debug+Board.cbuild-gen.yml
+          name: C:/github/minicarpet/generator-bridge/testdata/testExamples/STM32U5_TZ/STM32CubeMX/Board/nonsecure.cgen.yml
+        - cbuild-gen: C:/github/minicarpet/generator-bridge/testdata/testExamples/STM32U5_TZ/tmp/secure.Debug+Board.cbuild-gen.yml
           project: secure
           configuration: .Debug+Board
           for-project-part: secure
-          name: D:/GitHub/Open-CMSIS-Pack/generator-bridge/testdata/testExamples/STM32U5_TZ/STM32CubeMX/Board/secure.cgen.yml
+          name: C:/github/minicarpet/generator-bridge/testdata/testExamples/STM32U5_TZ/STM32CubeMX/Board/secure.cgen.yml

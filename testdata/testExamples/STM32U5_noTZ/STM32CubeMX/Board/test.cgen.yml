@@ -15,6 +15,18 @@ generator-import:
     - group: CubeMX
       files:
         - file: ./STM32CubeMX/Src/main.c
+        - file: ./STM32CubeMX/Src/gpio.c
+        - file: ./STM32CubeMX/Src/mdf.c
+        - file: ./STM32CubeMX/Src/flash.c
+        - file: ./STM32CubeMX/Src/gtzc.c
+        - file: ./STM32CubeMX/Src/i2c.c
+        - file: ./STM32CubeMX/Src/icache.c
+        - file: ./STM32CubeMX/Src/memorymap.c
+        - file: ./STM32CubeMX/Src/octospi.c
+        - file: ./STM32CubeMX/Src/spi.c
+        - file: ./STM32CubeMX/Src/usart.c
+        - file: ./STM32CubeMX/Src/ucpd.c
+        - file: ./STM32CubeMX/Src/usb_otg.c
         - file: ./STM32CubeMX/Src/stm32u5xx_it.c
         - file: ./STM32CubeMX/Src/stm32u5xx_hal_msp.c
         - file: ./STM32CubeMX/MDK-ARM/startup_stm32u585xx.s
@@ -44,8 +56,6 @@ generator-import:
         - file: ./STM32CubeMX/Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_ll_dlyb.c
         - file: ./STM32CubeMX/Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal_spi.c
         - file: ./STM32CubeMX/Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal_spi_ex.c
-        - file: ./STM32CubeMX/Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal_tim.c
-        - file: ./STM32CubeMX/Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal_tim_ex.c
         - file: ./STM32CubeMX/Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal_uart.c
         - file: ./STM32CubeMX/Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal_uart_ex.c
         - file: ./STM32CubeMX/Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_ll_ucpd.c
