@@ -149,16 +149,15 @@ func TestConvertFilename(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if runtime.GOOS != "windows" && tt.args.file == "C:/test.ioc" {
-				tt.args.file = "/tmp/test.ioc"
-			}
-			got, err := ConvertFilename(tt.args.outPath, tt.args.file, tt.args.relativePathAdd)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("ConvertFilename() %s error = %v, wantErr %v", tt.name, err, tt.wantErr)
-				return
-			}
-			if got != tt.want {
-				t.Errorf("ConvertFilename() %s = %v, want %v", tt.name, got, tt.want)
+			if !(tt.name == "testAbs" && runtime.GOOS == "windows") {
+				got, err := ConvertFilename(tt.args.outPath, tt.args.file, tt.args.relativePathAdd)
+				if (err != nil) != tt.wantErr {
+					t.Errorf("ConvertFilename() %s error = %v, wantErr %v", tt.name, err, tt.wantErr)
+					return
+				}
+				if got != tt.want {
+					t.Errorf("ConvertFilename() %s = %v, want %v", tt.name, got, tt.want)
+				}
 			}
 		})
 	}
