@@ -150,7 +150,7 @@ func TestConvertFilename(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if !tt.winonly || runtime.GOOS != "windows" {
+			if !tt.winonly || runtime.GOOS == "windows" {
 				got, err := ConvertFilename(tt.args.outPath, tt.args.file, tt.args.relativePathAdd)
 				if (err != nil) != tt.wantErr {
 					t.Errorf("ConvertFilename() %s error = %v, wantErr %v", tt.name, err, tt.wantErr)
