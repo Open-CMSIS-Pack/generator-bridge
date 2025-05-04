@@ -150,7 +150,7 @@ func TestConvertFilename(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if runtime.GOOS != "windows" && tt.args.file == "C:/test.ioc" {
-				tt.args.file = tt.args.file[2:]
+				tt.args.file = "/tmp/test.ioc"
 			}
 			got, err := ConvertFilename(tt.args.outPath, tt.args.file, tt.args.relativePathAdd)
 			if (err != nil) != tt.wantErr {
