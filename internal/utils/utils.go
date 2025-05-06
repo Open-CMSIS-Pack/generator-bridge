@@ -70,23 +70,29 @@ func ConvertFilename(outPath, file, relativePathAdd string) (string, error) {
 	file = filepath.Clean(file)
 	file = filepath.ToSlash(file)
 
-	toolchainPath := path.Join(outPath, relativePathAdd) // create the path where STCube sets it's files relative to toolchain folder( example :./STM32CubeMX/MDK-ARM/)
-	file = path.Join(toolchainPath, file)
+	// Check if the file is absolute
+	if !filepath.IsAbs(file) {
+		toolchainPath := path.Join(outPath, relativePathAdd) // create the path where STCube sets it's files relative to toolchain folder( example :./STM32CubeMX/MDK-ARM/)
+		file = path.Join(toolchainPath, file)
+	}
 
 	if _, err := os.Stat(file); errors.Is(err, os.ErrNotExist) {
 		log.Errorf("file or directory not found: %v", file)
 	}
 
-	var err error
-	origfilename := file
-	file, err = filepath.Rel(outPath, file)
-	if err != nil {
-		log.Errorf("path error found: %v", file)
-		return origfilename, errors.New("path error")
+	// Check if the file is absolute again after the conversion
+	// This is needed because the file might be a relative path to the toolchain folder
+	if !filepath.IsAbs(file) {
+		var err error
+		origfilename := file
+		file, err = filepath.Rel(outPath, file)
+		if err != nil {
+			log.Errorf("path error found: %v", file)
+			return origfilename, errors.New("path error")
+		}
+		file = filepath.ToSlash(file)
+		file = "./" + file
 	}
-
-	file = filepath.ToSlash(file)
-	file = "./" + file
 
 	return file, nil
 }

@@ -9,6 +9,7 @@ package utils
 import (
 	"os"
 	"reflect"
+	"runtime"
 	"testing"
 )
 
@@ -139,21 +140,25 @@ func TestConvertFilename(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    args
+		winonly bool
 		want    string
 		wantErr bool
 	}{
-		{"test", args{"../../testdata", "test.ioc", "stm32cubemx"}, "./stm32cubemx/test.ioc", false},
-		{"nix", args{"../../testdata", "nix", "stm32cubemx"}, "./stm32cubemx/nix", false},
+		{"testAbs", args{"../../testdata", "C:/test.ioc", "stm32cubemx"}, true, "C:/test.ioc", false},
+		{"test", args{"../../testdata", "test.ioc", "stm32cubemx"}, false, "./stm32cubemx/test.ioc", false},
+		{"nix", args{"../../testdata", "nix", "stm32cubemx"}, false, "./stm32cubemx/nix", false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := ConvertFilename(tt.args.outPath, tt.args.file, tt.args.relativePathAdd)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("ConvertFilename() %s error = %v, wantErr %v", tt.name, err, tt.wantErr)
-				return
-			}
-			if got != tt.want {
-				t.Errorf("ConvertFilename() %s = %v, want %v", tt.name, got, tt.want)
+			if !tt.winonly || runtime.GOOS == "windows" {
+				got, err := ConvertFilename(tt.args.outPath, tt.args.file, tt.args.relativePathAdd)
+				if (err != nil) != tt.wantErr {
+					t.Errorf("ConvertFilename() %s error = %v, wantErr %v", tt.name, err, tt.wantErr)
+					return
+				}
+				if got != tt.want {
+					t.Errorf("ConvertFilename() %s = %v, want %v", tt.name, got, tt.want)
+				}
 			}
 		})
 	}
