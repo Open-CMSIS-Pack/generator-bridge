@@ -123,6 +123,33 @@ func writeMXdeviceH(contextMap map[string]map[string]string, srcFolder string, m
 
 	generatedAsPair := contextMap["ProjectManager"]["CoupleFile"]
 
+	var fMain *os.File
+	var fMsp *os.File
+
+	if generatedAsPair != "true" {
+		main := path.Join(srcFolderAbs, "main.c")
+		main = filepath.Clean(main)
+		main = filepath.ToSlash(main)
+		fMain, err = os.Open(main)
+		if err != nil {
+			return err
+		}
+
+		msp := path.Join(srcFolderAbs, mspName)
+		msp = filepath.Clean(msp)
+		msp = filepath.ToSlash(msp)
+		fMsp, err = os.Open(msp)
+		if err != nil {
+			return err
+		}
+	}
+	if fMain != nil {
+		defer fMain.Close()
+	}
+	if fMsp != nil {
+		defer fMsp.Close()
+	}
+
 	fName := "MX_Device.h"
 	fPath := filepath.Clean(cfgPath)
 	fPath = filepath.ToSlash(fPath)
@@ -243,45 +270,29 @@ func writeMXdeviceH(contextMap map[string]map[string]string, srcFolder string, m
 				}
 			}
 		} else {
-			main := path.Join(srcFolderAbs, "main.c")
-			main = filepath.Clean(main)
-			main = filepath.ToSlash(main)
-			var fMain *os.File
-			fMain, err = os.Open(main)
-			if err != nil {
-				return err
-			}
-			defer fMain.Close()
+			if fMain != nil {
+				i2cInfo, err = getI2cInfo(fMain, peripheral)
+				if err != nil {
+					return err
+				}
+				usbHandle, err = getUSBHandle(fMain, peripheral)
+				if err != nil {
+					return err
+				}
+				mciMode, err = getMCIMode(fMain, peripheral)
+				if err != nil {
+					return err
+				}
 
-			msp := path.Join(srcFolderAbs, mspName)
-			msp = filepath.Clean(msp)
-			msp = filepath.ToSlash(msp)
-			var fMsp *os.File
-			fMsp, err = os.Open(msp)
-			if err != nil {
-				return err
+				if freq == "" {
+					freq = getSPIFreq(fMain, contextMap, peripheral)
+				}
 			}
-			defer fMsp.Close()
-
-			i2cInfo, err = getI2cInfo(fMain, peripheral)
-			if err != nil {
-				return err
-			}
-			usbHandle, err = getUSBHandle(fMain, peripheral)
-			if err != nil {
-				return err
-			}
-			mciMode, err = getMCIMode(fMain, peripheral)
-			if err != nil {
-				return err
-			}
-
-			if freq == "" {
-				freq = getSPIFreq(fMain, contextMap, peripheral)
-			}
-			pins, err = getPins(contextMap, fMsp, peripheral)
-			if err != nil {
-				return err
+			if fMsp != nil {
+				pins, err = getPins(contextMap, fMsp, peripheral)
+				if err != nil {
+					return err
+				}
 			}
 		}
 
