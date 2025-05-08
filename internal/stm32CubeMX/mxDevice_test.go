@@ -55,23 +55,23 @@ func Test_MXDeviceContexts(t *testing.T) {
 				return
 			}
 
-			data_ref, err_ref := os.ReadFile(filepath.Join(tt.cfgPath, tt.cfgRefName))
-			if err_ref != nil {
+			dataRef, errRef := os.ReadFile(filepath.Join(tt.cfgPath, tt.cfgRefName))
+			if errRef != nil {
 				t.Errorf(" %s; cannot open MX_Device_ref.h file", tt.name)
 				return
 			}
 
 			// Normalize line endings inline
 			content := strings.ReplaceAll(string(data), "\r\n", "\n")
-			content_ref := strings.ReplaceAll(string(data_ref), "\r\n", "\n")
+			contentRef := strings.ReplaceAll(string(dataRef), "\r\n", "\n")
 
 			lines := strings.Split(content, "\n")
-			lines_ref := strings.Split(content_ref, "\n")
+			linesRef := strings.Split(contentRef, "\n")
 
 			content = strings.Join(lines[3:], "\n")
-			content_ref = strings.Join(lines_ref[3:], "\n")
+			contentRef = strings.Join(linesRef[3:], "\n")
 
-			if reflect.DeepEqual((content != content_ref), !tt.wantErr) {
+			if reflect.DeepEqual((content != contentRef), !tt.wantErr) {
 				t.Errorf(" %s; MX_Device.h file content mismatch", tt.name)
 			}
 		})
