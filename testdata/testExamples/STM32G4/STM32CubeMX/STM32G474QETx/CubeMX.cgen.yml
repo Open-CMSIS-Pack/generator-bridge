@@ -1,0 +1,66 @@
+generator-import:
+  for-device: STM32G474RETx
+  for-board: STM32G474E-EVAL1
+  define:
+    - USE_HAL_DRIVER
+    - STM32G474xx
+  add-path:
+    - ./STM32CubeMX/Drivers/STM32G4xx_HAL_Driver/Inc
+    - ./STM32CubeMX/Drivers/STM32G4xx_HAL_Driver/Inc/Legacy
+    - ./STM32CubeMX/Drivers/CMSIS/Device/ST/STM32G4xx/Include
+    - ./STM32CubeMX/Inc
+    - ./MX_Device
+  groups:
+    - group: CubeMX
+      files:
+        - file: ./STM32CubeMX/Src/main.c
+        - file: ./STM32CubeMX/Src/gpio.c
+        - file: ./STM32CubeMX/Src/adc.c
+        - file: ./STM32CubeMX/Src/dac.c
+        - file: ./STM32CubeMX/Src/fdcan.c
+        - file: ./STM32CubeMX/Src/hrtim.c
+        - file: ./STM32CubeMX/Src/i2c.c
+        - file: ./STM32CubeMX/Src/opamp.c
+        - file: ./STM32CubeMX/Src/spi.c
+        - file: ./STM32CubeMX/Src/tim.c
+        - file: ./STM32CubeMX/Src/usart.c
+        - file: ./STM32CubeMX/Src/usb.c
+        - file: ./STM32CubeMX/Src/stm32g4xx_it.c
+        - file: ./STM32CubeMX/Src/stm32g4xx_hal_msp.c
+        - file: ./STM32CubeMX/MDK-ARM/startup_stm32g474xx.s
+        - file: ./STM32CubeMX/Src/system_stm32g4xx.c
+    - group: STM32 HAL Driver
+      files:
+        - file: ./STM32CubeMX/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_adc.c
+        - file: ./STM32CubeMX/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_adc_ex.c
+        - file: ./STM32CubeMX/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_ll_adc.c
+        - file: ./STM32CubeMX/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal.c
+        - file: ./STM32CubeMX/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_rcc.c
+        - file: ./STM32CubeMX/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_rcc_ex.c
+        - file: ./STM32CubeMX/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_flash.c
+        - file: ./STM32CubeMX/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_flash_ex.c
+        - file: ./STM32CubeMX/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_flash_ramfunc.c
+        - file: ./STM32CubeMX/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_gpio.c
+        - file: ./STM32CubeMX/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_exti.c
+        - file: ./STM32CubeMX/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_dma.c
+        - file: ./STM32CubeMX/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_dma_ex.c
+        - file: ./STM32CubeMX/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_pwr.c
+        - file: ./STM32CubeMX/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_pwr_ex.c
+        - file: ./STM32CubeMX/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_cortex.c
+        - file: ./STM32CubeMX/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_dac.c
+        - file: ./STM32CubeMX/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_dac_ex.c
+        - file: ./STM32CubeMX/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_fdcan.c
+        - file: ./STM32CubeMX/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_hrtim.c
+        - file: ./STM32CubeMX/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_smbus.c
+        - file: ./STM32CubeMX/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_smbus_ex.c
+        - file: ./STM32CubeMX/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_opamp.c
+        - file: ./STM32CubeMX/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_opamp_ex.c
+        - file: ./STM32CubeMX/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_spi.c
+        - file: ./STM32CubeMX/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_spi_ex.c
+        - file: ./STM32CubeMX/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_tim.c
+        - file: ./STM32CubeMX/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_tim_ex.c
+        - file: ./STM32CubeMX/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_uart.c
+        - file: ./STM32CubeMX/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_uart_ex.c
+        - file: ./STM32CubeMX/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_pcd.c
+        - file: ./STM32CubeMX/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_pcd_ex.c
+        - file: ./STM32CubeMX/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_ll_usb.c

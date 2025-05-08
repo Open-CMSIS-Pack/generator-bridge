@@ -2,21 +2,21 @@ build-gen:
   generated-by: csolution version 2.6.0
   current-generator:
     id: CubeMX
-  solution: D:/GitHub/Open-CMSIS-Pack/generator-bridge/testdata/testExamples/STM32WL_DC/test/CubeMX_DualCore.csolution.yml
-  project: D:/GitHub/Open-CMSIS-Pack/generator-bridge/testdata/testExamples/STM32WL_DC/test/CM4/CM4.cproject.yml
+  solution: C:/github/minicarpet/generator-bridge/testdata/testExamples/STM32WL_DC/test/CubeMX_DualCore.csolution.yml
+  project: C:/github/minicarpet/generator-bridge/testdata/testExamples/STM32WL_DC/test/CM4/CM4.cproject.yml
   context: CM4.Debug+STM32WL54CCUx
   compiler: AC6
   device: STMicroelectronics::STM32WL54CCUx:CM4
-  device-pack: Keil::STM32WLxx_DFP@2.0.0-dev
+  device-pack: Keil::STM32WLxx_DFP@2.0.0
   processor:
     endian: little
     fpu: off
     core: Cortex-M4
   packs:
     - pack: ARM::CMSIS@6.1.0
-      path: D:/PACK_test/ARM/CMSIS/6.1.0
-    - pack: Keil::STM32WLxx_DFP@2.0.0-dev
-      path: D:/GitHub/Open-CMSIS-Pack/STM32WLxx_DFP
+      path: C:/Keil_v5/ARM/PACK/ARM/CMSIS/6.1.0
+    - pack: Keil::STM32WLxx_DFP@2.0.0
+      path: C:/Keil_v5/ARM/PACK/Keil/STM32WLxx_DFP/2.0.0
   optimize: none
   debug: on
   misc:
@@ -48,15 +48,15 @@ build-gen:
     - STM32WL54xx
     - _RTE_
   add-path:
-    - D:/GitHub/Open-CMSIS-Pack/generator-bridge/testdata/testExamples/STM32WL_DC/test/CM4/RTE/_Debug_STM32WL54CCUx
-    - D:/PACK_test/ARM/CMSIS/6.1.0/CMSIS/Core/Include
+    - C:/github/minicarpet/generator-bridge/testdata/testExamples/STM32WL_DC/test/CM4/RTE/_Debug_STM32WL54CCUx
+    - C:/Keil_v5/ARM/PACK/ARM/CMSIS/6.1.0/CMSIS/Core/Include
   add-path-asm:
-    - D:/GitHub/Open-CMSIS-Pack/generator-bridge/testdata/testExamples/STM32WL_DC/test/CM4/RTE/_Debug_STM32WL54CCUx
-    - D:/PACK_test/ARM/CMSIS/6.1.0/CMSIS/Core/Include
+    - C:/github/minicarpet/generator-bridge/testdata/testExamples/STM32WL_DC/test/CM4/RTE/_Debug_STM32WL54CCUx
+    - C:/Keil_v5/ARM/PACK/ARM/CMSIS/6.1.0/CMSIS/Core/Include
   output-dirs:
-    intdir: D:/GitHub/Open-CMSIS-Pack/generator-bridge/testdata/testExamples/STM32WL_DC/test/tmp
-    outdir: D:/GitHub/Open-CMSIS-Pack/generator-bridge/testdata/testExamples/STM32WL_DC/test/out/CM4/STM32WL54CCUx/Debug
-    rtedir: D:/GitHub/Open-CMSIS-Pack/generator-bridge/testdata/testExamples/STM32WL_DC/test/CM4/RTE
+    intdir: C:/github/minicarpet/generator-bridge/testdata/testExamples/STM32WL_DC/test/tmp
+    outdir: C:/github/minicarpet/generator-bridge/testdata/testExamples/STM32WL_DC/test/out/CM4/STM32WL54CCUx/Debug
+    rtedir: C:/github/minicarpet/generator-bridge/testdata/testExamples/STM32WL_DC/test/CM4/RTE
   output:
     - type: elf
       file: CM4.axf
@@ -66,43 +66,43 @@ build-gen:
       from-pack: ARM::CMSIS@6.1.0
       selected-by: ARM::CMSIS:CORE
       files:
-        - file: D:/PACK_test/ARM/CMSIS/6.1.0/CMSIS/Core/Include
+        - file: C:/Keil_v5/ARM/PACK/ARM/CMSIS/6.1.0/CMSIS/Core/Include
           category: include
           version: 6.1.0
-        - file: D:/PACK_test/ARM/CMSIS/6.1.0/CMSIS/Core/Include/tz_context.h
+        - file: C:/Keil_v5/ARM/PACK/ARM/CMSIS/6.1.0/CMSIS/Core/Include/tz_context.h
           category: header
           version: 6.1.0
-        - file: D:/PACK_test/ARM/CMSIS/6.1.0/CMSIS/Core/Template/ARMv8-M/main_s.c
+        - file: C:/Keil_v5/ARM/PACK/ARM/CMSIS/6.1.0/CMSIS/Core/Template/ARMv8-M/main_s.c
           category: sourceC
           attr: template
           version: 1.1.1
           select: Secure mode 'main' module for ARMv8-M
-        - file: D:/PACK_test/ARM/CMSIS/6.1.0/CMSIS/Core/Template/ARMv8-M/tz_context.c
+        - file: C:/Keil_v5/ARM/PACK/ARM/CMSIS/6.1.0/CMSIS/Core/Template/ARMv8-M/tz_context.c
           category: sourceC
           attr: template
           version: 1.1.1
           select: RTOS Context Management (TrustZone for ARMv8-M)
-        - file: D:/PACK_test/ARM/CMSIS/6.1.0/CMSIS/Documentation/html/Core/index.html
+        - file: C:/Keil_v5/ARM/PACK/ARM/CMSIS/6.1.0/CMSIS/Documentation/html/Core/index.html
           category: doc
           version: 6.1.0
     - component: Keil::Device:CubeMX@1.0.0
       condition: STM32WL CMSIS
-      from-pack: Keil::STM32WLxx_DFP@2.0.0-dev
+      from-pack: Keil::STM32WLxx_DFP@2.0.0
       selected-by: Device:CubeMX
       generator:
         id: CubeMX
-        path: D:/GitHub/Open-CMSIS-Pack/generator-bridge/testdata/testExamples/STM32WL_DC/test/STM32CubeMX/STM32WL54CCUx/CM4.cgen.yml
+        path: C:/github/minicarpet/generator-bridge/testdata/testExamples/STM32WL_DC/test/STM32CubeMX/STM32WL54CCUx/CM4.cgen.yml
   linker:
-    script: D:/GitHub/Open-CMSIS-Pack/generator-bridge/testdata/testExamples/STM32WL_DC/test/CM4/RTE/Device/STM32WL54CCUx_CM4/ac6_linker_script.sct.src
-    regions: D:/GitHub/Open-CMSIS-Pack/generator-bridge/testdata/testExamples/STM32WL_DC/test/CM4/RTE/Device/STM32WL54CCUx_CM4/regions_STM32WL54CCUx_CM4.h
+    script: C:/github/minicarpet/generator-bridge/testdata/testExamples/STM32WL_DC/test/CM4/RTE/Device/STM32WL54CCUx_CM4/ac6_linker_script.sct.src
+    regions: C:/github/minicarpet/generator-bridge/testdata/testExamples/STM32WL_DC/test/CM4/RTE/Device/STM32WL54CCUx_CM4/regions_STM32WL54CCUx_CM4.h
   constructed-files:
-    - file: D:/GitHub/Open-CMSIS-Pack/generator-bridge/testdata/testExamples/STM32WL_DC/test/CM4/RTE/_Debug_STM32WL54CCUx/RTE_Components.h
+    - file: C:/github/minicarpet/generator-bridge/testdata/testExamples/STM32WL_DC/test/CM4/RTE/_Debug_STM32WL54CCUx/RTE_Components.h
       category: header
   licenses:
     - license: Apache-2.0
       packs:
         - pack: ARM::CMSIS@6.1.0
-        - pack: Keil::STM32WLxx_DFP@2.0.0-dev
+        - pack: Keil::STM32WLxx_DFP@2.0.0
       components:
         - component: ARM::CMSIS:CORE@6.1.0
         - component: Keil::Device:CubeMX@1.0.0

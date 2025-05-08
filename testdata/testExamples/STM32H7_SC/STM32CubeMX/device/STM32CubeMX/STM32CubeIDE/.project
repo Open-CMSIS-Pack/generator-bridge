@@ -36,6 +36,21 @@
 			<locationURI>PARENT-1-PROJECT_LOC/STM32CubeMX.ioc</locationURI>
 		</link>
 		<link>
+			<name>Application/User/eth.c</name>
+			<type>1</type>
+			<locationURI>PARENT-1-PROJECT_LOC/Src/eth.c</locationURI>
+		</link>
+		<link>
+			<name>Application/User/gpio.c</name>
+			<type>1</type>
+			<locationURI>PARENT-1-PROJECT_LOC/Src/gpio.c</locationURI>
+		</link>
+		<link>
+			<name>Application/User/i2c.c</name>
+			<type>1</type>
+			<locationURI>PARENT-1-PROJECT_LOC/Src/i2c.c</locationURI>
+		</link>
+		<link>
 			<name>Application/User/main.c</name>
 			<type>1</type>
 			<locationURI>PARENT-1-PROJECT_LOC/Src/main.c</locationURI>
@@ -144,16 +159,6 @@
 			<name>Drivers/STM32H7xx_HAL_Driver/stm32h7xx_hal_rcc_ex.c</name>
 			<type>1</type>
 			<locationURI>PARENT-1-PROJECT_LOC/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_rcc_ex.c</locationURI>
-		</link>
-		<link>
-			<name>Drivers/STM32H7xx_HAL_Driver/stm32h7xx_hal_tim.c</name>
-			<type>1</type>
-			<locationURI>PARENT-1-PROJECT_LOC/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_tim.c</locationURI>
-		</link>
-		<link>
-			<name>Drivers/STM32H7xx_HAL_Driver/stm32h7xx_hal_tim_ex.c</name>
-			<type>1</type>
-			<locationURI>PARENT-1-PROJECT_LOC/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_tim_ex.c</locationURI>
 		</link>
 	</linkedResources>
 </projectDescription>

@@ -1,0 +1,12 @@
+build-gen-idx:
+  generated-by: csolution version 2.6.0
+  generators:
+    - id: CubeMX
+      output: C:/github/minicarpet/generator-bridge/testdata/testExamples/STM32H5/STM32CubeMX/STM32H573IIKxQ
+      device: STM32H573IIKxQ
+      project-type: single-core
+      cbuild-gens:
+        - cbuild-gen: C:/github/minicarpet/generator-bridge/testdata/testExamples/STM32H5/tmp/CubeMX.Debug+STM32H573IIKxQ.cbuild-gen.yml
+          project: CubeMX
+          configuration: .Debug+STM32H573IIKxQ
+          name: C:/github/minicarpet/generator-bridge/testdata/testExamples/STM32H5/STM32CubeMX/STM32H573IIKxQ/CubeMX.cgen.yml

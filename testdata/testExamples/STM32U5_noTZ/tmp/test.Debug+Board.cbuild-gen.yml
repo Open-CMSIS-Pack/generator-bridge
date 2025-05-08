@@ -2,8 +2,8 @@ build-gen:
   generated-by: csolution version 2.6.0
   current-generator:
     id: CubeMX
-  solution: D:/GitHub/Open-CMSIS-Pack/generator-bridge/testdata/testExamples/STM32U5_noTZ/test.csolution.yml
-  project: D:/GitHub/Open-CMSIS-Pack/generator-bridge/testdata/testExamples/STM32U5_noTZ/test.cproject.yml
+  solution: C:/github/minicarpet/generator-bridge/testdata/testExamples/STM32U5_noTZ/test.csolution.yml
+  project: C:/github/minicarpet/generator-bridge/testdata/testExamples/STM32U5_noTZ/test.cproject.yml
   context: test.Debug+Board
   compiler: AC6
   board: STMicroelectronics::B-U585I-IOT02A
@@ -18,13 +18,13 @@ build-gen:
     core: Cortex-M33
   packs:
     - pack: ARM::CMSIS-Compiler@2.1.0
-      path: D:/PACK_test/ARM/CMSIS-Compiler/2.1.0
+      path: C:/Keil_v5/ARM/PACK/ARM/CMSIS-Compiler/2.1.0
     - pack: ARM::CMSIS@6.1.0
-      path: D:/PACK_test/ARM/CMSIS/6.1.0
+      path: C:/Keil_v5/ARM/PACK/ARM/CMSIS/6.1.0
     - pack: Keil::B-U585I-IOT02A_BSP@2.0.0
-      path: D:/PACK_test/Keil/B-U585I-IOT02A_BSP/2.0.0
+      path: C:/Keil_v5/ARM/PACK/Keil/B-U585I-IOT02A_BSP/2.0.0
     - pack: Keil::STM32U5xx_DFP@3.0.0
-      path: D:/PACK_test/Keil/STM32U5xx_DFP/3.0.0
+      path: C:/Keil_v5/ARM/PACK/Keil/STM32U5xx_DFP/3.0.0
   optimize: none
   debug: on
   misc:
@@ -54,15 +54,15 @@ build-gen:
     - STM32U585xx
     - _RTE_
   add-path:
-    - D:/GitHub/Open-CMSIS-Pack/generator-bridge/testdata/testExamples/STM32U5_noTZ/RTE/_Debug_Board
-    - D:/PACK_test/ARM/CMSIS/6.1.0/CMSIS/Core/Include
+    - C:/github/minicarpet/generator-bridge/testdata/testExamples/STM32U5_noTZ/RTE/_Debug_Board
+    - C:/Keil_v5/ARM/PACK/ARM/CMSIS/6.1.0/CMSIS/Core/Include
   add-path-asm:
-    - D:/GitHub/Open-CMSIS-Pack/generator-bridge/testdata/testExamples/STM32U5_noTZ/RTE/_Debug_Board
-    - D:/PACK_test/ARM/CMSIS/6.1.0/CMSIS/Core/Include
+    - C:/github/minicarpet/generator-bridge/testdata/testExamples/STM32U5_noTZ/RTE/_Debug_Board
+    - C:/Keil_v5/ARM/PACK/ARM/CMSIS/6.1.0/CMSIS/Core/Include
   output-dirs:
-    intdir: D:/GitHub/Open-CMSIS-Pack/generator-bridge/testdata/testExamples/STM32U5_noTZ/tmp
-    outdir: D:/GitHub/Open-CMSIS-Pack/generator-bridge/testdata/testExamples/STM32U5_noTZ/out/test/Board/Debug
-    rtedir: D:/GitHub/Open-CMSIS-Pack/generator-bridge/testdata/testExamples/STM32U5_noTZ/RTE
+    intdir: C:/github/minicarpet/generator-bridge/testdata/testExamples/STM32U5_noTZ/tmp
+    outdir: C:/github/minicarpet/generator-bridge/testdata/testExamples/STM32U5_noTZ/out/test/Board/Debug
+    rtedir: C:/github/minicarpet/generator-bridge/testdata/testExamples/STM32U5_noTZ/RTE
   output:
     - type: elf
       file: test.axf
@@ -72,7 +72,7 @@ build-gen:
       from-pack: ARM::CMSIS-Compiler@2.1.0
       selected-by: ARM::CMSIS-Compiler:CORE
       files:
-        - file: D:/PACK_test/ARM/CMSIS-Compiler/2.1.0/source/armcc/retarget_io.c
+        - file: C:/Keil_v5/ARM/PACK/ARM/CMSIS-Compiler/2.1.0/source/armcc/retarget_io.c
           category: sourceC
           version: 1.1.0
     - component: ARM::CMSIS:CORE@6.1.0
@@ -80,13 +80,13 @@ build-gen:
       from-pack: ARM::CMSIS@6.1.0
       selected-by: ARM::CMSIS:CORE
       files:
-        - file: D:/PACK_test/ARM/CMSIS/6.1.0/CMSIS/Core/Include
+        - file: C:/Keil_v5/ARM/PACK/ARM/CMSIS/6.1.0/CMSIS/Core/Include
           category: include
           version: 6.1.0
-        - file: D:/PACK_test/ARM/CMSIS/6.1.0/CMSIS/Core/Include/tz_context.h
+        - file: C:/Keil_v5/ARM/PACK/ARM/CMSIS/6.1.0/CMSIS/Core/Include/tz_context.h
           category: header
           version: 6.1.0
-        - file: D:/PACK_test/ARM/CMSIS/6.1.0/CMSIS/Documentation/html/Core/index.html
+        - file: C:/Keil_v5/ARM/PACK/ARM/CMSIS/6.1.0/CMSIS/Documentation/html/Core/index.html
           category: doc
           version: 6.1.0
     - component: Keil::Device:CubeMX@1.0.0
@@ -95,10 +95,13 @@ build-gen:
       selected-by: Device:CubeMX
       generator:
         id: CubeMX
-        path: D:/GitHub/Open-CMSIS-Pack/generator-bridge/testdata/testExamples/STM32U5_noTZ/STM32CubeMX/Board/test.cgen.yml
+        path: C:/github/minicarpet/generator-bridge/testdata/testExamples/STM32U5_noTZ/STM32CubeMX/Board/test.cgen.yml
   linker:
-    script: D:/GitHub/Open-CMSIS-Pack/generator-bridge/testdata/testExamples/STM32U5_noTZ/RTE/Device/STM32U585AIIx/ac6_linker_script.sct.src
-    regions: D:/GitHub/Open-CMSIS-Pack/generator-bridge/testdata/testExamples/STM32U5_noTZ/RTE/Device/STM32U585AIIx/regions_B-U585I-IOT02A.h
+    script: C:/github/minicarpet/generator-bridge/testdata/testExamples/STM32U5_noTZ/RTE/Device/STM32U585AIIx/ac6_linker_script.sct.src
+    regions: C:/github/minicarpet/generator-bridge/testdata/testExamples/STM32U5_noTZ/RTE/Device/STM32U585AIIx/regions_B-U585I-IOT02A.h
+  constructed-files:
+    - file: C:/github/minicarpet/generator-bridge/testdata/testExamples/STM32U5_noTZ/RTE/_Debug_Board/RTE_Components.h
+      category: header
   licenses:
     - license: Apache-2.0
       packs:

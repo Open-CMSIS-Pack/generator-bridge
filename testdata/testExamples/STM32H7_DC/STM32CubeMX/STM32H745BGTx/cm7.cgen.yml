@@ -4,6 +4,7 @@ generator-import:
     - CORE_CM7
     - USE_HAL_DRIVER
     - STM32H745xx
+    - USE_PWR_DIRECT_SMPS_SUPPLY
   add-path:
     - ./STM32CubeMX/Drivers/STM32H7xx_HAL_Driver/Inc
     - ./STM32CubeMX/Drivers/STM32H7xx_HAL_Driver/Inc/Legacy
@@ -21,8 +22,8 @@ generator-import:
     - group: STM32 HAL Driver
       files:
         - file: ./STM32CubeMX/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_cortex.c
-        - file: ./STM32CubeMX/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_tim.c
-        - file: ./STM32CubeMX/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_tim_ex.c
+        - file: ./STM32CubeMX/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_pwr.c
+        - file: ./STM32CubeMX/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_pwr_ex.c
         - file: ./STM32CubeMX/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_rcc.c
         - file: ./STM32CubeMX/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_rcc_ex.c
         - file: ./STM32CubeMX/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_flash.c
@@ -32,8 +33,6 @@ generator-import:
         - file: ./STM32CubeMX/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_dma.c
         - file: ./STM32CubeMX/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_dma_ex.c
         - file: ./STM32CubeMX/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_mdma.c
-        - file: ./STM32CubeMX/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_pwr.c
-        - file: ./STM32CubeMX/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_pwr_ex.c
         - file: ./STM32CubeMX/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal.c
         - file: ./STM32CubeMX/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_i2c.c
         - file: ./STM32CubeMX/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_i2c_ex.c

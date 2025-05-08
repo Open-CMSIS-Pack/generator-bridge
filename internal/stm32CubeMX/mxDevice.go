@@ -193,80 +193,68 @@ func writeMXdeviceH(contextMap map[string]map[string]string, srcFolder string, m
 		}
 
 		if generatedAsPair == "true" {
-			/* search into file peripheral */
-			if strings.Contains(peripheral, "I2C") {
-				i2c := path.Join(srcFolderAbs, "i2c.c")
-				i2c = filepath.Clean(i2c)
-				i2c = filepath.ToSlash(i2c)
-				fI2C, errI2c := os.Open(i2c)
-				if errI2c != nil {
-					return errI2c
-				} else {
-					i2cInfo, err = getI2cInfo(fI2C, peripheral)
-					if err != nil {
-						return err
+
+			periName := map[string]string{
+				"USART":  "usart.c",
+				"UART":   "usart.c",
+				"LPUART": "usart.c",
+				"SPI":    "spi.c",
+				"I2C":    "i2c.c",
+				"ETH":    "eth.c",
+				"SDMMC":  "sdmmc.c",
+				"CAN":    "can.c",
+				"USB":    "usb.c",
+				"SDIO":   "sdio.c"}
+
+			for key, value := range periName {
+				/* search for peripherals to handle pins*/
+				if strings.Contains(peripheral, key) {
+					fileName := value
+					if strings.Contains(peripheral, "OTG") {
+						fileName = "usb_otg.c"
+					} else if strings.Contains(peripheral, "FD") {
+						fileName = "fdcan.c"
 					}
-					pins, err = getPins(contextMap, fI2C, peripheral)
-					if err != nil {
-						return err
+					periPath := path.Join(srcFolderAbs, fileName)
+					periPath = filepath.Clean(periPath)
+					periPath = filepath.ToSlash(periPath)
+					fPeri, errPeri := os.Open(periPath)
+					if errPeri != nil {
+						return errPeri
+					} else {
+						pins, err = getPins(contextMap, fPeri, peripheral)
+						if err != nil {
+							return err
+						}
 					}
-					defer fI2C.Close()
-				}
-			} else if strings.Contains(peripheral, "USB") {
-				usbFileName := "usb.c"
-				if strings.Contains(peripheral, "OTG") {
-					usbFileName = "usb_otg.c"
-				}
-				usb := path.Join(srcFolderAbs, usbFileName)
-				usb = filepath.Clean(usb)
-				usb = filepath.ToSlash(usb)
-				fUsb, errUsb := os.Open(usb)
-				if errUsb != nil {
-					return errUsb
-				} else {
-					usbHandle, err = getUSBHandle(fUsb, peripheral)
-					if err != nil {
-						return err
+					/* peripherals custom infos */
+					if strings.Contains(peripheral, "I2C") {
+						i2cInfo, err = getI2cInfo(fPeri, peripheral)
+						if err != nil {
+							return err
+						}
+					} else if strings.Contains(peripheral, "USB") {
+						usbHandle, err = getUSBHandle(fPeri, peripheral)
+						if err != nil {
+							return err
+						}
+					} else if strings.Contains(peripheral, "SDMMC") {
+						mciMode, err = getMCIMode(fPeri, peripheral)
+						if err != nil {
+							return err
+						}
+					} else if strings.Contains(peripheral, "SDIO") {
+						mciMode, err = getMCIMode(fPeri, peripheral)
+						if err != nil {
+							return err
+						}
+					} else if strings.Contains(peripheral, "SPI") {
+						if freq == "" {
+							freq = getSPIFreq(fPeri, contextMap, peripheral)
+						}
 					}
-					pins, err = getPins(contextMap, fUsb, peripheral)
-					if err != nil {
-						return err
-					}
-					defer fUsb.Close()
-				}
-			} else if strings.Contains(peripheral, "SDMMC") {
-				mmc := path.Join(srcFolderAbs, "sdmmc.c")
-				mmc = filepath.Clean(mmc)
-				mmc = filepath.ToSlash(mmc)
-				fMMC, errMmc := os.Open(mmc)
-				if errMmc != nil {
-					return errMmc
-				} else {
-					mciMode, err = getMCIMode(fMMC, peripheral)
-					if err != nil {
-						return err
-					}
-					pins, err = getPins(contextMap, fMMC, peripheral)
-					if err != nil {
-						return err
-					}
-					defer fMMC.Close()
-				}
-			} else if strings.Contains(peripheral, "SPI") {
-				spi := path.Join(srcFolderAbs, "spi.c")
-				spi = filepath.Clean(spi)
-				spi = filepath.ToSlash(spi)
-				fSPI, errSpi := os.Open(spi)
-				if errSpi != nil {
-					return errSpi
-				}
-				defer fSPI.Close()
-				pins, err = getPins(contextMap, fSPI, peripheral)
-				if err != nil {
-					return err
-				}
-				if freq == "" {
-					freq = getSPIFreq(fSPI, contextMap, peripheral)
+					defer fPeri.Close()
+					break
 				}
 			}
 		} else {

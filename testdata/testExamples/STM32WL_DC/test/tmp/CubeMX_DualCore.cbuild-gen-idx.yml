@@ -2,17 +2,17 @@ build-gen-idx:
   generated-by: csolution version 2.6.0
   generators:
     - id: CubeMX
-      output: D:/GitHub/Open-CMSIS-Pack/generator-bridge/testdata/testExamples/STM32WL_DC/test/STM32CubeMX/STM32WL54CCUx
+      output: C:/github/minicarpet/generator-bridge/testdata/testExamples/STM32WL_DC/test/STM32CubeMX/STM32WL54CCUx
       device: STM32WL54CCUx
       project-type: multi-core
       cbuild-gens:
-        - cbuild-gen: D:/GitHub/Open-CMSIS-Pack/generator-bridge/testdata/testExamples/STM32WL_DC/test/tmp/CM0PLUS.Debug+STM32WL54CCUx.cbuild-gen.yml
+        - cbuild-gen: C:/github/minicarpet/generator-bridge/testdata/testExamples/STM32WL_DC/test/tmp/CM0PLUS.Debug+STM32WL54CCUx.cbuild-gen.yml
           project: CM0PLUS
           configuration: .Debug+STM32WL54CCUx
           for-project-part: CM0P
-          name: D:/GitHub/Open-CMSIS-Pack/generator-bridge/testdata/testExamples/STM32WL_DC/test/STM32CubeMX/STM32WL54CCUx/CM0PLUS.cgen.yml
-        - cbuild-gen: D:/GitHub/Open-CMSIS-Pack/generator-bridge/testdata/testExamples/STM32WL_DC/test/tmp/CM4.Debug+STM32WL54CCUx.cbuild-gen.yml
+          name: C:/github/minicarpet/generator-bridge/testdata/testExamples/STM32WL_DC/test/STM32CubeMX/STM32WL54CCUx/CM0PLUS.cgen.yml
+        - cbuild-gen: C:/github/minicarpet/generator-bridge/testdata/testExamples/STM32WL_DC/test/tmp/CM4.Debug+STM32WL54CCUx.cbuild-gen.yml
           project: CM4
           configuration: .Debug+STM32WL54CCUx
           for-project-part: CM4
-          name: D:/GitHub/Open-CMSIS-Pack/generator-bridge/testdata/testExamples/STM32WL_DC/test/STM32CubeMX/STM32WL54CCUx/CM4.cgen.yml
+          name: C:/github/minicarpet/generator-bridge/testdata/testExamples/STM32WL_DC/test/STM32CubeMX/STM32WL54CCUx/CM4.cgen.yml

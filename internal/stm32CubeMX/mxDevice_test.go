@@ -12,10 +12,91 @@ import (
 	"errors"
 	"io"
 	"os"
+	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 )
+
+func Test_MXDeviceContexts(t *testing.T) {
+
+	tests := []struct {
+		name       string
+		cfgPath    string
+		cfgName    string
+		cfgRefName string
+		wantErr    bool
+	}{
+		{"STM32H7_SC", "STM32H7_SC/STM32CubeMX/device/MX_Device/", "MX_Device.h", "MX_Device_ref.h", false},
+		{"STM32H7_DC:CM4", "STM32H7_DC/STM32CubeMX/STM32H745BGTx/MX_Device/CM4/", "MX_Device.h", "MX_Device_ref.h", false},
+		{"STM32H7_DC:CM7", "STM32H7_DC/STM32CubeMX/STM32H745BGTx/MX_Device/CM7/", "MX_Device.h", "MX_Device_ref.h", false},
+		{"STM32U5_noTZ", "STM32U5_noTZ/STM32CubeMX/Board/MX_Device/", "MX_Device.h", "MX_Device_ref.h", false},
+		{"STM32U5_TZ:NonSecure", "STM32U5_TZ/STM32CubeMX/Board/MX_Device/NonSecure/", "MX_Device.h", "MX_Device_ref.h", false},
+		{"STM32U5_TZ:Secure", "STM32U5_TZ/STM32CubeMX/Board/MX_Device/Secure/", "MX_Device.h", "MX_Device_ref.h", false},
+		{"STM32WL_DC:CM0PLUS", "STM32WL_DC/test/STM32CubeMX/STM32WL54CCUx/MX_Device/CM0PLUS/", "MX_Device.h", "MX_Device_ref.h", false},
+		{"STM32WL_DC:CM4", "STM32WL_DC/test/STM32CubeMX/STM32WL54CCUx/MX_Device/CM4/", "MX_Device.h", "MX_Device_ref.h", false},
+		{"STM32H5", "STM32H5/STM32CubeMX/STM32H573IIKxQ/MX_Device/", "MX_Device.h", "MX_Device_ref.h", false},
+		{"STM32H7", "STM32H7/STM32CubeMX/STM32H743XIHx/MX_Device/", "MX_Device.h", "MX_Device_ref.h", false},
+		{"STM32F7", "STM32F7/STM32CubeMX/STM32F746NGHx/MX_Device/", "MX_Device.h", "MX_Device_ref.h", false},
+		{"STM32U5", "STM32U5/STM32CubeMX/STM32U5G9ZJTxQ/MX_Device/", "MX_Device.h", "MX_Device_ref.h", false},
+		{"STM32F2", "STM32F2/STM32CubeMX/STM32F217IGHx/MX_Device/", "MX_Device.h", "MX_Device_ref.h", false},
+		{"STM32F4", "STM32F4/STM32CubeMX/STM32F469NIHx/MX_Device/", "MX_Device.h", "MX_Device_ref.h", false},
+		{"STM32G4", "STM32G4/STM32CubeMX/STM32G474QETx/MX_Device/", "MX_Device.h", "MX_Device_ref.h", false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+
+			tt.cfgPath = filepath.Join("../../testdata/testExamples/", tt.cfgPath)
+
+			data, err := os.ReadFile(filepath.Join(tt.cfgPath, tt.cfgName))
+			if err != nil {
+				t.Errorf(" %s; cannot open MX_Device.h file", tt.name)
+				return
+			}
+
+			dataRef, errRef := os.ReadFile(filepath.Join(tt.cfgPath, tt.cfgRefName))
+			if errRef != nil {
+				t.Errorf(" %s; cannot open MX_Device_ref.h file", tt.name)
+				return
+			}
+
+			// Normalize line endings inline
+			content := strings.ReplaceAll(string(data), "\r\n", "\n")
+			contentRef := strings.ReplaceAll(string(dataRef), "\r\n", "\n")
+
+			lines := strings.Split(content, "\n")
+			linesRef := strings.Split(contentRef, "\n")
+
+			content = strings.Join(lines[3:], "\n")
+			contentRef = strings.Join(linesRef[3:], "\n")
+
+			if reflect.DeepEqual((content != contentRef), !tt.wantErr) {
+				t.Errorf(" %s; MX_Device.h file content mismatch", tt.name)
+			}
+		})
+	}
+}
+
+func Test_ReadContexts(t *testing.T) {
+
+	tests := []struct {
+		name    string
+		iocFile string
+		params  BridgeParamType
+		wantErr bool
+	}{
+		{"STM32H7_SC", "../../testdata/testExamples/STM32H7_SC/STM32CubeMX/device/STM32CubeMX/STM32CubeMX.ioc", BridgeParamType{"device", "", "STM32H743AGIx", "", "test", "single-core", "", "", "AC6", "", "test", "", ""}, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			argsSlice := []BridgeParamType{tt.params}
+			if err := ReadContexts(tt.iocFile, argsSlice); (err != nil) != tt.wantErr {
+				t.Errorf("ReadContexts() %s error = %v, wantErr %v", tt.name, err, tt.wantErr)
+			}
+		})
+	}
+}
 
 func Test_createContextMap(t *testing.T) {
 	t.Parallel()
