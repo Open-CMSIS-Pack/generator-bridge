@@ -2,6 +2,7 @@ name: Test
 
 on:
   workflow_dispatch:
+  workflow_call:
   push: 
     branches: [main]
   pull_request:
@@ -166,7 +167,7 @@ jobs:
       - name: Archive test results
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: ${{ env.program }}-test-result-${{ matrix.target }}-${{ matrix.arch }}
+          name: test-results-${{ matrix.target }}-${{ matrix.arch }}
           path: ./build/${{ env.program }}-testreport-*.xml
           retention-days: 1
           if-no-files-found: error
