@@ -320,6 +320,7 @@ func Test_GetRelativePathAdd(t *testing.T) {
 				t.Errorf("GetRelativePathAdd() %s error = %v, wantErr %v", tt.name, err, tt.wantErr)
 				return
 			}
+			got = filepath.ToSlash(got)
 			if got != tt.want {
 				t.Errorf("GetRelativePathAdd() %s = %v, want %v", tt.name, got, tt.want)
 			}
@@ -359,6 +360,7 @@ func Test_GetToolchainFolderPath(t *testing.T) {
 				t.Errorf("GetToolchainFolderPath() %s error = %v, wantErr %v", tt.name, err, tt.wantErr)
 				return
 			}
+			got = filepath.ToSlash(got)
 			if got != tt.want {
 				t.Errorf("GetToolchainFolderPath() %s = %v, want %v", tt.name, got, tt.want)
 			}

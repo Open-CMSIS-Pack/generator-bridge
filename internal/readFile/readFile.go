@@ -9,7 +9,6 @@ package readfile
 import (
 	"errors"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 
@@ -64,18 +63,18 @@ func Process(inFile, inFile2, outPath string) error {
 		if err != nil {
 			return err
 		}
-		workDir := path.Dir(inFile)
+		workDir := filepath.Dir(inFile)
 		if params[0].Output != "" {
 			if filepath.IsAbs(params[0].Output) {
 				workDir = params[0].Output
 			} else {
-				workDir = path.Join(workDir, params[0].Output)
+				workDir = filepath.Join(workDir, params[0].Output)
 			}
 		} else {
 			if filepath.IsAbs(outPath) {
 				workDir = outPath
 			} else {
-				workDir = path.Join(workDir, outPath)
+				workDir = filepath.Join(workDir, outPath)
 			}
 		}
 		workDir = filepath.Clean(workDir)
