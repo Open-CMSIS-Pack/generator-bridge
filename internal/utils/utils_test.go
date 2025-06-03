@@ -144,6 +144,7 @@ func TestConvertFilename(t *testing.T) {
 		want    string
 		wantErr bool
 	}{
+		{"testNetwork", args{"../../testdata", "\\\\network\\test.ioc", "stm32cubemx"}, true, "//network/test.ioc", false},
 		{"testAbs", args{"../../testdata", "C:/test.ioc", "stm32cubemx"}, true, "C:/test.ioc", false},
 		{"test", args{"../../testdata", "test.ioc", "stm32cubemx"}, false, "./stm32cubemx/test.ioc", false},
 		{"nix", args{"../../testdata", "nix", "stm32cubemx"}, false, "./stm32cubemx/nix", false},

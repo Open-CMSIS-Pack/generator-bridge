@@ -9,7 +9,6 @@ package utils
 import (
 	"errors"
 	"os"
-	"path"
 	"path/filepath"
 
 	log "github.com/sirupsen/logrus"
@@ -72,8 +71,8 @@ func ConvertFilename(outPath, file, relativePathAdd string) (string, error) {
 
 	// Check if the file is absolute
 	if !filepath.IsAbs(file) {
-		toolchainPath := path.Join(outPath, relativePathAdd) // create the path where STCube sets it's files relative to toolchain folder( example :./STM32CubeMX/MDK-ARM/)
-		file = path.Join(toolchainPath, file)
+		toolchainPath := filepath.Join(outPath, relativePathAdd) // create the path where STCube sets it's files relative to toolchain folder( example :./STM32CubeMX/MDK-ARM/)
+		file = filepath.Join(toolchainPath, file)
 	}
 
 	if _, err := os.Stat(file); errors.Is(err, os.ErrNotExist) {

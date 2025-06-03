@@ -12,7 +12,6 @@ import (
 	"io/fs"
 	"os"
 	"os/exec"
-	"path"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -86,8 +85,7 @@ func Process(cbuildGenIdxYmlPath, outPath, cubeMxPath string, runCubeMx bool, pi
 			return err
 		}
 		exPath := filepath.Dir(ex)
-		exPath = filepath.ToSlash(exPath)
-		cRoot = path.Dir(exPath)
+		cRoot = filepath.Dir(exPath)
 	}
 	var generatorFile string
 	err := filepath.Walk(cRoot, func(path string, f fs.FileInfo, err error) error {
@@ -122,15 +120,19 @@ func Process(cbuildGenIdxYmlPath, outPath, cubeMxPath string, runCubeMx bool, pi
 		return err
 	}
 
-	workDir := path.Dir(cbuildGenIdxYmlPath)
+	workDir := filepath.Dir(cbuildGenIdxYmlPath)
 	if parms.Output != "" {
 		if filepath.IsAbs(parms.Output) {
 			workDir = parms.Output
 		} else {
-			workDir = path.Join(workDir, parms.Output)
+			workDir = filepath.Join(workDir, parms.Output)
 		}
 	} else {
-		workDir = path.Join(workDir, outPath)
+		if filepath.IsAbs(outPath) {
+			workDir = outPath
+		} else {
+			workDir = filepath.Join(workDir, outPath)
+		}
 	}
 	workDir = filepath.Clean(workDir)
 	workDir = filepath.ToSlash(workDir)
@@ -144,10 +146,10 @@ func Process(cbuildGenIdxYmlPath, outPath, cubeMxPath string, runCubeMx bool, pi
 	if pid >= 0 {
 		lastPath := filepath.Base(cubeIocPath)
 		if lastPath != "STM32CubeMX" {
-			cubeIocPath = path.Join(cubeIocPath, "STM32CubeMX")
+			cubeIocPath = filepath.Join(cubeIocPath, "STM32CubeMX")
 		}
-		iocprojectPath := path.Join(cubeIocPath, "STM32CubeMX.ioc")
-		mxprojectPath := path.Join(cubeIocPath, ".mxproject")
+		iocprojectPath := filepath.Join(cubeIocPath, "STM32CubeMX.ioc")
+		mxprojectPath := filepath.Join(cubeIocPath, ".mxproject")
 		log.Debugf("pid of CubeMX in daemon: %d", pid)
 		running = true
 		first := true
@@ -272,9 +274,9 @@ func Process(cbuildGenIdxYmlPath, outPath, cubeMxPath string, runCubeMx bool, pi
 	if runCubeMx {
 		lastPath := filepath.Base(cubeIocPath)
 		if lastPath != "STM32CubeMX" {
-			cubeIocPath = path.Join(cubeIocPath, "STM32CubeMX")
+			cubeIocPath = filepath.Join(cubeIocPath, "STM32CubeMX")
 		}
-		cubeIocPath = path.Join(cubeIocPath, "STM32CubeMX.ioc")
+		cubeIocPath = filepath.Join(cubeIocPath, "STM32CubeMX.ioc")
 
 		var err error
 		var pid int
@@ -339,17 +341,19 @@ func Launch(iocFile, projectFile string) (int, error) {
 
 	switch runtime.GOOS {
 	case "windows":
-		pathJava = path.Join(cubeEnv, "jre", "bin", "java.exe")
-		pathCubeMx = path.Join(cubeEnv, "STM32CubeMX.exe")
+		pathJava = filepath.Join(cubeEnv, "jre", "bin", "java.exe")
+		pathCubeMx = filepath.Join(cubeEnv, "STM32CubeMX.exe")
+
 	case "darwin":
-		pathJava = path.Join(cubeEnv, "jre", "Contents", "Home", "bin", "java")
-		arg0 = path.Join(cubeEnv, "stm32cubemx.icns")
+		pathJava = filepath.Join(cubeEnv, "jre", "Contents", "Home", "bin", "java")
+		arg0 = filepath.Join(cubeEnv, "stm32cubemx.icns")
 		arg0 = "-Xdock:icon=" + arg0
 		arg1 = "-Xdock:name=STM32CubeMX"
-		pathCubeMx = path.Join(cubeEnv, "STM32CubeMX")
+		pathCubeMx = filepath.Join(cubeEnv, "STM32CubeMX")
+
 	default:
-		pathJava = path.Join(cubeEnv, "jre", "bin", "java")
-		pathCubeMx = path.Join(cubeEnv, "STM32CubeMX")
+		pathJava = filepath.Join(cubeEnv, "jre", "bin", "java")
+		pathCubeMx = filepath.Join(cubeEnv, "STM32CubeMX")
 	}
 
 	if runtime.GOOS == "darwin" {
@@ -626,7 +630,7 @@ func WriteCgenYmlSub(outPath string, mxproject MxprojectType, bridgeParam Bridge
 
 	cfgPath := "MX_Device"
 	if bridgeParam.CubeContextFolder != "" {
-		cfgPath = path.Join(cfgPath, bridgeParam.CubeContextFolder)
+		cfgPath = filepath.Join(cfgPath, bridgeParam.CubeContextFolder)
 	}
 	cfgPath, _ = utils.ConvertFilename(outPath, cfgPath, "")
 	cgen.GeneratorImport.AddPath = append(cgen.GeneratorImport.AddPath, cfgPath)
@@ -739,9 +743,9 @@ func GetRelativePathAdd(outPath string, compiler string) (string, error) {
 	lastPath := filepath.Base(outPath)
 	var relativePathAdd string
 	if lastPath != "STM32CubeMX" {
-		relativePathAdd = path.Join(relativePathAdd, "STM32CubeMX")
+		relativePathAdd = filepath.Join(relativePathAdd, "STM32CubeMX")
 	}
-	relativePathAdd = path.Join(relativePathAdd, folder)
+	relativePathAdd = filepath.Join(relativePathAdd, folder)
 
 	return relativePathAdd, nil
 }
@@ -762,9 +766,9 @@ func GetToolchainFolderPath(outPath string, compiler string) (string, error) {
 	lastPath := filepath.Base(outPath)
 	toolchainFolderPath := outPath
 	if lastPath != "STM32CubeMX" {
-		toolchainFolderPath = path.Join(outPath, "STM32CubeMX")
+		toolchainFolderPath = filepath.Join(outPath, "STM32CubeMX")
 	}
-	toolchainFolderPath = path.Join(toolchainFolderPath, toolchainFolder)
+	toolchainFolderPath = filepath.Join(toolchainFolderPath, toolchainFolder)
 
 	return toolchainFolderPath, nil
 }
@@ -784,7 +788,7 @@ func GetStartupFile(outPath string, bridgeParams BridgeParamType) (string, error
 	}
 
 	if bridgeParams.Compiler == "GCC" || bridgeParams.Compiler == "CLANG" {
-		startupFolder = path.Join(startupFolder, bridgeParams.CubeContextFolder, "Application", "Startup")
+		startupFolder = filepath.Join(startupFolder, bridgeParams.CubeContextFolder, "Application", "Startup")
 	}
 
 	if !utils.DirExists(startupFolder) {
@@ -854,7 +858,7 @@ func GetSystemFile(outPath string, bridgeParams BridgeParamType) (string, error)
 
 	if bridgeParams.ProjectType == "multi-core" {
 		systemFolder = filepath.Dir(toolchainFolder)
-		systemFolder = path.Join(systemFolder, "Common")
+		systemFolder = filepath.Join(systemFolder, "Common")
 		if !utils.DirExists(toolchainFolder) {
 			systemFolder = ""
 		}
@@ -864,10 +868,10 @@ func GetSystemFile(outPath string, bridgeParams BridgeParamType) (string, error)
 		systemFolder = filepath.Dir(toolchainFolder)
 
 		if bridgeParams.CubeContextFolder != "" {
-			systemFolder = path.Join(systemFolder, bridgeParams.CubeContextFolder)
+			systemFolder = filepath.Join(systemFolder, bridgeParams.CubeContextFolder)
 		}
 
-		systemFolder = path.Join(systemFolder, "Src")
+		systemFolder = filepath.Join(systemFolder, "Src")
 	}
 
 	if !utils.DirExists(systemFolder) {
@@ -917,7 +921,7 @@ func GetSystemFile(outPath string, bridgeParams BridgeParamType) (string, error)
 // 	}
 
 // 	if bridgeParams.GeneratorMap != "" {
-// 		linkerFolder = path.Join(linkerFolder, bridgeParams.GeneratorMap)
+// 		linkerFolder = filepath.Join(linkerFolder, bridgeParams.GeneratorMap)
 // 	}
 
 // 	switch bridgeParams.Compiler {
@@ -939,13 +943,13 @@ func GetSystemFile(outPath string, bridgeParams BridgeParamType) (string, error)
 // 	case "GCC", "CLANG":
 // 		switch bridgeParams.ProjectType {
 // 		case "multi-core":
-// 			linkerFolder = path.Join(linkerFolder, bridgeParams.ForProjectPart)
+// 			linkerFolder = filepath.Join(linkerFolder, bridgeParams.ForProjectPart)
 // 		case "trustzone":
 // 			if bridgeParams.ForProjectPart == "secure" {
-// 				linkerFolder = path.Join(linkerFolder, "Secure")
+// 				linkerFolder = filepath.Join(linkerFolder, "Secure")
 // 			}
 // 			if bridgeParams.ForProjectPart == "non-secure" {
-// 				linkerFolder = path.Join(linkerFolder, "NonSecure")
+// 				linkerFolder = filepath.Join(linkerFolder, "NonSecure")
 // 			}
 // 		}
 // 	default:

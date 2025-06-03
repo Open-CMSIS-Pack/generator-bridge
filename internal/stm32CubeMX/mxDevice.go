@@ -12,7 +12,6 @@ import (
 	"io/fs"
 	"math"
 	"os"
-	"path"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -42,7 +41,7 @@ func ReadContexts(iocFile string, params []BridgeParamType) error {
 		return err
 	}
 
-	workDir := path.Dir(iocFile)
+	workDir := filepath.Dir(iocFile)
 
 	mainFolder := contextMap["ProjectManager"]["MainLocation"]
 	if mainFolder == "" {
@@ -52,7 +51,7 @@ func ReadContexts(iocFile string, params []BridgeParamType) error {
 	for _, context := range contexts {
 		for _, parm := range params {
 			if parm.CubeContext == context {
-				srcFolderPath := path.Join(path.Join(workDir, parm.CubeContextFolder), mainFolder)
+				srcFolderPath := filepath.Join(filepath.Join(workDir, parm.CubeContextFolder), mainFolder)
 
 				var mspName string
 				err = filepath.Walk(srcFolderPath, func(path string, f fs.FileInfo, err error) error {
@@ -70,10 +69,10 @@ func ReadContexts(iocFile string, params []BridgeParamType) error {
 				}
 
 				var cfgPath string
-				cfgPath = path.Dir(workDir)
-				cfgPath = path.Join(cfgPath, "MX_Device")
+				cfgPath = filepath.Dir(workDir)
+				cfgPath = filepath.Join(cfgPath, "MX_Device")
 				if parm.CubeContextFolder != "" {
-					cfgPath = path.Join(cfgPath, parm.CubeContextFolder)
+					cfgPath = filepath.Join(cfgPath, parm.CubeContextFolder)
 				}
 				err := writeMXdeviceH(contextMap, srcFolderPath, mspName, cfgPath, context)
 				if err != nil {
@@ -127,16 +126,14 @@ func writeMXdeviceH(contextMap map[string]map[string]string, srcFolder string, m
 	var fMsp *os.File
 
 	if generatedAsPair != "true" {
-		main := path.Join(srcFolderAbs, "main.c")
-		main = filepath.Clean(main)
+		main := filepath.Join(srcFolderAbs, "main.c")
 		main = filepath.ToSlash(main)
 		fMain, err = os.Open(main)
 		if err != nil {
 			return err
 		}
 
-		msp := path.Join(srcFolderAbs, mspName)
-		msp = filepath.Clean(msp)
+		msp := filepath.Join(srcFolderAbs, mspName)
 		msp = filepath.ToSlash(msp)
 		fMsp, err = os.Open(msp)
 		if err != nil {
@@ -159,8 +156,7 @@ func writeMXdeviceH(contextMap map[string]map[string]string, srcFolder string, m
 			return err
 		}
 	}
-	fPath = path.Join(fPath, fName)
-	fPath = filepath.Clean(fPath)
+	fPath = filepath.Join(fPath, fName)
 	fPath = filepath.ToSlash(fPath)
 	fMxDevice, err := os.Create(fPath)
 	if err != nil {
@@ -215,8 +211,7 @@ func writeMXdeviceH(contextMap map[string]map[string]string, srcFolder string, m
 					} else if strings.Contains(peripheral, "FD") {
 						fileName = "fdcan.c"
 					}
-					periPath := path.Join(srcFolderAbs, fileName)
-					periPath = filepath.Clean(periPath)
+					periPath := filepath.Join(srcFolderAbs, fileName)
 					periPath = filepath.ToSlash(periPath)
 					fPeri, errPeri := os.Open(periPath)
 					if errPeri != nil {
