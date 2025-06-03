@@ -79,19 +79,15 @@ func ConvertFilename(outPath, file, relativePathAdd string) (string, error) {
 		log.Errorf("file or directory not found: %v", file)
 	}
 
-	// Check if the file is absolute again after the conversion
-	// This is needed because the file might be a relative path to the toolchain folder
-	if !filepath.IsAbs(file) {
-		var err error
-		origfilename := file
-		file, err = filepath.Rel(outPath, file)
-		if err != nil {
-			log.Errorf("path error found: %v", file)
-			return origfilename, errors.New("path error")
-		}
-		file = filepath.ToSlash(file)
-		file = "./" + file
+	var err error
+	origfilename := file
+	file, err = filepath.Rel(outPath, file)
+	if err != nil {
+		log.Errorf("path error found: %v", file)
+		return origfilename, nil
 	}
+	file = filepath.ToSlash(file)
+	file = "./" + file
 
 	return file, nil
 }
