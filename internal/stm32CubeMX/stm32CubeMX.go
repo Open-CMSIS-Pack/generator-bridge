@@ -386,7 +386,12 @@ func WriteProjectFile(workDir string, params BridgeParamType) (string, error) {
 	if params.BoardName != "" && params.BoardVendor == "STMicroelectronics" {
 		text.AddLine("loadboard", params.BoardName, "allmodes")
 	} else {
-		text.AddLine("load", params.Device)
+		split := strings.Split(params.Device, "::")
+		if len(split) >= 1 {
+			text.AddLine("load", split[len(split)-1])
+		} else {
+			text.AddLine("load", params.Device)
+		}
 	}
 	text.AddLine("project name", "STM32CubeMX")
 
