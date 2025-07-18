@@ -17,6 +17,7 @@ archives:
       - README.md
       - third_party_licenses.md
       - src: scripts/MCUXpresso_Config_Tools/{{.Os}}-{{.Arch}}/launch-MCUXpressoConfigTools*
+      - src: scripts/Infineon_Device_Configurator/{{.Os}}-{{.Arch}}/launch-Infineon_Dev_Config*
         strip_parent: true
 
     format_overrides:
