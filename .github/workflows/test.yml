@@ -126,14 +126,14 @@ jobs:
   test:
     strategy:
       matrix:
-        platform: [ubuntu-latest, windows-latest, macos-latest]
+        platform: [ubuntu-24.04, windows-2022, macos-14]
         arch: [amd64, arm64]
         include:
-          - platform: ubuntu-latest
+          - platform: ubuntu-24.04
             target: linux
-          - platform: windows-latest
+          - platform: windows-2022
             target: windows
-          - platform: macos-latest
+          - platform: macos-14
             target: darwin
     name: 'Test (${{ matrix.target }}, ${{ matrix.arch }})'
     runs-on: ${{ matrix.platform }}
