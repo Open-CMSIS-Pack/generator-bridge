@@ -171,7 +171,13 @@ jobs:
           path: ./build/${{ env.program }}-testreport-*.xml
           retention-days: 1
           if-no-files-found: error
-  
+
+  html-test-report:
+    needs: [ test ]
+    uses: Open-CMSIS-Pack/workflows-and-actions-collection/.github/workflows/generate-junit-to-html-report.yml@main
+    with:
+      report_header: cbridge
+
   publish-test-results:
     if: ${{ github.event.pull_request.user.login != 'dependabot[bot]' && github.workflow != 'Release' }}
     name: "Publish Tests Results"
