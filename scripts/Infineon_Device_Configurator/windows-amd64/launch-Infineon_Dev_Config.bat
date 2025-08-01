@@ -11,53 +11,143 @@ if not exist "%CBUILD_GEN_IDX%" (
     echo Error: %CBUILD_GEN_IDX% file not found
     exit /b 1
 )
-:: Step 2: Parse Device_Configurator path, project name, and RTE path from *.cbuild-gen-idx.yml
+
+:: Step 2: Parse project-name and cbuild-gen from *.cbuild-gen-idx.yml, then parse *.cbuild-gen.yml for paths
 setlocal EnableDelayedExpansion
-set "DEVICE_CONFIG_PATH="
 set "PROJECT_NAME="
-set "RTE_PATH="
-for /f "delims=" %%a in ('findstr /C:"output:" "%CBUILD_GEN_IDX%"') do (
-    set "DEVICE_CONFIG_PATH=%%a"
-    set "DEVICE_CONFIG_PATH=!DEVICE_CONFIG_PATH:output:=!"
-    set "DEVICE_CONFIG_PATH=!DEVICE_CONFIG_PATH: =!"
-    set "DEVICE_CONFIG_PATH=!DEVICE_CONFIG_PATH:/=\!"
-)
+set "CBUILD_GEN_YML_DIR="
+set "CBUILD_GEN_YML_PATH="
+set "DESIGN_MODUS_SRC_PATH="
+set "CPROJECT_YML_PATH="
+set "CGEN_YML_PATH="
+
+:: Parse project-name from *.cbuild-gen-idx.yml
 for /f "delims=" %%a in ('findstr /C:"project:" "%CBUILD_GEN_IDX%"') do (
     set "PROJECT_NAME=%%a"
-    set "PROJECT_NAME=!PROJECT_NAME:project:=!"
+    set "PROJECT_NAME=!PROJECT_NAME:project-name:=!"
     set "PROJECT_NAME=!PROJECT_NAME: =!"
 )
-for /f "delims=" %%a in ('findstr /C:"name:" "%CBUILD_GEN_IDX%"') do (
-    set "RTE_PATH=%%a"
-    set "RTE_PATH=!RTE_PATH:name:=!"
-    set "RTE_PATH=!RTE_PATH: =!"
-    set "RTE_PATH=!RTE_PATH:/=\!"
-    :: Derive RTE folder by going one level back from the path in name:
-    for %%i in ("!RTE_PATH!\..") do set "RTE_PATH=%%~dpi"
-    set "RTE_PATH=!RTE_PATH:~0,-1!"
+:: Parse cbuild-gen path from *.cbuild-gen-idx.yml and extract directory
+for /f "delims=" %%a in ('findstr /C:"cbuild-gen:" "%CBUILD_GEN_IDX%"') do (
+    set "CBUILD_GEN_YML_PATH=%%a"
+    set "CBUILD_GEN_YML_PATH=!CBUILD_GEN_YML_PATH:cbuild-gen:=!"
+    set "CBUILD_GEN_YML_PATH=!CBUILD_GEN_YML_PATH:- =!"
+    set "CBUILD_GEN_YML_PATH=!CBUILD_GEN_YML_PATH: =!"
+    set "CBUILD_GEN_YML_PATH=!CBUILD_GEN_YML_PATH:/=\!"
+    for %%i in ("!CBUILD_GEN_YML_PATH!") do set "CBUILD_GEN_YML_DIR=%%~dpi"
+    set "CBUILD_GEN_YML_DIR=!CBUILD_GEN_YML_DIR:~0,-1!"
 )
-echo DEBUG: DEVICE_CONFIG_PATH: !DEVICE_CONFIG_PATH! >> debug.log
 echo DEBUG: PROJECT_NAME: !PROJECT_NAME! >> debug.log
-echo DEBUG: RTE_PATH: !RTE_PATH! >> debug.log
-if not defined DEVICE_CONFIG_PATH (
-    echo Error: Could not parse Device_Configurator path from %CBUILD_GEN_IDX%
-    exit /b 1
-)
-if not defined PROJECT_NAME (
-    echo Error: Could not parse project name from %CBUILD_GEN_IDX%
-    exit /b 1
-)
-if not defined RTE_PATH (
-    echo Error: Could not parse RTE path from name field in %CBUILD_GEN_IDX%
-    exit /b 1
-)
-endlocal & set "DEVICE_CONFIG_PATH=%DEVICE_CONFIG_PATH%" & set "PROJECT_NAME=%PROJECT_NAME%" & set "RTE_PATH=%RTE_PATH%"
+echo DEBUG: CBUILD_GEN_YML_DIR: !CBUILD_GEN_YML_DIR! >> debug.log
 
-:: Step 3: Define paths based on Device_Configurator folder
-set "DESIGN_PATH=%DEVICE_CONFIG_PATH%\design.modus"
-set "GEN_DIR=%DEVICE_CONFIG_PATH%\GeneratedSource"
-set "YAML_FILE=%DEVICE_CONFIG_PATH%\%PROJECT_NAME%.cgen.yml"
-set "TMP_FILE=%YAML_FILE%.tmp"
+if not defined PROJECT_NAME (
+    echo Error: Could not parse project-name from %CBUILD_GEN_IDX%
+    exit /b 1
+)
+if not defined CBUILD_GEN_YML_DIR (
+    echo Error: Could not parse cbuild-gen directory from %CBUILD_GEN_IDX%
+    exit /b 1
+)
+if not exist "!CBUILD_GEN_YML_DIR!\" (
+    echo Error: cbuild-gen directory not found at !CBUILD_GEN_YML_DIR!
+    exit /b 1
+)
+
+:: Find *.cbuild-gen.yml in the directory
+for /f "delims=" %%f in ('dir /b "!CBUILD_GEN_YML_DIR!\*.cbuild-gen.yml" 2^>nul') do (
+    set "CBUILD_GEN_YML_PATH=!CBUILD_GEN_YML_DIR!\%%f"
+)
+echo DEBUG: CBUILD_GEN_YML_PATH: !CBUILD_GEN_YML_PATH! >> debug.log
+
+if not defined CBUILD_GEN_YML_PATH (
+    echo Error: No *.cbuild-gen.yml file found in !CBUILD_GEN_YML_DIR!
+    exit /b 1
+)
+if not exist "!CBUILD_GEN_YML_PATH!" (
+    echo Error: *.cbuild-gen.yml file not found at !CBUILD_GEN_YML_PATH!
+    exit /b 1
+)
+
+:: Parse cproject.yml, cgen.yml, and design.modus paths from *.cbuild-gen.yml
+for /f "delims=" %%a in ('findstr /C:"cproject.yml" "!CBUILD_GEN_YML_PATH!"') do (
+    set "CPROJECT_YML_PATH=%%a"
+    set "CPROJECT_YML_PATH=!CPROJECT_YML_PATH:project:=!"
+    set "CPROJECT_YML_PATH=!CPROJECT_YML_PATH: =!"
+    set "CPROJECT_YML_PATH=!CPROJECT_YML_PATH:/=\!"
+)
+for /f "delims=" %%a in ('findstr /C:"cgen.yml" "!CBUILD_GEN_YML_PATH!"') do (
+    set "CGEN_YML_PATH=%%a"
+    set "CGEN_YML_PATH=!CGEN_YML_PATH:path:=!"
+    set "CGEN_YML_PATH=!CGEN_YML_PATH: =!"
+    set "CGEN_YML_PATH=!CGEN_YML_PATH:/=\!"
+)
+for /f "delims=" %%a in ('findstr /C:"design.modus" "!CBUILD_GEN_YML_PATH!"') do (
+    set "DESIGN_MODUS_SRC_PATH=%%a"
+    set "DESIGN_MODUS_SRC_PATH=!DESIGN_MODUS_SRC_PATH:- file:=!"
+    set "DESIGN_MODUS_SRC_PATH=!DESIGN_MODUS_SRC_PATH: =!"
+    set "DESIGN_MODUS_SRC_PATH=!DESIGN_MODUS_SRC_PATH:/=\!"
+)
+echo DEBUG: CPROJECT_YML_PATH: !CPROJECT_YML_PATH! >> debug.log
+echo DEBUG: CGEN_YML_PATH: !CGEN_YML_PATH! >> debug.log
+echo DEBUG: DESIGN_MODUS_SRC_PATH: !DESIGN_MODUS_SRC_PATH! >> debug.log
+
+if not defined CPROJECT_YML_PATH (
+    echo Error: Could not parse cproject.yml path from !CBUILD_GEN_YML_PATH!
+    exit /b 1
+)
+if not defined CGEN_YML_PATH (
+    echo Error: Could not parse cgen.yml path from !CBUILD_GEN_YML_PATH!
+    exit /b 1
+)
+if not defined DESIGN_MODUS_SRC_PATH (
+    echo Error: Could not parse design.modus path from !CBUILD_GEN_YML_PATH!
+    exit /b 1
+)
+
+:: Check if cgen.yml directory exists, create if not
+for %%i in ("!CGEN_YML_PATH!") do set "CGEN_DIR=%%~dpi"
+set "CGEN_DIR=!CGEN_DIR:~0,-1!"
+if not exist "!CGEN_DIR!\" (
+    mkdir "!CGEN_DIR!" >nul 2>&1
+    if exist "!CGEN_DIR!\" (
+        echo Created directory: !CGEN_DIR! >> debug.log
+    ) else (
+        echo Error: Failed to create directory !CGEN_DIR! >> debug.log
+        exit /b 1
+    )
+) else (
+    echo Directory already exists: !CGEN_DIR! >> debug.log
+)
+
+:: Check if design.modus exists in the same directory as *.cgen.yml, copy if not
+set "DESIGN_MODUS_DEST_PATH=!CGEN_DIR!\design.modus"
+if not exist "!DESIGN_MODUS_DEST_PATH!" (
+    if exist "!DESIGN_MODUS_SRC_PATH!" (
+        copy "!DESIGN_MODUS_SRC_PATH!" "!DESIGN_MODUS_DEST_PATH!" >nul 2>&1
+        if exist "!DESIGN_MODUS_DEST_PATH!" (
+            echo Copied design.modus to !DESIGN_MODUS_DEST_PATH! >> debug.log
+        ) else (
+            echo Error: Failed to copy design.modus to !DESIGN_MODUS_DEST_PATH!
+            exit /b 1
+        )
+    ) else (
+        echo Error: Source design.modus not found at !DESIGN_MODUS_SRC_PATH!
+        exit /b 1
+    )
+) else (
+    echo design.modus already exists at !DESIGN_MODUS_DEST_PATH! >> debug.log
+)
+endlocal & set "PROJECT_NAME=%PROJECT_NAME%" & set "CPROJECT_YML_PATH=%CPROJECT_YML_PATH%" & set "CGEN_YML_PATH=%CGEN_YML_PATH%"
+
+:: Step 3: Define paths based on *.cgen.yml path
+setlocal EnableDelayedExpansion
+for %%i in ("!CGEN_YML_PATH!") do set "DESIGN_DIR=%%~dpi"
+set "DESIGN_DIR=!DESIGN_DIR:~0,-1!"
+set "DESIGN_PATH=!DESIGN_DIR!\design.modus"
+set "GEN_DIR=!DESIGN_DIR!\GeneratedSource"
+set "YAML_FILE=!CGEN_YML_PATH!"
+set "TMP_FILE=!YAML_FILE!.tmp"
+endlocal & set "DESIGN_PATH=%DESIGN_PATH%" & set "GEN_DIR=%GEN_DIR%" & set "YAML_FILE=%YAML_FILE%" & set "TMP_FILE=%TMP_FILE%"
 
 :: Step 4: Fetch exePath from IDC JSON files, prioritizing latest version of InfineonDeviceConfigurator
 setlocal EnableDelayedExpansion
@@ -200,7 +290,7 @@ if "!TOOL_PATH!"=="" (
 )
 endlocal & set "TOOL_PATH=%TOOL_PATH%"
 
-:: Step 5: Parse cbuild.yml from the same directory as RTE and extract props.json paths
+:: Step 5: Parse cbuild.yml from the directory where *.cproject.yml is present and extract props.json paths
 setlocal EnableDelayedExpansion
 set "LIBRARY_PATH="
 set "CBUILD_FILE="
@@ -210,18 +300,18 @@ set "MISSING_FILES="
 set "MTB_PDL_DIRS="
 set "DEVICE_DB_DIRS="
 
-:: Derive directory containing RTE
-for %%i in ("%RTE_PATH%") do set "PARENT_DIR=%%~dpi"
-set "PARENT_DIR=%PARENT_DIR:~0,-1%"
+:: Derive directory from CPROJECT_YML_PATH
+for %%i in ("!CPROJECT_YML_PATH!") do set "PARENT_DIR=%%~dpi"
+set "PARENT_DIR=!PARENT_DIR:~0,-1!"
 
 :: Find *.cbuild.yml in parent directory
-echo Searching for *.cbuild.yml in %PARENT_DIR%... >> debug.log
-for /f "delims=" %%f in ('dir /b "%PARENT_DIR%\*.cbuild.yml" 2^>nul') do (
-    set "CBUILD_FILE=%PARENT_DIR%\%%f"
+echo Searching for *.cbuild.yml in !PARENT_DIR!... >> debug.log
+for /f "delims=" %%f in ('dir /b "!PARENT_DIR!\*.cbuild.yml" 2^>nul') do (
+    set "CBUILD_FILE=!PARENT_DIR!\%%f"
 )
 
 if not defined CBUILD_FILE (
-    echo Error: No *.cbuild.yml file found in %PARENT_DIR%
+    echo Error: No *.cbuild.yml file found in !PARENT_DIR!
     exit /b 1
 )
 if not exist "!CBUILD_FILE!" (
@@ -299,14 +389,13 @@ for /d %%d in ("!LIBRARIES_PATH!\mtb-pdl-cat*") do (
     )
 )
 if !MTB_PDL_FOUND_LOCAL! equ 0 (
-    set "MISSING_FILES=!MISSING_FILES!mtb-pdl-cat* directory at !LIBRARIES_PATH!\mtb-pdl-cat*;"
     echo No mtb-pdl-cat* directory found at: !LIBRARIES_PATH!\mtb-pdl-cat* >> debug.log
 )
 
 :: Check for device-info\device-db\props.json
 set "DEVICE_DB_PATH=!PACK_PATH!\device-info\device-db"
 if exist "!DEVICE_DB_PATH!\" (
-    set "DEVICE_DB_DIRS=!DEVICE_DB_PATH!;"
+    set "DEVICE_DB_DIRS=!DEVICE_DB_DIRS!!DEVICE_DB_PATH!;"
     echo Found device-db directory: !DEVICE_DB_PATH! >> debug.log
     if exist "!DEVICE_DB_PATH!\props.json" (
         set "LIBRARY_PATH=!LIBRARY_PATH!!DEVICE_DB_PATH!\props.json,"
@@ -383,10 +472,10 @@ if not exist "%GEN_DIR%" (
     if !FILE_COUNT! gtr 0 (
         echo Existing files found in %GEN_DIR%. Adding to %YAML_FILE%... >> debug.log
         for %%f in ("%GEN_DIR%\*.c" "%GEN_DIR%\*.h") do (
-            set "REL_PATH=%%f"
-            set "REL_PATH=!REL_PATH:%DEVICE_CONFIG_PATH%\=!"
+            set "FULL_PATH=%%f"
+            for %%i in ("!FULL_PATH!") do set "REL_PATH=GeneratedSource\%%~nxi"
             set "REL_PATH=!REL_PATH:\=/!"
-            echo     - file: !REL_PATH!>> "%TMP_FILE%"
+            echo     - file: !REL_PATH! >> "%TMP_FILE%"
         )
     )
 )
@@ -476,10 +565,10 @@ echo   groups: >> "%TMP_FILE%"
 echo   - group: ConfigTools >> "%TMP_FILE%"
 echo     files: >> "%TMP_FILE%"
 for %%f in ("%GEN_DIR%\*.c" "%GEN_DIR%\*.h") do (
-    set "REL_PATH=%%f"
-    set "REL_PATH=!REL_PATH:%DEVICE_CONFIG_PATH%\=!"
+    set "FULL_PATH=%%f"
+    for %%i in ("!FULL_PATH!") do set "REL_PATH=GeneratedSource\%%~nxi"
     set "REL_PATH=!REL_PATH:\=/!"
-    echo     - file: !REL_PATH!>> "%TMP_FILE%"
+    echo     - file: !REL_PATH! >> "%TMP_FILE%"
 )
 if exist "%TMP_FILE%" (
     move /Y "%TMP_FILE%" "%YAML_FILE%"
