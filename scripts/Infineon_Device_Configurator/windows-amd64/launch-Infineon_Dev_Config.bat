@@ -1,8 +1,9 @@
 @echo off
+:: Copyright 2025 - Infineon Technologies
 setlocal
 :: Step 1: Validate input argument
 if "%1"=="" (
-    echo Error: No *.cbuild-gen-idx.yml file path provided as argument
+    echo Error: No *.cbuild-gen-idx.yml file path provided as an argument
     exit /b 1
 )
 set "CBUILD_GEN_IDX=%~1"
@@ -12,55 +13,38 @@ if not exist "%CBUILD_GEN_IDX%" (
     exit /b 1
 )
 
-:: Step 2: Parse project-name and cbuild-gen from *.cbuild-gen-idx.yml, then parse *.cbuild-gen.yml for paths
+:: Step 2: Parse project-name, cbuild-gen path from *.cbuild-gen-idx.yml and device-pack with path from *.cbuild-gen.yml
 setlocal EnableDelayedExpansion
 set "PROJECT_NAME="
-set "CBUILD_GEN_YML_DIR="
 set "CBUILD_GEN_YML_PATH="
 set "DESIGN_MODUS_SRC_PATH="
-set "CPROJECT_YML_PATH="
 set "CGEN_YML_PATH="
+set "DEVICE_PACK="
+set "PACK_PATH="
 
-:: Parse project-name from *.cbuild-gen-idx.yml
+:: Parse project name from *.cbuild-gen-idx.yml
 for /f "delims=" %%a in ('findstr /C:"project:" "%CBUILD_GEN_IDX%"') do (
     set "PROJECT_NAME=%%a"
     set "PROJECT_NAME=!PROJECT_NAME:project-name:=!"
     set "PROJECT_NAME=!PROJECT_NAME: =!"
 )
-:: Parse cbuild-gen path from *.cbuild-gen-idx.yml and extract directory
+:: Parse cbuild-gen path from *.cbuild-gen-idx.yml
 for /f "delims=" %%a in ('findstr /C:"cbuild-gen:" "%CBUILD_GEN_IDX%"') do (
     set "CBUILD_GEN_YML_PATH=%%a"
     set "CBUILD_GEN_YML_PATH=!CBUILD_GEN_YML_PATH:cbuild-gen:=!"
     set "CBUILD_GEN_YML_PATH=!CBUILD_GEN_YML_PATH:- =!"
     set "CBUILD_GEN_YML_PATH=!CBUILD_GEN_YML_PATH: =!"
     set "CBUILD_GEN_YML_PATH=!CBUILD_GEN_YML_PATH:/=\!"
-    for %%i in ("!CBUILD_GEN_YML_PATH!") do set "CBUILD_GEN_YML_DIR=%%~dpi"
-    set "CBUILD_GEN_YML_DIR=!CBUILD_GEN_YML_DIR:~0,-1!"
 )
 echo DEBUG: PROJECT_NAME: !PROJECT_NAME! >> debug.log
-echo DEBUG: CBUILD_GEN_YML_DIR: !CBUILD_GEN_YML_DIR! >> debug.log
+echo DEBUG: CBUILD_GEN_YML_PATH: !CBUILD_GEN_YML_PATH! >> debug.log
 
 if not defined PROJECT_NAME (
     echo Error: Could not parse project-name from %CBUILD_GEN_IDX%
     exit /b 1
 )
-if not defined CBUILD_GEN_YML_DIR (
-    echo Error: Could not parse cbuild-gen directory from %CBUILD_GEN_IDX%
-    exit /b 1
-)
-if not exist "!CBUILD_GEN_YML_DIR!\" (
-    echo Error: cbuild-gen directory not found at !CBUILD_GEN_YML_DIR!
-    exit /b 1
-)
-
-:: Find *.cbuild-gen.yml in the directory
-for /f "delims=" %%f in ('dir /b "!CBUILD_GEN_YML_DIR!\*.cbuild-gen.yml" 2^>nul') do (
-    set "CBUILD_GEN_YML_PATH=!CBUILD_GEN_YML_DIR!\%%f"
-)
-echo DEBUG: CBUILD_GEN_YML_PATH: !CBUILD_GEN_YML_PATH! >> debug.log
-
 if not defined CBUILD_GEN_YML_PATH (
-    echo Error: No *.cbuild-gen.yml file found in !CBUILD_GEN_YML_DIR!
+    echo Error: Could not parse cbuild-gen path from %CBUILD_GEN_IDX%
     exit /b 1
 )
 if not exist "!CBUILD_GEN_YML_PATH!" (
@@ -68,13 +52,55 @@ if not exist "!CBUILD_GEN_YML_PATH!" (
     exit /b 1
 )
 
-:: Parse cproject.yml, cgen.yml, and design.modus paths from *.cbuild-gen.yml
-for /f "delims=" %%a in ('findstr /C:"cproject.yml" "!CBUILD_GEN_YML_PATH!"') do (
-    set "CPROJECT_YML_PATH=%%a"
-    set "CPROJECT_YML_PATH=!CPROJECT_YML_PATH:project:=!"
-    set "CPROJECT_YML_PATH=!CPROJECT_YML_PATH: =!"
-    set "CPROJECT_YML_PATH=!CPROJECT_YML_PATH:/=\!"
+:: Parse device-pack from *.cbuild-gen.yml
+for /f "delims=" %%a in ('findstr /C:"device-pack:" "!CBUILD_GEN_YML_PATH!"') do (
+    set "DEVICE_PACK=%%a"
+    set "DEVICE_PACK=!DEVICE_PACK:device-pack:=!"
+    set "DEVICE_PACK=!DEVICE_PACK: =!"
 )
+echo DEBUG: DEVICE_PACK: !DEVICE_PACK! >> debug.log
+
+if not defined DEVICE_PACK (
+    echo Error: Could not parse device-pack from !CBUILD_GEN_YML_PATH!
+    exit /b 1
+)
+
+:: Parse packs section to find the path for the device-pack
+set "FOUND_PACK="
+set "PACK_PATH="
+set "IN_PACKS=0"
+for /f "delims=" %%b in ('type "!CBUILD_GEN_YML_PATH!"') do (
+    set "LINE=%%b"
+    set "TRIMMED_LINE=!LINE: =!"
+    if "!TRIMMED_LINE!"=="packs:" (
+        set "IN_PACKS=1"
+    ) else if !IN_PACKS! equ 1 (
+        if "!TRIMMED_LINE!"=="-pack:!DEVICE_PACK!" (
+            set "FOUND_PACK=1"
+        ) else if defined FOUND_PACK (
+            if "!TRIMMED_LINE:~0,5!"=="path:" (
+                set "PACK_PATH=!LINE!"
+                set "PACK_PATH=!PACK_PATH:path:=!"
+                set "PACK_PATH=!PACK_PATH: =!"
+                set "PACK_PATH=!PACK_PATH:/=\!"
+                goto :end_pack_parse
+            )
+        )
+    )
+)
+:end_pack_parse
+echo DEBUG: PACK_PATH: !PACK_PATH! >> debug.log
+
+if not defined PACK_PATH (
+    echo Error: Could not parse path for device-pack !DEVICE_PACK! from !CBUILD_GEN_YML_PATH!
+    exit /b 1
+)
+if not exist "!PACK_PATH!" (
+    echo Error: Pack path not found at !PACK_PATH!
+    exit /b 1
+)
+
+:: Parse cgen.yml, and design.modus paths from *.cbuild-gen.yml
 for /f "delims=" %%a in ('findstr /C:"cgen.yml" "!CBUILD_GEN_YML_PATH!"') do (
     set "CGEN_YML_PATH=%%a"
     set "CGEN_YML_PATH=!CGEN_YML_PATH:path:=!"
@@ -87,14 +113,9 @@ for /f "delims=" %%a in ('findstr /C:"design.modus" "!CBUILD_GEN_YML_PATH!"') do
     set "DESIGN_MODUS_SRC_PATH=!DESIGN_MODUS_SRC_PATH: =!"
     set "DESIGN_MODUS_SRC_PATH=!DESIGN_MODUS_SRC_PATH:/=\!"
 )
-echo DEBUG: CPROJECT_YML_PATH: !CPROJECT_YML_PATH! >> debug.log
 echo DEBUG: CGEN_YML_PATH: !CGEN_YML_PATH! >> debug.log
 echo DEBUG: DESIGN_MODUS_SRC_PATH: !DESIGN_MODUS_SRC_PATH! >> debug.log
 
-if not defined CPROJECT_YML_PATH (
-    echo Error: Could not parse cproject.yml path from !CBUILD_GEN_YML_PATH!
-    exit /b 1
-)
 if not defined CGEN_YML_PATH (
     echo Error: Could not parse cgen.yml path from !CBUILD_GEN_YML_PATH!
     exit /b 1
@@ -137,7 +158,7 @@ if not exist "!DESIGN_MODUS_DEST_PATH!" (
 ) else (
     echo design.modus already exists at !DESIGN_MODUS_DEST_PATH! >> debug.log
 )
-endlocal & set "PROJECT_NAME=%PROJECT_NAME%" & set "CPROJECT_YML_PATH=%CPROJECT_YML_PATH%" & set "CGEN_YML_PATH=%CGEN_YML_PATH%"
+endlocal & set "PROJECT_NAME=%PROJECT_NAME%" & set "CGEN_YML_PATH=%CGEN_YML_PATH%" & set "PACK_PATH=%PACK_PATH%"
 
 :: Step 3: Define paths based on *.cgen.yml path
 setlocal EnableDelayedExpansion
@@ -290,80 +311,17 @@ if "!TOOL_PATH!"=="" (
 )
 endlocal & set "TOOL_PATH=%TOOL_PATH%"
 
-:: Step 5: Parse cbuild.yml from the directory where *.cproject.yml is present and extract props.json paths
+:: Step 5: Extract props.json paths using PACK_PATH from Step 2
 setlocal EnableDelayedExpansion
 set "LIBRARY_PATH="
-set "CBUILD_FILE="
 set "MTB_PDL_FOUND=0"
 set "DEVICE_DB_FOUND=0"
 set "MISSING_FILES="
 set "MTB_PDL_DIRS="
 set "DEVICE_DB_DIRS="
 
-:: Derive directory from CPROJECT_YML_PATH
-for %%i in ("!CPROJECT_YML_PATH!") do set "PARENT_DIR=%%~dpi"
-set "PARENT_DIR=!PARENT_DIR:~0,-1!"
-
-:: Find *.cbuild.yml in parent directory
-echo Searching for *.cbuild.yml in !PARENT_DIR!... >> debug.log
-for /f "delims=" %%f in ('dir /b "!PARENT_DIR!\*.cbuild.yml" 2^>nul') do (
-    set "CBUILD_FILE=!PARENT_DIR!\%%f"
-)
-
-if not defined CBUILD_FILE (
-    echo Error: No *.cbuild.yml file found in !PARENT_DIR!
-    exit /b 1
-)
-if not exist "!CBUILD_FILE!" (
-    echo Error: cbuild file not found at !CBUILD_FILE!
-    exit /b 1
-)
-
-:: Log the cbuild file being processed
-echo Processing cbuild file: !CBUILD_FILE!
-
-:: Parse device-pack from cbuild.yml
-set "DEVICE_PACK="
-for /f "delims=" %%a in ('findstr /C:"device-pack:" "!CBUILD_FILE!"') do (
-    set "DEVICE_PACK=%%a"
-    set "DEVICE_PACK=!DEVICE_PACK:device-pack:=!"
-    set "DEVICE_PACK=!DEVICE_PACK: =!"
-)
-if not defined DEVICE_PACK (
-    echo Error: Could not parse device-pack from !CBUILD_FILE!
-    exit /b 1
-)
-
-:: Extract pack name and version
-set "PACK_NAME="
-set "PACK_VERSION="
-for /f "tokens=1,2 delims=@" %%a in ("!DEVICE_PACK!") do (
-    set "PACK_NAME=%%a"
-    set "PACK_VERSION=%%b"
-)
-if not defined PACK_NAME (
-    echo Error: Could not parse pack name from device-pack: !DEVICE_PACK!
-    exit /b 1
-)
-if not defined PACK_VERSION (
-    echo Error: Could not parse pack version from device-pack: !DEVICE_PACK!
-    exit /b 1
-)
-
-:: Remove vendor prefix (Infineon::) from pack name
-set "PACK_NAME_PATH=!PACK_NAME:Infineon::=!"
-echo Parsed pack name: !PACK_NAME!, version: !PACK_VERSION! >> debug.log
-
-:: Construct pack path
-set "PACK_PATH=%USERPROFILE%\AppData\Local\Arm\Packs\Infineon\!PACK_NAME_PATH!\!PACK_VERSION!"
-set "PACK_PATH=!PACK_PATH:/=\!"
-echo Checking pack path: !PACK_PATH! >> debug.log
-
-:: Verify pack path exists
-if not exist "!PACK_PATH!" (
-    echo Error: Pack path not found at !PACK_PATH!
-    exit /b 1
-)
+:: Use PACK_PATH from Step 2
+echo Checking pack path from Step 2: !PACK_PATH! >> debug.log
 
 :: Check for Libraries folder
 set "LIBRARIES_PATH=!PACK_PATH!\Libraries"
