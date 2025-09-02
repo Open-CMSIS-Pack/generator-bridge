@@ -20,38 +20,6 @@ permissions:
 
 jobs:
   build:
-    strategy:
-      matrix:
-        goos: [windows, linux, darwin]
-        arch: [amd64, arm64]
-
-    name: "${{ matrix.goos }} | ${{ matrix.arch }}"
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Harden Runner
-        uses: step-security/harden-runner@ec9f2d5744a09debf3a187a3f4f675c53b671911 # v2.13.0
-        with:
-          egress-policy: audit
-
-      - name: Check out repository code
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
-        with:
-          fetch-depth: 0
-
-      - name: Install Go
-        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
-        with:
-          go-version-file: go.mod
-          check-latest: true
-
-      - name: Build
-        run: |
-          make OS=${{ matrix.goos }} ARCH=${{ matrix.arch }} build
-
-      - name: Upload binary
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: cbridge-${{ matrix.goos }}-${{ matrix.arch }}
-          path: build/cbridge*
-          retention-days: 1
+    uses: Open-CMSIS-Pack/workflows-and-actions-collection/.github/workflows/build.yml@main
+    with:
+      program: 'cbridge'
