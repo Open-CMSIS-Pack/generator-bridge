@@ -83,7 +83,7 @@ format-check:
 
 .PHONY: test release config
 test: $(SOURCES)
-	GOOS=$(OS) GOARCH=$(ARCH) go test $(ARGS) ./... -coverprofile cover.out
+	GOOS=$(OS) GOARCH=$(ARCH) go test $(ARGS) -v ./... -coverprofile cover.out
 
 test-all: format-check coverage-check lint
 
