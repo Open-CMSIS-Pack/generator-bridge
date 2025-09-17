@@ -6,12 +6,16 @@ on:
       - "*"
 
 jobs:
-  test:
-    uses: Open-CMSIS-Pack/generator-bridge/.github/workflows/test.yml@main
+  build-and-verify:
+    uses: Open-CMSIS-Pack/workflows-and-actions-collection/.github/workflows/build-and-verify.yml@v1.0.1
+    with:
+      program: cbridge
+      go-version-file: ./go.mod
+      enable-qlty-coverage: false
 
   goreleaser:
     runs-on: ubuntu-latest
-    needs: test
+    needs: [ build-and-verify ]
     permissions:
       contents: write  # for goreleaser/goreleaser-action to create a GitHub release
     steps:
