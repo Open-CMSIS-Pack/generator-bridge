@@ -392,14 +392,12 @@ func WriteProjectFile(workDir string, params BridgeParamType) (string, error) {
 	} else {
 		// extract Dname from [vendor]::Dname:[Pname]
 		parts := strings.SplitN(params.Device, "::", 2)
-		
 		var DnamePname string
 		if len(parts) == 2 {
 			DnamePname = parts[1]
 		} else {
 			DnamePname = params.Device
-		}
-		
+		}		
 		parts = strings.SplitN(DnamePname, ":", 2)
 		if len(parts) >= 1 {
 			text.AddLine("load", parts[0])
