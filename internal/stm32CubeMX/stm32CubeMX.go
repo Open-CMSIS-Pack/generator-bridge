@@ -400,7 +400,7 @@ func WriteProjectFile(workDir string, params BridgeParamType) (string, error) {
 			DnamePname = params.Device
 		}
 		
-		parts := strings.SplitN(DnamePname, ":", 2)
+		parts = strings.SplitN(DnamePname, ":", 2)
 		if len(parts) >= 1 {
 			text.AddLine("load", parts[0])
 		} else {
