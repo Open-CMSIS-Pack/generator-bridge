@@ -389,7 +389,7 @@ func WriteProjectFile(workDir string, params BridgeParamType) (string, error) {
 	var text utils.TextBuilder
 	if params.BoardName != "" && params.BoardVendor == "STMicroelectronics" {
 		text.AddLine("loadboard", params.BoardName, "allmodes")
-	} else
+	} else {
 		// extract Dname from [vendor]::Dname:[Pname]
 		parts := strings.SplitN(params.Device, "::",2)
 		
@@ -402,7 +402,7 @@ func WriteProjectFile(workDir string, params BridgeParamType) (string, error) {
 		
 		parts := strings.SplitN(DnamePname, ":", 2)
 		if len(parts) >= 1 {
-			text.AddLine("load", parts[0]
+			text.AddLine("load", parts[0])
 		} else {
 			text.AddLine("load", DnamePname)
 		}
