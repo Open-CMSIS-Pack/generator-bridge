@@ -391,7 +391,7 @@ func WriteProjectFile(workDir string, params BridgeParamType) (string, error) {
 		text.AddLine("loadboard", params.BoardName, "allmodes")
 	} else {
 		// extract Dname from [vendor]::Dname:[Pname]
-		parts := strings.SplitN(params.Device, "::",2)
+		parts := strings.SplitN(params.Device, "::", 2)
 		
 		var DnamePname string
 		if len(parts) == 2 {
