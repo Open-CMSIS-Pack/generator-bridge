@@ -400,11 +400,7 @@ func WriteProjectFile(workDir string, params BridgeParamType) (string, error) {
 		}		
 		
 		parts = strings.SplitN(DnamePname, ":", 2)
-		if len(parts) >= 1 {
-			text.AddLine("load", parts[0])
-		} else {
-			text.AddLine("load", DnamePname)
-		}
+		text.AddLine("load", parts[0])
 	}
 	text.AddLine("project name", "STM32CubeMX")
 
