@@ -26,7 +26,7 @@ func Process(inFile, inFile2, outPath string) error {
 	var cbuildParams cbuild.ParamsType
 	var params []stm32cubemx.BridgeParamType
 
-	if strings.Contains(inFile, "cbuild-gen-idx.yml") {
+	if strings.Contains(inFile, "cbuild-gen-idx.yml") { // -f
 		err := cbuild.Read(inFile, "CubeMX", &cbuildParams)
 		if err != nil {
 			return err
@@ -44,10 +44,10 @@ func Process(inFile, inFile2, outPath string) error {
 	}
 
 	var mxprojectFile string
-	if strings.Contains(inFile, ".mxproject") {
+	if strings.Contains(inFile, ".mxproject") { // -f
 		mxprojectFile = inFile
 	}
-	if strings.Contains(inFile2, ".mxproject") {
+	if strings.Contains(inFile2, ".mxproject") { // -r
 		mxprojectFile = inFile2
 	}
 

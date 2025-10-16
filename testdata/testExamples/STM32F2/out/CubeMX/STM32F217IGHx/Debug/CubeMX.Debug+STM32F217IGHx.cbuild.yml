@@ -1,0 +1,194 @@
+build:
+  generated-by: csolution version 2.11.0
+  solution: ../../../../CubeMX.csolution.yml
+  project: ../../../../CubeMX.cproject.yml
+  context: CubeMX.Debug+STM32F217IGHx
+  compiler: AC6
+  device: STMicroelectronics::STM32F217IGHx
+  device-pack: Keil::STM32F2xx_DFP@3.0.0
+  device-books:
+    - name: https://www.st.com/resource/en/reference_manual/rm0033-stm32f205xx-stm32f207xx-stm32f215xx-and-stm32f217xx-advanced-armbased-32bit-mcus-stmicroelectronics.pdf
+      title: STM32F205/207/215/217 Reference Manual
+    - name: https://www.st.com/resource/en/datasheet/stm32f215re.pdf
+      title: STM32F215/217 Data Sheet
+    - name: https://www.st.com/resource/en/errata_sheet/es0005-stm32f205207xx-and-stm32f215217xx-device-limitations-stmicroelectronics.pdf
+      title: STM32F205/207/215/217 Errata Sheet
+    - name: https://developer.arm.com/documentation/dui0552/latest
+      title: Cortex-M3 Generic User Guide
+  dbgconf:
+    - file: ../../../../.cmsis/CubeMX+STM32F217IGHx.dbgconf
+      version: 0.0.0
+      status: missing file
+  processor:
+    endian: little
+    fpu: off
+    core: Cortex-M3
+  packs:
+    - pack: ARM::CMSIS@6.2.0
+      path: ${CMSIS_PACK_ROOT}/ARM/CMSIS/6.2.0
+    - pack: Keil::STM32F2xx_DFP@3.0.0
+      path: ${CMSIS_PACK_ROOT}/Keil/STM32F2xx_DFP/3.0.0
+  optimize: none
+  debug: on
+  misc:
+    ASM:
+      - -masm=auto
+    C:
+      - -std=gnu11
+      - -Wno-macro-redefined
+      - -Wno-pragma-pack
+      - -Wno-parentheses-equality
+      - -Wno-license-management
+    CPP:
+      - -Wno-macro-redefined
+      - -Wno-pragma-pack
+      - -Wno-parentheses-equality
+      - -Wno-license-management
+    Link:
+      - --entry=Reset_Handler
+      - --info=summarysizes
+      - --summary_stderr
+      - --diag_suppress=L6314W
+  define:
+    - USE_HAL_DRIVER
+    - STM32F217xx
+    - STM32F217xx
+    - _RTE_
+  define-asm:
+    - STM32F217xx
+    - _RTE_
+  add-path:
+    - ../../../../STM32CubeMX/STM32F217IGHx/STM32CubeMX/Drivers/STM32F2xx_HAL_Driver/Inc
+    - ../../../../STM32CubeMX/STM32F217IGHx/STM32CubeMX/Drivers/STM32F2xx_HAL_Driver/Inc/Legacy
+    - ../../../../STM32CubeMX/STM32F217IGHx/STM32CubeMX/Drivers/CMSIS/Device/ST/STM32F2xx/Include
+    - ../../../../STM32CubeMX/STM32F217IGHx/STM32CubeMX/Inc
+    - ../../../../STM32CubeMX/STM32F217IGHx/MX_Device
+    - ../../../../RTE/_Debug_STM32F217IGHx
+    - ${CMSIS_PACK_ROOT}/ARM/CMSIS/6.2.0/CMSIS/Core/Include
+  add-path-asm:
+    - ../../../../RTE/_Debug_STM32F217IGHx
+    - ${CMSIS_PACK_ROOT}/ARM/CMSIS/6.2.0/CMSIS/Core/Include
+  output-dirs:
+    intdir: ../../../../tmp
+    outdir: .
+    rtedir: ../../../../RTE
+  output:
+    - type: elf
+      file: CubeMX.axf
+  components:
+    - component: ARM::CMSIS:CORE@6.1.1
+      condition: ARMv6_7_8-M Device
+      from-pack: ARM::CMSIS@6.2.0
+      selected-by: ARM::CMSIS:CORE
+      files:
+        - file: ${CMSIS_PACK_ROOT}/ARM/CMSIS/6.2.0/CMSIS/Core/Include
+          category: include
+          version: 6.1.1
+        - file: ${CMSIS_PACK_ROOT}/ARM/CMSIS/6.2.0/CMSIS/Core/Include/tz_context.h
+          category: header
+          version: 6.1.1
+        - file: ${CMSIS_PACK_ROOT}/ARM/CMSIS/6.2.0/CMSIS/Core/Template/ARMv8-M/main_s.c
+          category: sourceC
+          attr: template
+          version: 1.1.1
+          select: Secure mode 'main' module for ARMv8-M
+        - file: ${CMSIS_PACK_ROOT}/ARM/CMSIS/6.2.0/CMSIS/Core/Template/ARMv8-M/tz_context.c
+          category: sourceC
+          attr: template
+          version: 1.1.1
+          select: RTOS Context Management (TrustZone for ARMv8-M)
+        - file: ${CMSIS_PACK_ROOT}/ARM/CMSIS/6.2.0/CMSIS/Documentation/html/Core/index.html
+          category: doc
+          version: 6.1.1
+    - component: Keil::Device:CubeMX@1.0.0
+      condition: STM32F2 CMSIS
+      from-pack: Keil::STM32F2xx_DFP@3.0.0
+      selected-by: Device:CubeMX
+      files:
+        - file: https://open-cmsis-pack.github.io/cmsis-toolbox/CubeMX/
+          category: doc
+          version: 1.0.0
+      generator:
+        id: CubeMX
+        path: ../../../../STM32CubeMX/STM32F217IGHx/CubeMX.cgen.yml
+  linker:
+    script: ../../../../RTE/Device/STM32F217IGHx/ac6_linker_script.sct.src
+    regions: ../../../../RTE/Device/STM32F217IGHx/regions_STM32F217IGHx.h
+  groups:
+    - group: CubeMX
+      files:
+        - file: ../../../../STM32CubeMX/STM32F217IGHx/STM32CubeMX/Src/main.c
+          category: sourceC
+        - file: ../../../../STM32CubeMX/STM32F217IGHx/STM32CubeMX/Src/gpio.c
+          category: sourceC
+        - file: ../../../../STM32CubeMX/STM32F217IGHx/STM32CubeMX/Src/eth.c
+          category: sourceC
+        - file: ../../../../STM32CubeMX/STM32F217IGHx/STM32CubeMX/Src/i2c.c
+          category: sourceC
+        - file: ../../../../STM32CubeMX/STM32F217IGHx/STM32CubeMX/Src/sdio.c
+          category: sourceC
+        - file: ../../../../STM32CubeMX/STM32F217IGHx/STM32CubeMX/Src/spi.c
+          category: sourceC
+        - file: ../../../../STM32CubeMX/STM32F217IGHx/STM32CubeMX/Src/usart.c
+          category: sourceC
+        - file: ../../../../STM32CubeMX/STM32F217IGHx/STM32CubeMX/Src/usb_otg.c
+          category: sourceC
+        - file: ../../../../STM32CubeMX/STM32F217IGHx/STM32CubeMX/Src/stm32f2xx_it.c
+          category: sourceC
+        - file: ../../../../STM32CubeMX/STM32F217IGHx/STM32CubeMX/Src/stm32f2xx_hal_msp.c
+          category: sourceC
+        - file: ../../../../STM32CubeMX/STM32F217IGHx/STM32CubeMX/MDK-ARM/startup_stm32f217xx.s
+          category: sourceAsm
+        - file: ../../../../STM32CubeMX/STM32F217IGHx/STM32CubeMX/Src/system_stm32f2xx.c
+          category: sourceC
+    - group: STM32 HAL Driver
+      files:
+        - file: ../../../../STM32CubeMX/STM32F217IGHx/STM32CubeMX/Drivers/STM32F2xx_HAL_Driver/Src/stm32f2xx_hal_eth.c
+          category: sourceC
+        - file: ../../../../STM32CubeMX/STM32F217IGHx/STM32CubeMX/Drivers/STM32F2xx_HAL_Driver/Src/stm32f2xx_hal.c
+          category: sourceC
+        - file: ../../../../STM32CubeMX/STM32F217IGHx/STM32CubeMX/Drivers/STM32F2xx_HAL_Driver/Src/stm32f2xx_hal_rcc.c
+          category: sourceC
+        - file: ../../../../STM32CubeMX/STM32F217IGHx/STM32CubeMX/Drivers/STM32F2xx_HAL_Driver/Src/stm32f2xx_hal_rcc_ex.c
+          category: sourceC
+        - file: ../../../../STM32CubeMX/STM32F217IGHx/STM32CubeMX/Drivers/STM32F2xx_HAL_Driver/Src/stm32f2xx_hal_cortex.c
+          category: sourceC
+        - file: ../../../../STM32CubeMX/STM32F217IGHx/STM32CubeMX/Drivers/STM32F2xx_HAL_Driver/Src/stm32f2xx_hal_flash.c
+          category: sourceC
+        - file: ../../../../STM32CubeMX/STM32F217IGHx/STM32CubeMX/Drivers/STM32F2xx_HAL_Driver/Src/stm32f2xx_hal_flash_ex.c
+          category: sourceC
+        - file: ../../../../STM32CubeMX/STM32F217IGHx/STM32CubeMX/Drivers/STM32F2xx_HAL_Driver/Src/stm32f2xx_hal_pwr.c
+          category: sourceC
+        - file: ../../../../STM32CubeMX/STM32F217IGHx/STM32CubeMX/Drivers/STM32F2xx_HAL_Driver/Src/stm32f2xx_hal_pwr_ex.c
+          category: sourceC
+        - file: ../../../../STM32CubeMX/STM32F217IGHx/STM32CubeMX/Drivers/STM32F2xx_HAL_Driver/Src/stm32f2xx_hal_gpio.c
+          category: sourceC
+        - file: ../../../../STM32CubeMX/STM32F217IGHx/STM32CubeMX/Drivers/STM32F2xx_HAL_Driver/Src/stm32f2xx_hal_dma.c
+          category: sourceC
+        - file: ../../../../STM32CubeMX/STM32F217IGHx/STM32CubeMX/Drivers/STM32F2xx_HAL_Driver/Src/stm32f2xx_hal_dma_ex.c
+          category: sourceC
+        - file: ../../../../STM32CubeMX/STM32F217IGHx/STM32CubeMX/Drivers/STM32F2xx_HAL_Driver/Src/stm32f2xx_hal_exti.c
+          category: sourceC
+        - file: ../../../../STM32CubeMX/STM32F217IGHx/STM32CubeMX/Drivers/STM32F2xx_HAL_Driver/Src/stm32f2xx_hal_i2c.c
+          category: sourceC
+        - file: ../../../../STM32CubeMX/STM32F217IGHx/STM32CubeMX/Drivers/STM32F2xx_HAL_Driver/Src/stm32f2xx_ll_sdmmc.c
+          category: sourceC
+        - file: ../../../../STM32CubeMX/STM32F217IGHx/STM32CubeMX/Drivers/STM32F2xx_HAL_Driver/Src/stm32f2xx_hal_sd.c
+          category: sourceC
+        - file: ../../../../STM32CubeMX/STM32F217IGHx/STM32CubeMX/Drivers/STM32F2xx_HAL_Driver/Src/stm32f2xx_hal_mmc.c
+          category: sourceC
+        - file: ../../../../STM32CubeMX/STM32F217IGHx/STM32CubeMX/Drivers/STM32F2xx_HAL_Driver/Src/stm32f2xx_hal_spi.c
+          category: sourceC
+        - file: ../../../../STM32CubeMX/STM32F217IGHx/STM32CubeMX/Drivers/STM32F2xx_HAL_Driver/Src/stm32f2xx_hal_uart.c
+          category: sourceC
+  constructed-files:
+    - file: ../../../../RTE/_Debug_STM32F217IGHx/RTE_Components.h
+      category: header
+  licenses:
+    - license: Apache-2.0
+      packs:
+        - pack: ARM::CMSIS@6.2.0
+        - pack: Keil::STM32F2xx_DFP@3.0.0
+      components:
+        - component: ARM::CMSIS:CORE@6.1.1
+        - component: Keil::Device:CubeMX@1.0.0

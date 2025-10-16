@@ -1,0 +1,22 @@
+build-idx:
+  generated-by: csolution version 2.11.0
+  cdefault: ${CMSIS_COMPILER_ROOT}/cdefault.yml
+  csolution: CubeMX.csolution.yml
+  cbuild-run: out/CubeMX+STM32F217IGHx.cbuild-run.yml
+  tmpdir: tmp
+  cprojects:
+    - cproject: CubeMX.cproject.yml
+  cbuilds:
+    - cbuild: out/CubeMX/STM32F217IGHx/Debug/CubeMX.Debug+STM32F217IGHx.cbuild.yml
+      project: CubeMX
+      configuration: .Debug+STM32F217IGHx
+      clayers:
+        - clayer: STM32CubeMX/STM32F217IGHx/CubeMX.cgen.yml
+      errors: true
+      messages:
+        errors:
+          - file 'C:/Projects/generator-bridge/testdata/testExamples/STM32F2/.cmsis/CubeMX+STM32F217IGHx.dbgconf' not found; use --update-rte
+        info:
+          - CubeMX.cbuild-pack.yml - file is already up-to-date
+          - CubeMX+STM32F217IGHx.cbuild-run.yml - file is already up-to-date
+          - CubeMX.Debug+STM32F217IGHx.cbuild.yml - file is already up-to-date
