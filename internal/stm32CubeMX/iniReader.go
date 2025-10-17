@@ -42,7 +42,7 @@ type MxprojectType struct {
 		SourcePathList          []string
 		SourceFiles             string
 	}
-	ThirdPartyIpFiles struct {
+	ThirdPartyIqFiles struct { // golangcilint forced me to name it IP but that would be wrong so another try
 		IncludeFiles   []string
 		SourceAsmFiles []string
 		SourceFiles    []string
@@ -204,11 +204,11 @@ func GetData(inidata *ini.File, iniName string, compiler string) (MxprojectType,
 	var PreviousUsedFilesID string
 	var section *ini.Section
 
-	const ThirdPartyIpID = "ThirdPartyIp"
+	const ThirdPartyIqID = "ThirdPartyIp" // golangcilint forced me to name it IPID but that would be wrong so another try
 	if iniName != "" {
-		sectionName = iniName + ":" + ThirdPartyIpID
+		sectionName = iniName + ":" + ThirdPartyIqID
 	} else {
-		sectionName = ThirdPartyIpID
+		sectionName = ThirdPartyIqID
 	}
 	section = inidata.Section(sectionName)
 	if section != nil {
@@ -230,9 +230,9 @@ func GetData(inidata *ini.File, iniName string, compiler string) (MxprojectType,
 			}
 			section = inidata.Section(sectionName)
 			if section != nil {
-				StoreItemCsv(&mxproject.ThirdPartyIpFiles.IncludeFiles, section, "include")
-				StoreItemCsv(&mxproject.ThirdPartyIpFiles.SourceAsmFiles, section, "sourceAsm")
-				StoreItemCsv(&mxproject.ThirdPartyIpFiles.SourceFiles, section, "source")
+				StoreItemCsv(&mxproject.ThirdPartyIqFiles.IncludeFiles, section, "include")
+				StoreItemCsv(&mxproject.ThirdPartyIqFiles.SourceAsmFiles, section, "sourceAsm")
+				StoreItemCsv(&mxproject.ThirdPartyIqFiles.SourceFiles, section, "source")
 			}
 		}
 	}

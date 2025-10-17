@@ -129,14 +129,14 @@ CDefines=KEIL_DEF ;OTHER
 			wantErr:  false,
 			check: func(t *testing.T, mx MxprojectType) {
 				// ThirdPartyIpFiles
-				if !containsAll(mx.ThirdPartyIpFiles.IncludeFiles, []string{"inc1", "inc2", "inc3", "incY1", "incY2"}) {
-					t.Errorf("expected all include files, got: %v", mx.ThirdPartyIpFiles.IncludeFiles)
+				if !containsAll(mx.ThirdPartyIqFiles.IncludeFiles, []string{"inc1", "inc2", "inc3", "incY1", "incY2"}) {
+					t.Errorf("expected all include files, got: %v", mx.ThirdPartyIqFiles.IncludeFiles)
 				}
-				if !containsAll(mx.ThirdPartyIpFiles.SourceAsmFiles, []string{"asm1", "asm2"}) { // IPY hat keine sourceAsm
-					t.Errorf("expected asm1/asm2 in SourceAsmFiles: %v", mx.ThirdPartyIpFiles.SourceAsmFiles)
+				if !containsAll(mx.ThirdPartyIqFiles.SourceAsmFiles, []string{"asm1", "asm2"}) { // IPY hat keine sourceAsm
+					t.Errorf("expected asm1/asm2 in SourceAsmFiles: %v", mx.ThirdPartyIqFiles.SourceAsmFiles)
 				}
-				if !containsAll(mx.ThirdPartyIpFiles.SourceFiles, []string{"ipx_src1.c", "ipx_src2.c", "ipy_src.c", "ipy_src_more.c"}) {
-					t.Errorf("third-party source files incomplete: %v", mx.ThirdPartyIpFiles.SourceFiles)
+				if !containsAll(mx.ThirdPartyIqFiles.SourceFiles, []string{"ipx_src1.c", "ipx_src2.c", "ipy_src.c", "ipy_src_more.c"}) {
+					t.Errorf("third-party source files incomplete: %v", mx.ThirdPartyIqFiles.SourceFiles)
 				}
 				// PreviousUsedFiles
 				expSrc := []string{"src1.c", "src2.c", "src3.c"}
@@ -177,8 +177,8 @@ CDefines=KEIL_DEF ;OTHER
 			compiler: "AC6",
 			wantErr:  false,
 			check: func(t *testing.T, mx MxprojectType) {
-				if !containsAll(mx.ThirdPartyIpFiles.IncludeFiles, []string{"lib_inc", "lib_extra"}) {
-					t.Errorf("IncludeFiles expected lib_inc/lib_extra: %v", mx.ThirdPartyIpFiles.IncludeFiles)
+				if !containsAll(mx.ThirdPartyIqFiles.IncludeFiles, []string{"lib_inc", "lib_extra"}) {
+					t.Errorf("IncludeFiles expected lib_inc/lib_extra: %v", mx.ThirdPartyIqFiles.IncludeFiles)
 				}
 				if !containsAll(mx.PreviousUsedFiles.SourceFiles, []string{"main.c", "utils.c"}) {
 					t.Errorf("SourceFiles expected main.c/utils.c: %v", mx.PreviousUsedFiles.SourceFiles)
@@ -203,7 +203,7 @@ CDefines=KEIL_DEF ;OTHER
 			compiler: "GCC",
 			wantErr:  false,
 			check: func(t *testing.T, mx MxprojectType) {
-				if len(mx.PreviousUsedFiles.SourceFiles) != 0 || len(mx.ThirdPartyIpFiles.IncludeFiles) != 0 {
+				if len(mx.PreviousUsedFiles.SourceFiles) != 0 || len(mx.ThirdPartyIqFiles.IncludeFiles) != 0 {
 					t.Errorf("expected empty arrays for missing sections, got %+v", mx)
 				}
 			},

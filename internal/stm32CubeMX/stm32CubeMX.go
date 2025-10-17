@@ -703,7 +703,7 @@ func WriteCgenYmlSub(outPath string, mxproject MxprojectType, bridgeParam Bridge
 
 	var groupThirdParty cbuild.CgenGroupsType
 	groupThirdParty.Group = "ThirdParty"
-	for _, file := range mxproject.ThirdPartyIpFiles.SourceFiles {
+	for _, file := range mxproject.ThirdPartyIqFiles.SourceFiles {
 		if FilterFile(file) {
 			continue
 		}
@@ -711,7 +711,7 @@ func WriteCgenYmlSub(outPath string, mxproject MxprojectType, bridgeParam Bridge
 		cgenFile.File = file
 		groupThirdParty.Files = append(groupThirdParty.Files, cgenFile)
 	}
-	for _, file := range mxproject.ThirdPartyIpFiles.SourceAsmFiles {
+	for _, file := range mxproject.ThirdPartyIqFiles.SourceAsmFiles {
 		if FilterFile(file) {
 			continue
 		}
