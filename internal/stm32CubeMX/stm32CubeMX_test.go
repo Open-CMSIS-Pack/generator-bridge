@@ -7,7 +7,10 @@
 package stm32cubemx
 
 import (
+	"os"
 	"path/filepath"
+	"runtime"
+	"strings"
 	"testing"
 
 	"github.com/open-cmsis-pack/generator-bridge/internal/cbuild"
@@ -695,6 +698,153 @@ func Test_GetSystemFile(t *testing.T) {
 			}
 			if got != tt.want {
 				t.Errorf("GetSystemFile() %s = %v, want %v", tt.name, got, tt.want)
+			}
+		})
+	}
+}
+
+// Test_WriteProjectFile verifies generation of project.script for both board and device cases
+func Test_WriteProjectFile(t *testing.T) {
+	t.Parallel()
+
+	type args struct {
+		workDir string
+		params  BridgeParamType
+	}
+
+	// Use testing provided temp dir (placed outside repo), to avoid leaving artifacts in VCS.
+	baseTmp := t.TempDir()
+
+	tests := []struct {
+		name          string
+		args          args
+		wantSubstring []string // lines / substrings that must appear (case sensitive)
+		wantErr       bool
+	}{
+		{
+			name: "board_STMicroelectronics_loadboard",
+			args: args{workDir: filepath.Join(baseTmp, "board"), params: BridgeParamType{
+				BoardName:   "NUCLEO-H743ZI",
+				BoardVendor: "STMicroelectronics",
+				Device:      "STMicroelectronics::STM32H743ZITx",
+				Compiler:    "GCC",
+			}},
+			wantSubstring: []string{
+				"loadboard NUCLEO-H743ZI allmodes",
+				"project name STM32CubeMX",
+				"project toolchain \"STM32CubeIDE\"",
+				// path line contains OS specific path - only check prefix
+				"project path ",
+				"SetCopyLibrary \"copy only\"",
+			},
+			wantErr: false,
+		},
+		{
+			name: "generic_device_load",
+			args: args{workDir: filepath.Join(baseTmp, "device"), params: BridgeParamType{
+				BoardName:   "", // forces device path
+				BoardVendor: "", // not ST => use load <device>
+				Device:      "AcmeSemi::ACM32F103RB",
+				Compiler:    "AC6",
+			}},
+			wantSubstring: []string{
+				// Device part after vendor should be used
+				"load ACM32F103RB",
+				"project toolchain \"MDK-ARM V5\"",
+			},
+			wantErr: false,
+		},
+		{
+			name: "generic_device_load_with_part_vendor_prefix",
+			args: args{workDir: filepath.Join(baseTmp, "device_vendor_part"), params: BridgeParamType{
+				BoardName:   "",
+				BoardVendor: "",
+				Device:      "VendorX::STM32F4:SomePart", // should extract STM32F4 before ':'
+				Compiler:    "GCC",
+			}},
+			wantSubstring: []string{
+				"load STM32F4",
+				"project toolchain \"STM32CubeIDE\"",
+			},
+			wantErr: false,
+		},
+		{
+			name: "generic_device_load_with_part_no_vendor",
+			args: args{workDir: filepath.Join(baseTmp, "device_part_only"), params: BridgeParamType{
+				BoardName:   "",
+				BoardVendor: "",
+				Device:      "STM32G0:AnotherPart", // no vendor prefix, split at ':'
+				Compiler:    "CLANG",
+			}},
+			wantSubstring: []string{
+				"load STM32G0",
+				"project toolchain \"STM32CubeIDE\"",
+			},
+			wantErr: false,
+		},
+		{
+			name: "unknown_compiler",
+			args: args{workDir: filepath.Join(baseTmp, "bad"), params: BridgeParamType{
+				Device:   "V::D123",
+				Compiler: "UNKNOWN", // triggers error in GetToolchain
+			}},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			// create workDir explicitly to ensure consistent path semantics
+			if err := os.MkdirAll(tt.args.workDir, 0o755); err != nil {
+				t.Fatalf("failed to create temp workdir: %v", err)
+			}
+			gotFile, err := WriteProjectFile(tt.args.workDir, tt.args.params)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("WriteProjectFile() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if tt.wantErr {
+				return
+			}
+
+			// Validate file path
+			expectedPath := filepath.Join(tt.args.workDir, "project.script")
+			if gotFile != expectedPath {
+				t.Errorf("expected file path %s, got %s", expectedPath, gotFile)
+			}
+
+			data, err := os.ReadFile(gotFile)
+			if err != nil {
+				t.Fatalf("failed reading generated file: %v", err)
+			}
+			content := string(data)
+
+			// Normalize path separator for portable substring checks on Windows
+			if runtime.GOOS == "windows" {
+				content = strings.ReplaceAll(content, "\\", "/")
+			}
+
+			for _, sub := range tt.wantSubstring {
+				if !strings.Contains(content, sub) {
+					t.Errorf("expected substring %q not found in generated content:\n%s", sub, content)
+				}
+			}
+
+			// Second run: calling again must overwrite the file (no duplicate lines expected)
+			if !tt.wantErr {
+				_, err2 := WriteProjectFile(tt.args.workDir, tt.args.params)
+				if err2 != nil {
+					t.Fatalf("second WriteProjectFile() call failed: %v", err2)
+				}
+				data2, _ := os.ReadFile(gotFile)
+				content2 := string(data2)
+				if runtime.GOOS == "windows" {
+					content2 = strings.ReplaceAll(content2, "\\", "/")
+				}
+				if content2 != content { // expect exactly same content after overwrite (ignoring path sep style)
+					t.Errorf("file content changed after second call; want identical\nBefore:\n%s\nAfter:\n%s", content, content2)
+				}
 			}
 		})
 	}

@@ -42,6 +42,11 @@ type MxprojectType struct {
 		SourcePathList          []string
 		SourceFiles             string
 	}
+	ThirdPartyIqFiles struct { // golangcilint forced me to name it IP but that would be wrong so another try
+		IncludeFiles   []string
+		SourceAsmFiles []string
+		SourceFiles    []string
+	}
 }
 
 type IniSectionsType struct {
@@ -197,6 +202,40 @@ func GetData(inidata *ini.File, iniName string, compiler string) (MxprojectType,
 	var mxproject MxprojectType
 	var sectionName string
 	var PreviousUsedFilesID string
+	var section *ini.Section
+
+	const ThirdPartyIqID = "ThirdPartyIp" // golangcilint forced me to name it IPID but that would be wrong so another try
+	if iniName != "" {
+		sectionName = iniName + ":" + ThirdPartyIqID
+	} else {
+		sectionName = ThirdPartyIqID
+	}
+	section = inidata.Section(sectionName)
+	if section != nil {
+		var ipNames []string
+		ipNumber := section.Key("ThirdPartyIpNumber").String()
+		ipCnt, _ := strconv.Atoi(ipNumber)
+		for cnt := 0; cnt < ipCnt; cnt++ {
+			ipName := section.Key("ThirdPartyIpName#" + strconv.Itoa(cnt)).String()
+			if ipName != "" {
+				ipNames = append(ipNames, ipName)
+			}
+		}
+		for _, ipName := range ipNames {
+			ipName = "ThirdPartyIp#" + ipName
+			if iniName != "" {
+				sectionName = iniName + ":" + ipName
+			} else {
+				sectionName = ipName
+			}
+			section = inidata.Section(sectionName)
+			if section != nil {
+				StoreItemCsv(&mxproject.ThirdPartyIqFiles.IncludeFiles, section, "include")
+				StoreItemCsv(&mxproject.ThirdPartyIqFiles.SourceAsmFiles, section, "sourceAsm")
+				StoreItemCsv(&mxproject.ThirdPartyIqFiles.SourceFiles, section, "source")
+			}
+		}
+	}
 
 	PreviousUsedFilesID, err := GetPreviousUsedFilesID(compiler)
 	if err != nil {
@@ -208,7 +247,7 @@ func GetData(inidata *ini.File, iniName string, compiler string) (MxprojectType,
 	} else {
 		sectionName = PreviousUsedFilesID
 	}
-	section := inidata.Section(sectionName)
+	section = inidata.Section(sectionName)
 	if section != nil {
 		StoreItemCsv(&mxproject.PreviousUsedFiles.SourceFiles, section, "SourceFiles")
 		StoreItemCsv(&mxproject.PreviousUsedFiles.HeaderPath, section, "HeaderPath")
