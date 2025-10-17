@@ -84,7 +84,8 @@ func Process(inFile, inFile2, outPath string) error {
 			return err
 		}
 
-		err = stm32cubemx.ReadContexts(workDir+"/STM32CubeMX/STM32CubeMX.ioc", params)
+		//		err = stm32cubemx.ReadContexts(workDir+"/STM32CubeMX/STM32CubeMX.ioc", params)
+		err = stm32cubemx.ReadContexts(workDir+"/STM32CubeMX.ioc", params)
 		if err != nil {
 			return err
 		}

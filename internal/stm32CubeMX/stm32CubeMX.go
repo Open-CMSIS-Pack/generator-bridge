@@ -701,8 +701,28 @@ func WriteCgenYmlSub(outPath string, mxproject MxprojectType, bridgeParam Bridge
 	// 	groupSrc.Files = append(groupSrc.Files, cgenFile)
 	// }
 
+	var groupThirdParty cbuild.CgenGroupsType
+	groupThirdParty.Group = "ThirdParty"
+	for _, file := range mxproject.ThirdPartyIpFiles.SourceFiles {
+		if FilterFile(file) {
+			continue
+		}
+		var cgenFile cbuild.CgenFilesType
+		cgenFile.File = file
+		groupThirdParty.Files = append(groupThirdParty.Files, cgenFile)
+	}
+	for _, file := range mxproject.ThirdPartyIpFiles.SourceAsmFiles {
+		if FilterFile(file) {
+			continue
+		}
+		var cgenFile cbuild.CgenFilesType
+		cgenFile.File = file
+		groupThirdParty.Files = append(groupThirdParty.Files, cgenFile)
+	}
+
 	cgen.GeneratorImport.Groups = append(cgen.GeneratorImport.Groups, groupSrc)
 	cgen.GeneratorImport.Groups = append(cgen.GeneratorImport.Groups, groupHalDriver)
+	cgen.GeneratorImport.Groups = append(cgen.GeneratorImport.Groups, groupThirdParty)
 
 	if bridgeParam.ForProjectPart == "non-secure" {
 		groupTz.Group = "CMSE Library"
