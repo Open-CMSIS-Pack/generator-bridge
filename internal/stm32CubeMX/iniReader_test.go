@@ -132,7 +132,7 @@ CDefines=KEIL_DEF ;OTHER
 				if !containsAll(mx.ThirdPartyIqFiles.IncludeFiles, []string{"inc1", "inc2", "inc3", "incY1", "incY2"}) {
 					t.Errorf("expected all include files, got: %v", mx.ThirdPartyIqFiles.IncludeFiles)
 				}
-				if !containsAll(mx.ThirdPartyIqFiles.SourceAsmFiles, []string{"asm1", "asm2"}) { // IPY hat keine sourceAsm
+				if !containsAll(mx.ThirdPartyIqFiles.SourceAsmFiles, []string{"asm1", "asm2"}) { // IPY has no sourceAsm
 					t.Errorf("expected asm1/asm2 in SourceAsmFiles: %v", mx.ThirdPartyIqFiles.SourceAsmFiles)
 				}
 				if !containsAll(mx.ThirdPartyIqFiles.SourceFiles, []string{"ipx_src1.c", "ipx_src2.c", "ipy_src.c", "ipy_src_more.c"}) {
@@ -155,7 +155,7 @@ CDefines=KEIL_DEF ;OTHER
 				if !reflect.DeepEqual(mx.PreviousLibFiles.LibFiles, []string{"libA.a", "libB.a"}) {
 					t.Errorf("LibFiles mismatch: %v", mx.PreviousLibFiles.LibFiles)
 				}
-				// PreviousGenFiles (nur Stichprobe)
+				// PreviousGenFiles (only sample check)
 				if mx.PreviousGenFiles.AdvancedFolderStructure != "1" {
 					t.Errorf("AdvancedFolderStructure expected '1' got %v", mx.PreviousGenFiles.AdvancedFolderStructure)
 				}
