@@ -707,6 +707,7 @@ func WriteCgenYmlSub(outPath string, mxproject MxprojectType, bridgeParam Bridge
 		if FilterFile(file) {
 			continue
 		}
+		file, _ = utils.ConvertFilename(outPath, file, relativePathAdd)
 		var cgenFile cbuild.CgenFilesType
 		cgenFile.File = file
 		groupThirdParty.Files = append(groupThirdParty.Files, cgenFile)
@@ -715,6 +716,7 @@ func WriteCgenYmlSub(outPath string, mxproject MxprojectType, bridgeParam Bridge
 		if FilterFile(file) {
 			continue
 		}
+		file, _ = utils.ConvertFilename(outPath, file, relativePathAdd)
 		var cgenFile cbuild.CgenFilesType
 		cgenFile.File = file
 		groupThirdParty.Files = append(groupThirdParty.Files, cgenFile)
