@@ -131,11 +131,11 @@ CDefines=KEIL_DEF ;OTHER
 				// ThirdPartyIpFiles structure changed: now slice of ThirdPartyIpNames
 				var includes, asms, sources []string
 				var names []string
-				for _, ip := range mx.ThirdPartyIpFiles {
+				for _, ip := range mx.ThirdPartyIqFiles {
 					includes = append(includes, ip.IncludeFiles...)
 					asms = append(asms, ip.SourceAsmFiles...)
 					sources = append(sources, ip.SourceFiles...)
-					names = append(names, ip.ThirdPartyIpName)
+					names = append(names, ip.ThirdPartyIqName)
 				}
 				if !containsAll(names, []string{"IPX", "IPY"}) {
 					t.Errorf("expected IP names IPX/IPY got %v", names)
@@ -189,7 +189,7 @@ CDefines=KEIL_DEF ;OTHER
 			wantErr:  false,
 			check: func(t *testing.T, mx MxprojectType) {
 				var includes []string
-				for _, ip := range mx.ThirdPartyIpFiles {
+				for _, ip := range mx.ThirdPartyIqFiles {
 					includes = append(includes, ip.IncludeFiles...)
 				}
 				if !containsAll(includes, []string{"lib_inc", "lib_extra"}) {
@@ -218,7 +218,7 @@ CDefines=KEIL_DEF ;OTHER
 			compiler: "GCC",
 			wantErr:  false,
 			check: func(t *testing.T, mx MxprojectType) {
-				if len(mx.PreviousUsedFiles.SourceFiles) != 0 || len(mx.ThirdPartyIpFiles) != 0 {
+				if len(mx.PreviousUsedFiles.SourceFiles) != 0 || len(mx.ThirdPartyIqFiles) != 0 {
 					t.Errorf("expected empty arrays/slices for missing sections, got %+v", mx)
 				}
 			},

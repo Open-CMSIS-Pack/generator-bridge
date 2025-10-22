@@ -587,8 +587,8 @@ func Test_WriteCgenYmlSub(t *testing.T) {
 	mx.PreviousUsedFiles.CDefines = []string{"VALID_DEFINE", "1BAD", "_GOOD"}                   // 1BAD filtered
 	mx.PreviousUsedFiles.HeaderPath = []string{"include", "Templates", "Drivers/CMSIS/Include"} // some filtered
 	mx.PreviousUsedFiles.SourceFiles = []string{"Src/main.c", "Src/HAL_Driver/stm32_hal.c", "system_ignore.c"}
-	mx.ThirdPartyIpFiles = []ThirdPartyIpNames{{
-		ThirdPartyIpName: "IPLIB",
+	mx.ThirdPartyIqFiles = []ThirdPartyIqNames{{
+		ThirdPartyIqName: "IPLIB",
 		IncludeFiles:     []string{"tp/inc"},
 		SourceFiles:      []string{"tp/src/lib.c"},
 		SourceAsmFiles:   []string{"tp/src/startup.s"},

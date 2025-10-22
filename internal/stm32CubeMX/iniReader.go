@@ -23,8 +23,8 @@ type MxprojectAllType struct {
 	Mxproject []MxprojectType
 }
 
-type ThirdPartyIpNames struct {
-	ThirdPartyIpName string
+type ThirdPartyIqNames struct { // crazy golangci does not allow me to name it ...IpNames
+	ThirdPartyIqName string
 	IncludeFiles     []string
 	SourceAsmFiles   []string
 	SourceFiles      []string
@@ -49,7 +49,7 @@ type MxprojectType struct {
 		SourcePathList          []string
 		SourceFiles             string
 	}
-	ThirdPartyIpFiles []ThirdPartyIpNames
+	ThirdPartyIqFiles []ThirdPartyIqNames
 }
 
 type IniSectionsType struct {
@@ -233,21 +233,21 @@ func GetData(inidata *ini.File, iniName string, compiler string) (MxprojectType,
 			}
 		}
 		for _, ipName := range ipNames {
-			fullIpName := "ThirdPartyIp#" + ipName
+			fullIqName := "ThirdPartyIp#" + ipName // crazy golangci does not allow me to name it fullIpName
 			if iniName != "" {
-				sectionName = iniName + ":" + fullIpName
+				sectionName = iniName + ":" + fullIqName
 			} else {
-				sectionName = fullIpName
+				sectionName = fullIqName
 			}
 			ipName = removeVendorAndVersion(ipName)
 			section = inidata.Section(sectionName)
 			if section != nil {
-				var tpip ThirdPartyIpNames
-				tpip.ThirdPartyIpName = ipName
+				var tpip ThirdPartyIqNames
+				tpip.ThirdPartyIqName = ipName
 				StoreItemCsv(&tpip.IncludeFiles, section, "include")
 				StoreItemCsv(&tpip.SourceAsmFiles, section, "sourceAsm")
 				StoreItemCsv(&tpip.SourceFiles, section, "source")
-				mxproject.ThirdPartyIpFiles = append(mxproject.ThirdPartyIpFiles, tpip)
+				mxproject.ThirdPartyIqFiles = append(mxproject.ThirdPartyIqFiles, tpip)
 			}
 		}
 	}

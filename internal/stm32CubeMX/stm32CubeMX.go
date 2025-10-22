@@ -702,9 +702,9 @@ func WriteCgenYmlSub(outPath string, mxproject MxprojectType, bridgeParam Bridge
 	// }
 
 	var groupsThirdParty []cbuild.CgenGroupsType
-	for _, files := range mxproject.ThirdPartyIpFiles {
+	for _, files := range mxproject.ThirdPartyIqFiles {
 		var groupThirdParty cbuild.CgenGroupsType
-		groupThirdParty.Group = files.ThirdPartyIpName
+		groupThirdParty.Group = files.ThirdPartyIqName
 		for _, file := range files.SourceFiles {
 			file, _ = utils.ConvertFilename(outPath, file, relativePathAdd)
 			var cgenFile cbuild.CgenFilesType
