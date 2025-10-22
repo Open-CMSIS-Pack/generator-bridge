@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023-2024 Arm Limited. All rights reserved.
+ * Copyright (c) 2023-2025 Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -540,7 +540,7 @@ func GetBridgeInfo(parms *cbuild.ParamsType, bridgeParams *[]BridgeParamType) er
 }
 
 var filterFiles = map[string]string{
-	"system_":                            "system_ file (already added)",
+	"system_stm32":                       "system_stm32 file (already added)",
 	"Templates":                          "Templates file (mostly not present)",
 	"/STM32CubeMX/Drivers/CMSIS/Include": "CMSIS include folder (delivered by ARM::CMSIS)",
 }
@@ -701,30 +701,32 @@ func WriteCgenYmlSub(outPath string, mxproject MxprojectType, bridgeParam Bridge
 	// 	groupSrc.Files = append(groupSrc.Files, cgenFile)
 	// }
 
-	var groupThirdParty cbuild.CgenGroupsType
-	groupThirdParty.Group = "ThirdParty"
-	for _, file := range mxproject.ThirdPartyIqFiles.SourceFiles {
-		if FilterFile(file) {
-			continue
+	var groupsThirdParty []cbuild.CgenGroupsType
+	for _, files := range mxproject.ThirdPartyIpFiles {
+		var groupThirdParty cbuild.CgenGroupsType
+		groupThirdParty.Group = files.ThirdPartyIpName
+		for _, file := range files.SourceFiles {
+			file, _ = utils.ConvertFilename(outPath, file, relativePathAdd)
+			var cgenFile cbuild.CgenFilesType
+			cgenFile.File = file
+			groupThirdParty.Files = append(groupThirdParty.Files, cgenFile)
 		}
-		file, _ = utils.ConvertFilename(outPath, file, relativePathAdd)
-		var cgenFile cbuild.CgenFilesType
-		cgenFile.File = file
-		groupThirdParty.Files = append(groupThirdParty.Files, cgenFile)
-	}
-	for _, file := range mxproject.ThirdPartyIqFiles.SourceAsmFiles {
-		if FilterFile(file) {
-			continue
+		for _, file := range files.SourceAsmFiles {
+			file, _ = utils.ConvertFilename(outPath, file, relativePathAdd)
+			var cgenFile cbuild.CgenFilesType
+			cgenFile.File = file
+			groupThirdParty.Files = append(groupThirdParty.Files, cgenFile)
 		}
-		file, _ = utils.ConvertFilename(outPath, file, relativePathAdd)
-		var cgenFile cbuild.CgenFilesType
-		cgenFile.File = file
-		groupThirdParty.Files = append(groupThirdParty.Files, cgenFile)
+		groupsThirdParty = append(groupsThirdParty, groupThirdParty)
 	}
 
 	cgen.GeneratorImport.Groups = append(cgen.GeneratorImport.Groups, groupSrc)
 	cgen.GeneratorImport.Groups = append(cgen.GeneratorImport.Groups, groupHalDriver)
-	cgen.GeneratorImport.Groups = append(cgen.GeneratorImport.Groups, groupThirdParty)
+	for _, group := range groupsThirdParty {
+		if len(group.Files) > 0 {
+			cgen.GeneratorImport.Groups = append(cgen.GeneratorImport.Groups, group)
+		}
+	}
 
 	if bridgeParam.ForProjectPart == "non-secure" {
 		groupTz.Group = "CMSE Library"

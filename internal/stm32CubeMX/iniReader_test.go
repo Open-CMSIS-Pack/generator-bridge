@@ -128,15 +128,26 @@ CDefines=KEIL_DEF ;OTHER
 			compiler: "GCC",
 			wantErr:  false,
 			check: func(t *testing.T, mx MxprojectType) {
-				// ThirdPartyIpFiles
-				if !containsAll(mx.ThirdPartyIqFiles.IncludeFiles, []string{"inc1", "inc2", "inc3", "incY1", "incY2"}) {
-					t.Errorf("expected all include files, got: %v", mx.ThirdPartyIqFiles.IncludeFiles)
+				// ThirdPartyIpFiles structure changed: now slice of ThirdPartyIpNames
+				var includes, asms, sources []string
+				var names []string
+				for _, ip := range mx.ThirdPartyIpFiles {
+					includes = append(includes, ip.IncludeFiles...)
+					asms = append(asms, ip.SourceAsmFiles...)
+					sources = append(sources, ip.SourceFiles...)
+					names = append(names, ip.ThirdPartyIpName)
 				}
-				if !containsAll(mx.ThirdPartyIqFiles.SourceAsmFiles, []string{"asm1", "asm2"}) { // IPY has no sourceAsm
-					t.Errorf("expected asm1/asm2 in SourceAsmFiles: %v", mx.ThirdPartyIqFiles.SourceAsmFiles)
+				if !containsAll(names, []string{"IPX", "IPY"}) {
+					t.Errorf("expected IP names IPX/IPY got %v", names)
 				}
-				if !containsAll(mx.ThirdPartyIqFiles.SourceFiles, []string{"ipx_src1.c", "ipx_src2.c", "ipy_src.c", "ipy_src_more.c"}) {
-					t.Errorf("third-party source files incomplete: %v", mx.ThirdPartyIqFiles.SourceFiles)
+				if !containsAll(includes, []string{"inc1", "inc2", "inc3", "incY1", "incY2"}) {
+					t.Errorf("expected all include files, got: %v", includes)
+				}
+				if !containsAll(asms, []string{"asm1", "asm2"}) { // IPY has no sourceAsm
+					t.Errorf("expected asm1/asm2 in SourceAsmFiles: %v", asms)
+				}
+				if !containsAll(sources, []string{"ipx_src1.c", "ipx_src2.c", "ipy_src.c", "ipy_src_more.c"}) {
+					t.Errorf("third-party source files incomplete: %v", sources)
 				}
 				// PreviousUsedFiles
 				expSrc := []string{"src1.c", "src2.c", "src3.c"}
@@ -177,8 +188,12 @@ CDefines=KEIL_DEF ;OTHER
 			compiler: "AC6",
 			wantErr:  false,
 			check: func(t *testing.T, mx MxprojectType) {
-				if !containsAll(mx.ThirdPartyIqFiles.IncludeFiles, []string{"lib_inc", "lib_extra"}) {
-					t.Errorf("IncludeFiles expected lib_inc/lib_extra: %v", mx.ThirdPartyIqFiles.IncludeFiles)
+				var includes []string
+				for _, ip := range mx.ThirdPartyIpFiles {
+					includes = append(includes, ip.IncludeFiles...)
+				}
+				if !containsAll(includes, []string{"lib_inc", "lib_extra"}) {
+					t.Errorf("IncludeFiles expected lib_inc/lib_extra: %v", includes)
 				}
 				if !containsAll(mx.PreviousUsedFiles.SourceFiles, []string{"main.c", "utils.c"}) {
 					t.Errorf("SourceFiles expected main.c/utils.c: %v", mx.PreviousUsedFiles.SourceFiles)
@@ -203,8 +218,8 @@ CDefines=KEIL_DEF ;OTHER
 			compiler: "GCC",
 			wantErr:  false,
 			check: func(t *testing.T, mx MxprojectType) {
-				if len(mx.PreviousUsedFiles.SourceFiles) != 0 || len(mx.ThirdPartyIqFiles.IncludeFiles) != 0 {
-					t.Errorf("expected empty arrays for missing sections, got %+v", mx)
+				if len(mx.PreviousUsedFiles.SourceFiles) != 0 || len(mx.ThirdPartyIpFiles) != 0 {
+					t.Errorf("expected empty arrays/slices for missing sections, got %+v", mx)
 				}
 			},
 		},

@@ -23,6 +23,13 @@ type MxprojectAllType struct {
 	Mxproject []MxprojectType
 }
 
+type ThirdPartyIpNames struct {
+	ThirdPartyIpName string
+	IncludeFiles     []string
+	SourceAsmFiles   []string
+	SourceFiles      []string
+}
+
 type MxprojectType struct {
 	Context          string
 	PreviousLibFiles struct {
@@ -42,11 +49,7 @@ type MxprojectType struct {
 		SourcePathList          []string
 		SourceFiles             string
 	}
-	ThirdPartyIqFiles struct { // golangcilint forced me to name it IP but that would be wrong so another try
-		IncludeFiles   []string
-		SourceAsmFiles []string
-		SourceFiles    []string
-	}
+	ThirdPartyIpFiles []ThirdPartyIpNames
 }
 
 type IniSectionsType struct {
@@ -198,6 +201,14 @@ func GetSections(inidata *ini.File, iniSections *[]IniSectionsType) error {
 	return nil
 }
 
+func removeVendorAndVersion(ipName string) string {
+	parts := strings.Split(ipName, ".")
+	if len(parts) > 1 {
+		return parts[1]
+	}
+	return ipName
+}
+
 func GetData(inidata *ini.File, iniName string, compiler string) (MxprojectType, error) {
 	var mxproject MxprojectType
 	var sectionName string
@@ -222,17 +233,21 @@ func GetData(inidata *ini.File, iniName string, compiler string) (MxprojectType,
 			}
 		}
 		for _, ipName := range ipNames {
-			ipName = "ThirdPartyIp#" + ipName
+			fullIpName := "ThirdPartyIp#" + ipName
 			if iniName != "" {
-				sectionName = iniName + ":" + ipName
+				sectionName = iniName + ":" + fullIpName
 			} else {
-				sectionName = ipName
+				sectionName = fullIpName
 			}
+			ipName = removeVendorAndVersion(ipName)
 			section = inidata.Section(sectionName)
 			if section != nil {
-				StoreItemCsv(&mxproject.ThirdPartyIqFiles.IncludeFiles, section, "include")
-				StoreItemCsv(&mxproject.ThirdPartyIqFiles.SourceAsmFiles, section, "sourceAsm")
-				StoreItemCsv(&mxproject.ThirdPartyIqFiles.SourceFiles, section, "source")
+				var tpip ThirdPartyIpNames
+				tpip.ThirdPartyIpName = ipName
+				StoreItemCsv(&tpip.IncludeFiles, section, "include")
+				StoreItemCsv(&tpip.SourceAsmFiles, section, "sourceAsm")
+				StoreItemCsv(&tpip.SourceFiles, section, "source")
+				mxproject.ThirdPartyIpFiles = append(mxproject.ThirdPartyIpFiles, tpip)
 			}
 		}
 	}
