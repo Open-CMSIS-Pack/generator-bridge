@@ -26,8 +26,15 @@ func Process(inFile, inFile2, outPath string) error {
 	var cbuildParams cbuild.ParamsType
 	var params []stm32cubemx.BridgeParamType
 
-	if strings.Contains(inFile, "cbuild-gen-idx.yml") {
-		err := cbuild.Read(inFile, "CubeMX", &cbuildParams)
+	var genIdxFile string
+	if strings.Contains(inFile, "cbuild-gen-idx.yml") { // -f
+		genIdxFile = inFile
+	}
+	if strings.Contains(inFile2, "cbuild-gen-idx.yml") { // -r
+		genIdxFile = inFile2
+	}
+	if len(genIdxFile) > 0 {
+		err := cbuild.Read(genIdxFile, "CubeMX", &cbuildParams)
 		if err != nil {
 			return err
 		}
@@ -44,10 +51,10 @@ func Process(inFile, inFile2, outPath string) error {
 	}
 
 	var mxprojectFile string
-	if strings.Contains(inFile, ".mxproject") {
+	if strings.Contains(inFile, ".mxproject") { // -f
 		mxprojectFile = inFile
 	}
-	if strings.Contains(inFile2, ".mxproject") {
+	if strings.Contains(inFile2, ".mxproject") { // -r
 		mxprojectFile = inFile2
 	}
 
@@ -84,7 +91,8 @@ func Process(inFile, inFile2, outPath string) error {
 			return err
 		}
 
-		err = stm32cubemx.ReadContexts(workDir+"/STM32CubeMX/STM32CubeMX.ioc", params)
+		//		err = stm32cubemx.ReadContexts(workDir+"/STM32CubeMX/STM32CubeMX.ioc", params)
+		err = stm32cubemx.ReadContexts(filepath.Join(workDir, "STM32CubeMX.ioc"), params)
 		if err != nil {
 			return err
 		}

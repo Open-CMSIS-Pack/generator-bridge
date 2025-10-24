@@ -23,6 +23,13 @@ type MxprojectAllType struct {
 	Mxproject []MxprojectType
 }
 
+type ThirdPartyIqNames struct { // crazy golangci does not allow me to name it ...IpNames
+	ThirdPartyIqName string
+	IncludeFiles     []string
+	SourceAsmFiles   []string
+	SourceFiles      []string
+}
+
 type MxprojectType struct {
 	Context          string
 	PreviousLibFiles struct {
@@ -42,6 +49,7 @@ type MxprojectType struct {
 		SourcePathList          []string
 		SourceFiles             string
 	}
+	ThirdPartyIqFiles []ThirdPartyIqNames
 }
 
 type IniSectionsType struct {
@@ -193,10 +201,56 @@ func GetSections(inidata *ini.File, iniSections *[]IniSectionsType) error {
 	return nil
 }
 
+func removeVendorAndVersion(ipName string) string {
+	parts := strings.Split(ipName, ".")
+	if len(parts) > 1 {
+		return parts[1]
+	}
+	return ipName
+}
+
 func GetData(inidata *ini.File, iniName string, compiler string) (MxprojectType, error) {
 	var mxproject MxprojectType
 	var sectionName string
 	var PreviousUsedFilesID string
+	var section *ini.Section
+
+	const ThirdPartyIqID = "ThirdPartyIp" // golangcilint forced me to name it IPID but that would be wrong so another try
+	if iniName != "" {
+		sectionName = iniName + ":" + ThirdPartyIqID
+	} else {
+		sectionName = ThirdPartyIqID
+	}
+	section = inidata.Section(sectionName)
+	if section != nil {
+		var ipNames []string
+		ipNumber := section.Key("ThirdPartyIpNumber").String()
+		ipCnt, _ := strconv.Atoi(ipNumber)
+		for cnt := 0; cnt < ipCnt; cnt++ {
+			ipName := section.Key("ThirdPartyIpName#" + strconv.Itoa(cnt)).String()
+			if ipName != "" {
+				ipNames = append(ipNames, ipName)
+			}
+		}
+		for _, ipName := range ipNames {
+			fullIqName := "ThirdPartyIp#" + ipName // crazy golangci does not allow me to name it fullIpName
+			if iniName != "" {
+				sectionName = iniName + ":" + fullIqName
+			} else {
+				sectionName = fullIqName
+			}
+			ipName = removeVendorAndVersion(ipName)
+			section = inidata.Section(sectionName)
+			if section != nil {
+				var tpip ThirdPartyIqNames
+				tpip.ThirdPartyIqName = ipName
+				StoreItemCsv(&tpip.IncludeFiles, section, "include")
+				StoreItemCsv(&tpip.SourceAsmFiles, section, "sourceAsm")
+				StoreItemCsv(&tpip.SourceFiles, section, "source")
+				mxproject.ThirdPartyIqFiles = append(mxproject.ThirdPartyIqFiles, tpip)
+			}
+		}
+	}
 
 	PreviousUsedFilesID, err := GetPreviousUsedFilesID(compiler)
 	if err != nil {
@@ -208,7 +262,7 @@ func GetData(inidata *ini.File, iniName string, compiler string) (MxprojectType,
 	} else {
 		sectionName = PreviousUsedFilesID
 	}
-	section := inidata.Section(sectionName)
+	section = inidata.Section(sectionName)
 	if section != nil {
 		StoreItemCsv(&mxproject.PreviousUsedFiles.SourceFiles, section, "SourceFiles")
 		StoreItemCsv(&mxproject.PreviousUsedFiles.HeaderPath, section, "HeaderPath")
