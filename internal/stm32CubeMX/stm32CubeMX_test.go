@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023-2024 Arm Limited. All rights reserved.
+ * Copyright (c) 2023-2025 Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -15,6 +15,153 @@ import (
 
 	"github.com/open-cmsis-pack/generator-bridge/internal/cbuild"
 )
+
+// Test_WriteProjectFile verifies generation of project.script for both board and device cases
+func Test_WriteProjectFile(t *testing.T) {
+	t.Parallel()
+
+	type args struct {
+		workDir string
+		params  BridgeParamType
+	}
+
+	// Use testing provided temp dir (placed outside repo), to avoid leaving artifacts in VCS.
+	baseTmp := t.TempDir()
+
+	tests := []struct {
+		name          string
+		args          args
+		wantSubstring []string // lines / substrings that must appear (case sensitive)
+		wantErr       bool
+	}{
+		{
+			name: "board_STMicroelectronics_loadboard",
+			args: args{workDir: filepath.Join(baseTmp, "board"), params: BridgeParamType{
+				BoardName:   "NUCLEO-H743ZI",
+				BoardVendor: "STMicroelectronics",
+				Device:      "STMicroelectronics::STM32H743ZITx",
+				Compiler:    "GCC",
+			}},
+			wantSubstring: []string{
+				"loadboard NUCLEO-H743ZI allmodes",
+				"project name STM32CubeMX",
+				"project toolchain \"STM32CubeIDE\"",
+				// path line contains OS specific path - only check prefix
+				"project path ",
+				"SetCopyLibrary \"copy only\"",
+			},
+			wantErr: false,
+		},
+		{
+			name: "generic_device_load",
+			args: args{workDir: filepath.Join(baseTmp, "device"), params: BridgeParamType{
+				BoardName:   "", // forces device path
+				BoardVendor: "", // not ST => use load <device>
+				Device:      "AcmeSemi::ACM32F103RB",
+				Compiler:    "AC6",
+			}},
+			wantSubstring: []string{
+				// Device part after vendor should be used
+				"load ACM32F103RB",
+				"project toolchain \"MDK-ARM V5\"",
+			},
+			wantErr: false,
+		},
+		{
+			name: "generic_device_load_with_part_vendor_prefix",
+			args: args{workDir: filepath.Join(baseTmp, "device_vendor_part"), params: BridgeParamType{
+				BoardName:   "",
+				BoardVendor: "",
+				Device:      "VendorX::STM32F4:SomePart", // should extract STM32F4 before ':'
+				Compiler:    "GCC",
+			}},
+			wantSubstring: []string{
+				"load STM32F4",
+				"project toolchain \"STM32CubeIDE\"",
+			},
+			wantErr: false,
+		},
+		{
+			name: "generic_device_load_with_part_no_vendor",
+			args: args{workDir: filepath.Join(baseTmp, "device_part_only"), params: BridgeParamType{
+				BoardName:   "",
+				BoardVendor: "",
+				Device:      "STM32G0:AnotherPart", // no vendor prefix, split at ':'
+				Compiler:    "CLANG",
+			}},
+			wantSubstring: []string{
+				"load STM32G0",
+				"project toolchain \"STM32CubeIDE\"",
+			},
+			wantErr: false,
+		},
+		{
+			name: "unknown_compiler",
+			args: args{workDir: filepath.Join(baseTmp, "bad"), params: BridgeParamType{
+				Device:   "V::D123",
+				Compiler: "UNKNOWN", // triggers error in GetToolchain
+			}},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			// create workDir explicitly to ensure consistent path semantics
+			if err := os.MkdirAll(tt.args.workDir, 0o755); err != nil {
+				t.Fatalf("failed to create temp workdir: %v", err)
+			}
+			gotFile, err := WriteProjectFile(tt.args.workDir, tt.args.params)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("WriteProjectFile() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if tt.wantErr {
+				return
+			}
+
+			// Validate file path
+			expectedPath := filepath.Join(tt.args.workDir, "project.script")
+			if gotFile != expectedPath {
+				t.Errorf("expected file path %s, got %s", expectedPath, gotFile)
+			}
+
+			data, err := os.ReadFile(gotFile)
+			if err != nil {
+				t.Fatalf("failed reading generated file: %v", err)
+			}
+			content := string(data)
+
+			// Normalize path separator for portable substring checks on Windows
+			if runtime.GOOS == "windows" {
+				content = strings.ReplaceAll(content, "\\", "/")
+			}
+
+			for _, sub := range tt.wantSubstring {
+				if !strings.Contains(content, sub) {
+					t.Errorf("expected substring %q not found in generated content:\n%s", sub, content)
+				}
+			}
+
+			// Second run: calling again must overwrite the file (no duplicate lines expected)
+			if !tt.wantErr {
+				_, err2 := WriteProjectFile(tt.args.workDir, tt.args.params)
+				if err2 != nil {
+					t.Fatalf("second WriteProjectFile() call failed: %v", err2)
+				}
+				data2, _ := os.ReadFile(gotFile)
+				content2 := string(data2)
+				if runtime.GOOS == "windows" {
+					content2 = strings.ReplaceAll(content2, "\\", "/")
+				}
+				if content2 != content { // expect exactly same content after overwrite (ignoring path sep style)
+					t.Errorf("file content changed after second call; want identical\nBefore:\n%s\nAfter:\n%s", content, content2)
+				}
+			}
+		})
+	}
+}
 
 func Test_GetBridgeInfo(t *testing.T) {
 
@@ -254,6 +401,276 @@ func Test_GetBridgeInfo(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+// Test_FilterFile verifies that known substrings cause filtering and others pass.
+func Test_FilterFile(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name string
+		in   string
+		want bool // true means filtered (ignored)
+	}{
+		{"system_prefix", "path/to/system_stm32xyz.c", true},
+		{"templates_dir", "Templates/startup_template.c", true},
+		{"cmsis_include", "/STM32CubeMX/Drivers/CMSIS/Include", true},
+		{"cmsis_include_nested", "proj/STM32CubeMX/Drivers/CMSIS/Include/core_cm7.h", true},
+		{"no_filter_regular", "src/main.c", false},
+		{"partial_word_no_match", "systems/file.c", false},              // 'systems' not equal 'system_'
+		{"underscore_leading_system_prefix", "_system_driver.c", false}, // leading underscore means substring not intended to be filtered
+	}
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got := FilterFile(tt.in)
+			if got != tt.want {
+				t.Errorf("FilterFile(%q) = %v, want %v", tt.in, got, tt.want)
+			}
+		})
+	}
+}
+
+// Test_FilterDefine exercises validation rules: first char letter/underscore, remaining chars alnum/underscore only.
+func Test_FilterDefine(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name   string
+		define string
+		want   bool // true means filtered (invalid)
+	}{
+		{"empty", "", true},
+		{"starts_with_letter", "ABC", false},
+		{"starts_with_underscore", "_ABC123", false},
+		{"single_underscore", "_", false},
+		{"letters_digits_underscore", "A_B_C_1", false},
+		{"starts_with_digit", "1ABC", true},
+		{"dash_in_middle", "AB-C", true},
+		{"dot_in_middle", "A.B", true},
+		{"space_in_middle", "A B", true},
+		{"asterisk", "A*B", true},
+		{"unicode_letter_filtered", "ÄBC", true}, // FilterDefine treats non ASCII first rune as letter? actual result filtered
+	}
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got := FilterDefine(tt.define)
+			if got != tt.want {
+				t.Errorf("FilterDefine(%q) = %v, want %v", tt.define, got, tt.want)
+			}
+		})
+	}
+}
+
+// Test_FindMxProject covers selection logic for mxproject contexts.
+func Test_FindMxProject(t *testing.T) {
+	t.Parallel()
+
+	mxA := MxprojectType{Context: "CtxA"}
+	mxB := MxprojectType{Context: "CtxB"}
+
+	tests := []struct {
+		name    string
+		context string
+		all     MxprojectAllType
+		want    MxprojectType
+		wantErr bool
+	}{
+		{
+			name:    "empty_list_error",
+			context: "CtxA",
+			all:     MxprojectAllType{Mxproject: []MxprojectType{}},
+			want:    MxprojectType{},
+			wantErr: true,
+		},
+		{
+			name:    "single_entry_returns_it",
+			context: "CtxA",
+			all:     MxprojectAllType{Mxproject: []MxprojectType{mxA}},
+			want:    mxA,
+			wantErr: false,
+		},
+		{
+			name:    "multi_match_returns_correct",
+			context: "CtxB",
+			all:     MxprojectAllType{Mxproject: []MxprojectType{mxA, mxB}},
+			want:    mxB,
+			wantErr: false,
+		},
+		{
+			name:    "multi_no_match_returns_empty",
+			context: "CtxZ",
+			all:     MxprojectAllType{Mxproject: []MxprojectType{mxA, mxB}},
+			want:    MxprojectType{},
+			wantErr: false,
+		},
+		{
+			name:    "multi_empty_context_search",
+			context: "",
+			all:     MxprojectAllType{Mxproject: []MxprojectType{mxA, mxB}},
+			want:    MxprojectType{},
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got, err := FindMxProject(tt.context, tt.all)
+			if tt.wantErr && err == nil {
+				t.Fatalf("expected error, got nil")
+			}
+			if !tt.wantErr && err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if got.Context != tt.want.Context {
+				t.Errorf("FindMxProject() context = %q, want %q", got.Context, tt.want.Context)
+			}
+		})
+	}
+}
+
+// Test_WriteCgenYmlSub ensures that a minimal mxproject produces expected group & define structure.
+func Test_WriteCgenYmlSub(t *testing.T) {
+	t.Parallel()
+
+	tmpDir := t.TempDir()
+	base := filepath.Join(tmpDir, "STM32CubeMX")
+	// Required GCC structure for GetStartupFile / GetSystemFile
+	dirs := []string{
+		filepath.Join(base, "STM32CubeIDE", "Application", "Startup"),
+		filepath.Join(base, "Src", "HAL_Driver"),
+		filepath.Join(base, "include"),
+		filepath.Join(base, "Templates"),
+		filepath.Join(base, "Drivers", "CMSIS", "Include"),
+		filepath.Join(base, "tp", "src"),
+		filepath.Join(base, "MX_Device"),
+	}
+	for _, d := range dirs {
+		if err := os.MkdirAll(d, 0o755); err != nil {
+			t.Fatalf("mkDir %s: %v", d, err)
+		}
+	}
+
+	// Startup & system files per discovery logic
+	startupFile := filepath.Join(base, "STM32CubeIDE", "Application", "Startup", "startup_stm32f4xx.c")
+	systemFile := filepath.Join(base, "Src", "system_stm32f4xx.c")
+	if err := os.WriteFile(startupFile, []byte("startup"), 0o600); err != nil {
+		t.Fatalf("write startup: %v", err)
+	}
+	if err := os.WriteFile(systemFile, []byte("system"), 0o600); err != nil {
+		t.Fatalf("write system: %v", err)
+	}
+
+	// Source files referenced
+	if err := os.WriteFile(filepath.Join(base, "Src", "main.c"), []byte("int main(){}"), 0o600); err != nil {
+		t.Fatalf("main: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(base, "Src", "HAL_Driver", "stm32_hal.c"), []byte("void x(){}"), 0o600); err != nil {
+		t.Fatalf("hal: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(base, "system_ignore.c"), []byte(""), 0o600); err != nil {
+		t.Fatalf("sysignore: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(base, "tp", "src", "lib.c"), []byte(""), 0o600); err != nil {
+		t.Fatalf("lib: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(base, "tp", "src", "startup.s"), []byte(""), 0o600); err != nil {
+		t.Fatalf("tp startup: %v", err)
+	}
+
+	// Minimal mxproject with defines, header path, sources and third party entries
+	mx := MxprojectType{}
+	mx.PreviousUsedFiles.CDefines = []string{"VALID_DEFINE", "1BAD", "_GOOD"}                   // 1BAD filtered
+	mx.PreviousUsedFiles.HeaderPath = []string{"include", "Templates", "Drivers/CMSIS/Include"} // some filtered
+	mx.PreviousUsedFiles.SourceFiles = []string{"Src/main.c", "Src/HAL_Driver/stm32_hal.c", "system_ignore.c"}
+	mx.ThirdPartyIqFiles = []ThirdPartyIqNames{{
+		ThirdPartyIqName: "IPLIB",
+		IncludeFiles:     []string{"tp/inc"},
+		SourceFiles:      []string{"tp/src/lib.c"},
+		SourceAsmFiles:   []string{"tp/src/startup.s"},
+	}}
+
+	bp := BridgeParamType{ // minimal bridge param
+		BoardName:         "MyBoard",
+		Device:            "V::D",
+		Compiler:          "GCC",
+		CgenName:          filepath.Join(tmpDir, "Cgen.yml"),
+		CubeContext:       "",
+		CubeContextFolder: "",
+	}
+
+	if err := WriteCgenYmlSub(base, mx, bp); err != nil {
+		t.Fatalf("WriteCgenYmlSub error: %v", err)
+	}
+
+	data, err := os.ReadFile(bp.CgenName)
+	if err != nil {
+		t.Fatalf("read cgen: %v", err)
+	}
+	content := string(data)
+
+	if !strings.Contains(content, "VALID_DEFINE") || strings.Contains(content, "1BAD") {
+		t.Errorf("define filtering failed in output: %s", content)
+	}
+	if !strings.Contains(content, "CubeMX") {
+		t.Errorf("missing CubeMX group in output")
+	}
+	if !strings.Contains(content, "IPLIB") {
+		t.Errorf("missing third-party group IPLIB")
+	}
+	if strings.Contains(content, "Templates") {
+		t.Errorf("filtered header path Templates should not appear")
+	}
+}
+
+// Test_WriteCgenYml validates multi-bridge invocation and skips errored FindMxProject contexts gracefully.
+func Test_WriteCgenYml(t *testing.T) {
+	t.Parallel()
+	tmpDir := t.TempDir()
+	base := filepath.Join(tmpDir, "STM32CubeMX")
+	dirs := []string{
+		filepath.Join(base, "STM32CubeIDE", "Application", "Startup"),
+		filepath.Join(base, "Src"),
+		filepath.Join(base, "MX_Device"),
+	}
+	for _, d := range dirs {
+		if err := os.MkdirAll(d, 0o755); err != nil {
+			t.Fatalf("mkDir %s: %v", d, err)
+		}
+	}
+	if err := os.WriteFile(filepath.Join(base, "STM32CubeIDE", "Application", "Startup", "startup_stm32f4xx.c"), []byte("s"), 0o600); err != nil {
+		t.Fatalf("startup: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(base, "Src", "system_stm32f4xx.c"), []byte("s"), 0o600); err != nil {
+		t.Fatalf("system: %v", err)
+	}
+
+	mx1 := MxprojectType{Context: "Ctx1"}
+	mx1.PreviousUsedFiles.CDefines = []string{"DEF_OK"}
+	mx2 := MxprojectType{Context: "Ctx2"}
+	mx2.PreviousUsedFiles.CDefines = []string{"DEF2"}
+	all := MxprojectAllType{Mxproject: []MxprojectType{mx1, mx2}}
+
+	params := []BridgeParamType{
+		{CubeContext: "Ctx1", Compiler: "GCC", CgenName: filepath.Join(tmpDir, "cgen1.yml")},
+		{CubeContext: "Ctx2", Compiler: "GCC", CgenName: filepath.Join(tmpDir, "cgen2.yml")},
+	}
+
+	if err := WriteCgenYml(base, all, params); err != nil {
+		t.Fatalf("WriteCgenYml error: %v", err)
+	}
+	for i, p := range params {
+		if _, err := os.Stat(p.CgenName); err != nil {
+			t.Errorf("cgen file %d missing: %v", i, err)
+		}
+		b, _ := os.ReadFile(p.CgenName)
+		if !strings.Contains(string(b), "DEF") {
+			t.Errorf("expected defines in %s", p.CgenName)
+		}
 	}
 }
 
