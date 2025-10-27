@@ -232,7 +232,7 @@ if exist "%USERPROFILE%\AppData\Local\Infineon_Technologies_AG\Infineon-Toolbox"
 ) else (
     echo Per-user directory not found: %USERPROFILE%\AppData\Local\Infineon_Technologies_AG\Infineon-Toolbox
 )
-echo Finished processing per-user JSON files.
+echo Finished processing per-user JSON files. >> debug.log
 
 :: Check all-users IDC JSON files if no valid path found
 if "!LATEST_PATH!"=="" (
@@ -292,7 +292,7 @@ if "!LATEST_PATH!"=="" (
         echo All-users directory not found: %ALLUSERSPROFILE%\Infineon_Technologies_AG\Infineon-Toolbox >> debug.log
     )
 )
-echo Finished processing all-users JSON files.
+echo Finished processing all-users JSON files. >> debug.log
 
 :: Output the latest exePath
 if defined LATEST_PATH (
@@ -300,13 +300,13 @@ if defined LATEST_PATH (
     echo Selected exePath: !LATEST_PATH!
     set "TOOL_PATH=!LATEST_PATH!"
 ) else (
-    echo Error: Could not locate valid exePath for device-configurator in IDC JSON files
+    echo Error: Infineon Device-Configurator not found, please download and install from https://softwaretools.infineon.com/tools/com.ifx.tb.tool.deviceconfigurator
     exit /b 1
 )
 
 :: Verify TOOL_PATH was set
 if "!TOOL_PATH!"=="" (
-    echo Error: Could not locate valid exePath for device-configurator in IDC JSON files
+    echo Error: Infineon Device-Configurator not found, please download and install from https://softwaretools.infineon.com/tools/com.ifx.tb.tool.deviceconfigurator
     exit /b 1
 )
 endlocal & set "TOOL_PATH=%TOOL_PATH%"
