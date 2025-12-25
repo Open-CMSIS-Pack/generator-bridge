@@ -283,7 +283,7 @@ func Process(cbuildGenIdxYmlPath, outPath, cubeMxPath string, runCubeMx bool, pi
 		if utils.FileExists(cubeIocPath) {
 			pid, err = Launch(cubeIocPath, "")
 			if err != nil {
-				return errors.New("generator '" + gParms.ID + "' missing. Install from '" + gParms.DownloadURL + "'")
+				return fmt.Errorf("failed to launch generator '%s': %w. If not installed, get it from '%s'", gParms.ID, err, gParms.DownloadURL)
 			}
 		} else {
 			projectFile, err = WriteProjectFile(workDir, bridgeParams[0])
@@ -294,7 +294,7 @@ func Process(cbuildGenIdxYmlPath, outPath, cubeMxPath string, runCubeMx bool, pi
 
 			pid, err = Launch("", projectFile)
 			if err != nil {
-				return errors.New("generator '" + gParms.ID + "' missing. Install from '" + gParms.DownloadURL + "'")
+				return fmt.Errorf("failed to launch generator '%s': %w. If not installed, get it from '%s'", gParms.ID, err, gParms.DownloadURL)
 			}
 		}
 		// here cubeMX runs
