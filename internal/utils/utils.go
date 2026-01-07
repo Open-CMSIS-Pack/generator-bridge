@@ -73,7 +73,7 @@ func ConvertFilename(outPath, file, relativePathAdd string) (string, error) {
 	alreadyFound := false
 	if !filepath.IsAbs(file) {
 		toolchainPath := filepath.Join(outPath, relativePathAdd) // create the path where STCube sets it's files relative to toolchain folder( example :./STM32CubeMX/MDK-ARM/)
-		file1 := filepath.Join(toolchainPath, relativePathAdd, file)
+		file1 := filepath.Join(toolchainPath, "dummyPath", file) // add dummyPath to allow to check also in subfolders
 		if _, err := os.Stat(file1); errors.Is(err, os.ErrNotExist) {
 			file = filepath.Join(toolchainPath, file)
 		} else {
