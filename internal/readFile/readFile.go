@@ -21,6 +21,7 @@ func Process(inFile, inFile2, outPath string) error {
 	log.Debugf("Reading file: %v", inFile)
 	if outPath == "" {
 		outPath = filepath.Dir(inFile2)
+		outPath = filepath.Join(outPath, "..")
 	}
 
 	var cbuildParams cbuild.ParamsType
@@ -91,8 +92,8 @@ func Process(inFile, inFile2, outPath string) error {
 			return err
 		}
 
-		//		err = stm32cubemx.ReadContexts(workDir+"/STM32CubeMX/STM32CubeMX.ioc", params)
-		err = stm32cubemx.ReadContexts(filepath.Join(workDir, "STM32CubeMX.ioc"), params)
+		err = stm32cubemx.ReadContexts(filepath.Join(workDir, "STM32CubeMX", "STM32CubeMX.ioc"), params)
+		// err = stm32cubemx.ReadContexts(filepath.Join(workDir, "STM32CubeMX.ioc"), params)
 		if err != nil {
 			return err
 		}
