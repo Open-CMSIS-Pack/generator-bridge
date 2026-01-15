@@ -64,9 +64,6 @@ func ReadContexts(iocFile string, params []BridgeParamType) error {
 				if err != nil {
 					return err
 				}
-				if mspName == "" {
-					return errors.New("*_hal_msp.c not found")
-				}
 
 				var cfgPath string
 				cfgPath = filepath.Dir(workDir)
@@ -128,16 +125,17 @@ func writeMXdeviceH(contextMap map[string]map[string]string, srcFolder string, m
 	if generatedAsPair != "true" {
 		main := filepath.Join(srcFolderAbs, "main.c")
 		main = filepath.ToSlash(main)
-		fMain, err = os.Open(main)
-		if err != nil {
-			return err
-		}
 
-		msp := filepath.Join(srcFolderAbs, mspName)
-		msp = filepath.ToSlash(msp)
-		fMsp, err = os.Open(msp)
-		if err != nil {
-			return err
+		// In some cases main.c is not generated (e.g. ExternalLoader project)
+		// In such cases main.c won't be parsed to get peripheral info for MX_Device.h
+		fMain, _ = os.Open(main)
+
+		//  In some cases *_hal_msp.c is not generated (e.g. no HAL peripherals selected, only LL)
+		// In such cases *_hal_msp.c won't be parsed to get pin info for MX_Device.h
+		if mspName != "" {
+			msp := filepath.Join(srcFolderAbs, mspName)
+			msp = filepath.ToSlash(msp)
+			fMsp, _ = os.Open(msp)
 		}
 	}
 	if fMain != nil {
@@ -767,7 +765,12 @@ func getPinConfiguration(fMsp *os.File, peripheral string, pin string, label str
 
 	pinNum := getDigitAtEnd(pin)
 	gpioPin := "GPIO_PIN_" + pinNum
-	port := strings.Split(strings.Split(pin, "P")[1], pinNum)[0]
+	port := ""
+	if strings.HasPrefix(pin, "P") {
+		port = strings.Split(strings.Split(pin, "P")[1], pinNum)[0]
+	} else {
+		port = strings.Split(pin, pinNum)[0]
+	}
 	gpioPort := "GPIO" + port
 
 	section := false
