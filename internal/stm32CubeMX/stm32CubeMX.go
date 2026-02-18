@@ -100,6 +100,7 @@ func Process(cbuildGenIdxYmlPath, outPath, cubeMxPath string, runCubeMx bool, pi
 	}
 
 	var generatorFile string
+	// #nosec G703 -- cRoot is validated via filepath.Clean, filepath.Abs, and DirExists checks
 	err = filepath.Walk(cRoot, func(path string, f fs.FileInfo, err error) error {
 		if f.Mode().IsRegular() && strings.Contains(path, "global.generator.yml") {
 			generatorFile = path
@@ -337,8 +338,18 @@ func Launch(iocFile, projectFile string) (int, error) {
 		return -1, errors.New("environment variable for CubeMX not set: " + cubeEnvVar)
 	}
 
-	// Validate and sanitize file paths to prevent command injection
+	// Validate and sanitize cubeEnv path to prevent command injection
+	cubeEnv = filepath.Clean(cubeEnv)
 	var err error
+	cubeEnv, err = filepath.Abs(cubeEnv)
+	if err != nil {
+		return -1, fmt.Errorf("invalid STM32CubeMX_PATH: %w", err)
+	}
+	if !utils.DirExists(cubeEnv) {
+		return -1, fmt.Errorf("STM32CubeMX_PATH directory does not exist: %s", cubeEnv)
+	}
+
+	// Validate and sanitize file paths to prevent command injection
 	if iocFile != "" {
 		iocFile = filepath.Clean(iocFile)
 		iocFile, err = filepath.Abs(iocFile)
@@ -388,18 +399,24 @@ func Launch(iocFile, projectFile string) (int, error) {
 
 	if runtime.GOOS == "darwin" {
 		if iocFile != "" {
+			// #nosec G702 -- iocFile is validated via filepath.Clean, filepath.Abs, and FileExists checks
 			cmd = exec.Command(pathJava, arg0, arg1, "-jar", pathCubeMx, iocFile)
 		} else if projectFile != "" {
+			// #nosec G702 -- projectFile is validated via filepath.Clean, filepath.Abs, and FileExists checks
 			cmd = exec.Command(pathJava, arg0, arg1, "-jar", pathCubeMx, "-s", projectFile)
 		} else {
+			// #nosec G702 -- pathJava and pathCubeMx are constructed from validated cubeEnv path
 			cmd = exec.Command(pathJava, arg0, arg1, "-jar", pathCubeMx)
 		}
 	} else {
 		if iocFile != "" {
+			// #nosec G702 -- iocFile is validated via filepath.Clean, filepath.Abs, and FileExists checks
 			cmd = exec.Command(pathJava, "-jar", pathCubeMx, iocFile)
 		} else if projectFile != "" {
+			// #nosec G702 -- projectFile is validated via filepath.Clean, filepath.Abs, and FileExists checks
 			cmd = exec.Command(pathJava, "-jar", pathCubeMx, "-s", projectFile)
 		} else {
+			// #nosec G702 -- pathJava and pathCubeMx are constructed from validated cubeEnv path
 			cmd = exec.Command(pathJava, "-jar", pathCubeMx)
 		}
 	}
