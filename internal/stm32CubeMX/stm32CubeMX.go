@@ -87,8 +87,20 @@ func Process(cbuildGenIdxYmlPath, outPath, cubeMxPath string, runCubeMx bool, pi
 		exPath := filepath.Dir(ex)
 		cRoot = filepath.Dir(exPath)
 	}
+
+	// Validate and sanitize cRoot path to prevent path traversal
+	cRoot = filepath.Clean(cRoot)
+	var err error
+	cRoot, err = filepath.Abs(cRoot)
+	if err != nil {
+		return fmt.Errorf("invalid CMSIS_COMPILER_ROOT path: %w", err)
+	}
+	if !utils.DirExists(cRoot) {
+		return fmt.Errorf("CMSIS_COMPILER_ROOT directory does not exist: %s", cRoot)
+	}
+
 	var generatorFile string
-	err := filepath.Walk(cRoot, func(path string, f fs.FileInfo, err error) error {
+	err = filepath.Walk(cRoot, func(path string, f fs.FileInfo, err error) error {
 		if f.Mode().IsRegular() && strings.Contains(path, "global.generator.yml") {
 			generatorFile = path
 			return nil
@@ -325,9 +337,27 @@ func Launch(iocFile, projectFile string) (int, error) {
 		return -1, errors.New("environment variable for CubeMX not set: " + cubeEnvVar)
 	}
 
+	// Validate and sanitize file paths to prevent command injection
+	var err error
 	if iocFile != "" {
+		iocFile = filepath.Clean(iocFile)
+		iocFile, err = filepath.Abs(iocFile)
+		if err != nil {
+			return -1, fmt.Errorf("invalid iocFile path: %w", err)
+		}
+		if !utils.FileExists(iocFile) {
+			return -1, fmt.Errorf("iocFile does not exist: %s", iocFile)
+		}
 		log.Infoln("Launching STM32CubeMX with ", iocFile)
 	} else if projectFile != "" {
+		projectFile = filepath.Clean(projectFile)
+		projectFile, err = filepath.Abs(projectFile)
+		if err != nil {
+			return -1, fmt.Errorf("invalid projectFile path: %w", err)
+		}
+		if !utils.FileExists(projectFile) {
+			return -1, fmt.Errorf("projectFile does not exist: %s", projectFile)
+		}
 		log.Infoln("Launching STM32CubeMX with -s ", projectFile)
 	} else {
 		log.Infoln("Launching STM32CubeMX...")
