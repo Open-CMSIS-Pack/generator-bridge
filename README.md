@@ -1,5 +1,4 @@
-[![Build](https://github.com/Open-CMSIS-Pack/generator-bridge/actions/workflows/build.yml/badge.svg)](https://github.com/Open-CMSIS-Pack/generator-bridge/actions/workflows/build.yml)
-[![Test](https://github.com/Open-CMSIS-Pack/generator-bridge/actions/workflows/test.yml/badge.svg)](https://github.com/Open-CMSIS-Pack/generator-bridge/actions/workflows/test.yml)
+[![Build And Test](https://github.com/Open-CMSIS-Pack/generator-bridge/actions/workflows/ci.yml/badge.svg)](https://github.com/Open-CMSIS-Pack/generator-bridge/actions/workflows/ci.yml)
 [![Markdown](https://github.com/Open-CMSIS-Pack/generator-bridge/actions/workflows/markdown.yml/badge.svg)](https://github.com/Open-CMSIS-Pack/generator-bridge/actions/workflows/markdown.yml)
 [![TPIP](https://github.com/Open-CMSIS-Pack/generator-bridge/actions/workflows/tpip-check.yml/badge.svg)](https://github.com/Open-CMSIS-Pack/generator-bridge/actions/workflows/tpip-check.yml)
 
