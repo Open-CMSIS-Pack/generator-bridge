@@ -44,7 +44,7 @@ func logCgenError(cgenPath string, err error) {
 	timestamp := time.Now().Format("2006-01-02 15:04:05.000")
 	message := fmt.Sprintf("[%s] %s: %v\n", timestamp, funcName, err)
 
-	file, openErr := os.OpenFile(logPath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+	file, openErr := os.OpenFile(logPath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)
 	if openErr != nil {
 		log.Warnf("failed to open cgen log '%s': %v", logPath, openErr)
 		return
