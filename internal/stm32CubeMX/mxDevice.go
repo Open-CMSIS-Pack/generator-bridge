@@ -9,6 +9,7 @@ package stm32cubemx
 import (
 	"bufio"
 	"errors"
+	"fmt"
 	"io/fs"
 	"math"
 	"os"
@@ -18,6 +19,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
 
 type PinDefinition struct {
@@ -71,7 +74,7 @@ func ReadContexts(iocFile string, params []BridgeParamType) error {
 				if parm.CubeContextFolder != "" {
 					cfgPath = filepath.Join(cfgPath, parm.CubeContextFolder)
 				}
-				err := writeMXdeviceH(contextMap, srcFolderPath, mspName, cfgPath, context)
+				err := writeMXdeviceH(contextMap, srcFolderPath, mspName, cfgPath, context, parm.CgenName)
 				if err != nil {
 					return err
 				}
@@ -110,7 +113,7 @@ func createContextMap(iocFile string) (map[string]map[string]string, error) {
 	return contextMap, nil
 }
 
-func writeMXdeviceH(contextMap map[string]map[string]string, srcFolder string, mspName string, cfgPath string, context string) error {
+func writeMXdeviceH(contextMap map[string]map[string]string, srcFolder string, mspName string, cfgPath string, context string, cgenPath string) error {
 
 	srcFolderAbs, err := filepath.Abs(srcFolder)
 	if err != nil {
@@ -213,8 +216,12 @@ func writeMXdeviceH(contextMap map[string]map[string]string, srcFolder string, m
 					periPath = filepath.ToSlash(periPath)
 					fPeri, errPeri := os.Open(periPath)
 					if errPeri != nil {
-						return errPeri
+						warnErr := fmt.Errorf("warning: failed to open peripheral source '%s' for '%s': %w", periPath, peripheral, errPeri)
+						logCgenError(cgenPath, warnErr)
+						log.Warnf("%v", warnErr)
+						break
 					} else {
+						defer fPeri.Close()
 						pins, err = getPins(contextMap, fPeri, peripheral)
 						if err != nil {
 							return err
@@ -246,7 +253,6 @@ func writeMXdeviceH(contextMap map[string]map[string]string, srcFolder string, m
 							freq = getSPIFreq(fPeri, contextMap, peripheral)
 						}
 					}
-					defer fPeri.Close()
 					break
 				}
 			}

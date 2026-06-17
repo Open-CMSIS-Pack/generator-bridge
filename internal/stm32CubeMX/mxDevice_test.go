@@ -163,7 +163,7 @@ func Test_writeMXdeviceH(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			defer os.RemoveAll(tt.args.srcFolder + "/../" + tt.args.cfgPath)
-			if err := writeMXdeviceH(tt.args.contextMap, tt.args.srcFolder, tt.args.mspName, tt.args.cfgPath, tt.args.context); (err != nil) != tt.wantErr {
+			if err := writeMXdeviceH(tt.args.contextMap, tt.args.srcFolder, tt.args.mspName, tt.args.cfgPath, tt.args.context, "test.cgen.yml"); (err != nil) != tt.wantErr {
 				t.Errorf("writeMXdeviceH() %s error = %v, wantErr %v", tt.name, err, tt.wantErr)
 			}
 		})

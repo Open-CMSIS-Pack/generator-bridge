@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023-2025 Arm Limited. All rights reserved.
+ * Copyright (c) 2023-2026 Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -12,7 +12,9 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/fsnotify/fsnotify"
 	"github.com/open-cmsis-pack/generator-bridge/internal/cbuild"
 )
 
@@ -161,6 +163,289 @@ func Test_WriteProjectFile(t *testing.T) {
 			}
 		})
 	}
+}
+
+func Test_isRelevantCubeMxEvent(t *testing.T) {
+	t.Parallel()
+
+	base := filepath.Clean(filepath.Join("tmp", "out", "STM32CubeMX"))
+	ioc := filepath.Join(base, "STM32CubeMX.ioc")
+	mx := filepath.Join(base, ".mxproject")
+	inner := filepath.Join(base, "Inc", "user.h")
+	outside := filepath.Clean(filepath.Join("tmp", "other", "file.txt"))
+
+	tests := []struct {
+		name  string
+		event fsnotify.Event
+		want  bool
+	}{
+		{
+			name:  "ioc_create_event",
+			event: fsnotify.Event{Name: ioc, Op: fsnotify.Create},
+			want:  true,
+		},
+		{
+			name:  "mxproject_write_event",
+			event: fsnotify.Event{Name: mx, Op: fsnotify.Write},
+			want:  true,
+		},
+		{
+			name:  "tree_write_event",
+			event: fsnotify.Event{Name: inner, Op: fsnotify.Write},
+			want:  true,
+		},
+		{
+			name:  "outside_event",
+			event: fsnotify.Event{Name: outside, Op: fsnotify.Write},
+			want:  false,
+		},
+		{
+			name:  "remove_not_relevant",
+			event: fsnotify.Event{Name: ioc, Op: fsnotify.Remove},
+			want:  false,
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got := isRelevantCubeMxEvent(tt.event, base, ioc, mx, []string{})
+			if got != tt.want {
+				t.Errorf("isRelevantCubeMxEvent() = %v, want %v for event %+v", got, tt.want, tt.event)
+			}
+		})
+	}
+
+	// Test cgen.yml deletion detection
+	cgen1 := filepath.Join("tmp", "out", "cgen1.yml")
+	cgen2 := filepath.Join("tmp", "out", "cgen2.yml")
+	cgenPaths := []string{cgen1, cgen2}
+
+	cgenDeletionTests := []struct {
+		name  string
+		event fsnotify.Event
+		want  bool
+	}{
+		{
+			name:  "cgen_deletion_detected",
+			event: fsnotify.Event{Name: cgen1, Op: fsnotify.Remove},
+			want:  true,
+		},
+		{
+			name:  "cgen_deletion_detected_second_file",
+			event: fsnotify.Event{Name: cgen2, Op: fsnotify.Remove},
+			want:  true,
+		},
+		{
+			name:  "cgen_rename_detected",
+			event: fsnotify.Event{Name: cgen1, Op: fsnotify.Rename},
+			want:  true,
+		},
+		{
+			name:  "cgen_rename_detected_second_file",
+			event: fsnotify.Event{Name: cgen2, Op: fsnotify.Rename},
+			want:  true,
+		},
+		{
+			name:  "non_cgen_removal_ignored",
+			event: fsnotify.Event{Name: filepath.Join("tmp", "out", "other.txt"), Op: fsnotify.Remove},
+			want:  false,
+		},
+		{
+			name:  "non_cgen_rename_ignored",
+			event: fsnotify.Event{Name: filepath.Join("tmp", "out", "other.txt"), Op: fsnotify.Rename},
+			want:  false,
+		},
+	}
+
+	for _, tt := range cgenDeletionTests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got := isRelevantCubeMxEvent(tt.event, base, ioc, mx, cgenPaths)
+			if got != tt.want {
+				t.Errorf("isRelevantCubeMxEvent() = %v, want %v for event %+v", got, tt.want, tt.event)
+			}
+		})
+	}
+}
+
+func Test_cgenPathsFromBridgeParams(t *testing.T) {
+	t.Parallel()
+
+	bridgeParams := []BridgeParamType{
+		{CgenName: filepath.Join("tmp", "one.cgen.yml")},
+		{CgenName: filepath.Join("tmp", "two.cgen.yml")},
+	}
+
+	got := cgenPathsFromBridgeParams(bridgeParams)
+	if len(got) != len(bridgeParams) {
+		t.Fatalf("cgenPathsFromBridgeParams() len = %d, want %d", len(got), len(bridgeParams))
+	}
+	for index, want := range []string{bridgeParams[0].CgenName, bridgeParams[1].CgenName} {
+		if got[index] != want {
+			t.Fatalf("cgenPathsFromBridgeParams()[%d] = %q, want %q", index, got[index], want)
+		}
+	}
+}
+
+func Test_handleCubeMxWatchEvent(t *testing.T) {
+	t.Parallel()
+
+	base := filepath.Clean(filepath.Join("tmp", "out", "STM32CubeMX"))
+	ioc := filepath.Join(base, "STM32CubeMX.ioc")
+	mx := filepath.Join(base, ".mxproject")
+	cgen := filepath.Join("tmp", "out", "demo.cgen.yml")
+
+	tests := []struct {
+		name          string
+		event         fsnotify.Event
+		addWatchErr   error
+		wantRelevant  bool
+		wantAddCalls  int
+		wantAddedPath string
+	}{
+		{
+			name:          "cube_dir_create_adds_watch_and_triggers",
+			event:         fsnotify.Event{Name: base, Op: fsnotify.Create},
+			wantRelevant:  true,
+			wantAddCalls:  1,
+			wantAddedPath: base,
+		},
+		{
+			name:          "cube_dir_create_watch_error_still_triggers",
+			event:         fsnotify.Event{Name: base, Op: fsnotify.Create},
+			addWatchErr:   os.ErrPermission,
+			wantRelevant:  true,
+			wantAddCalls:  1,
+			wantAddedPath: base,
+		},
+		{
+			name:         "cgen_rename_triggers_without_add",
+			event:        fsnotify.Event{Name: cgen, Op: fsnotify.Rename},
+			wantRelevant: true,
+		},
+		{
+			name:         "outside_write_ignored",
+			event:        fsnotify.Event{Name: filepath.Join("tmp", "other", "ignored.txt"), Op: fsnotify.Write},
+			wantRelevant: false,
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			addCalls := 0
+			addedPath := ""
+			got := handleCubeMxWatchEvent(tt.event, base, ioc, mx, []string{cgen}, func(path string) error {
+				addCalls++
+				addedPath = path
+				return tt.addWatchErr
+			})
+
+			if got != tt.wantRelevant {
+				t.Fatalf("handleCubeMxWatchEvent() = %v, want %v", got, tt.wantRelevant)
+			}
+			if addCalls != tt.wantAddCalls {
+				t.Fatalf("handleCubeMxWatchEvent() add calls = %d, want %d", addCalls, tt.wantAddCalls)
+			}
+			if tt.wantAddedPath != "" && addedPath != tt.wantAddedPath {
+				t.Fatalf("handleCubeMxWatchEvent() added path = %q, want %q", addedPath, tt.wantAddedPath)
+			}
+		})
+	}
+}
+
+func Test_resetDebounceTimer(t *testing.T) {
+	t.Parallel()
+
+	t.Run("resets_active_timer", func(t *testing.T) {
+		t.Parallel()
+
+		timer := time.NewTimer(time.Hour)
+		defer timer.Stop()
+
+		resetDebounceTimer(timer, 20*time.Millisecond)
+
+		select {
+		case <-timer.C:
+		case <-time.After(250 * time.Millisecond):
+			t.Fatal("resetDebounceTimer() did not trigger reset timer")
+		}
+	})
+
+	t.Run("drains_stale_tick_before_reset", func(t *testing.T) {
+		t.Parallel()
+
+		timer := time.NewTimer(10 * time.Millisecond)
+		defer timer.Stop()
+
+		time.Sleep(40 * time.Millisecond)
+		resetDebounceTimer(timer, 30*time.Millisecond)
+
+		select {
+		case <-timer.C:
+			t.Fatal("resetDebounceTimer() observed a stale tick immediately after reset")
+		case <-time.After(10 * time.Millisecond):
+		}
+
+		select {
+		case <-timer.C:
+		case <-time.After(250 * time.Millisecond):
+			t.Fatal("resetDebounceTimer() did not trigger after draining stale tick")
+		}
+	})
+}
+
+func Test_ProcessEarlyFailures(t *testing.T) {
+	t.Run("missing_cmsis_compiler_root_dir", func(t *testing.T) {
+		t.Setenv("CMSIS_COMPILER_ROOT", filepath.Join(t.TempDir(), "missing"))
+
+		err := Process(filepath.Join(t.TempDir(), "unused.cbuild-gen-idx.yml"), "out", "", false, -1)
+		if err == nil {
+			t.Fatal("Process() error = nil, want missing CMSIS_COMPILER_ROOT directory error")
+		}
+		if !strings.Contains(err.Error(), "CMSIS_COMPILER_ROOT directory does not exist") {
+			t.Fatalf("Process() error = %q, want missing CMSIS_COMPILER_ROOT directory", err)
+		}
+	})
+
+	t.Run("missing_global_generator_file", func(t *testing.T) {
+		root := t.TempDir()
+		t.Setenv("CMSIS_COMPILER_ROOT", root)
+
+		err := Process(filepath.Join(root, "unused.cbuild-gen-idx.yml"), "out", "", false, -1)
+		if err == nil {
+			t.Fatal("Process() error = nil, want missing global.generator.yml error")
+		}
+		if !strings.Contains(err.Error(), "config file 'global.generator.yml' not found") {
+			t.Fatalf("Process() error = %q, want missing global.generator.yml", err)
+		}
+	})
+
+	t.Run("missing_cbuild_idx_after_generator_load", func(t *testing.T) {
+		root := t.TempDir()
+		t.Setenv("CMSIS_COMPILER_ROOT", root)
+
+		generatorPath := filepath.Join(root, "global.generator.yml")
+		generatorYML := "generator:\n  - id: CubeMX\n    description: test\n    download-url: https://example.invalid\n    run: ../bin/cbridge\n    path: $SolutionDir()$/STM32CubeMX/$TargetType$\n"
+		if err := os.WriteFile(generatorPath, []byte(generatorYML), 0600); err != nil {
+			t.Fatalf("os.WriteFile() error = %v", err)
+		}
+
+		missingIdx := filepath.Join(root, "missing.cbuild-gen-idx.yml")
+		err := Process(missingIdx, "out", "", false, -1)
+		if err == nil {
+			t.Fatal("Process() error = nil, want missing cbuild idx error")
+		}
+		errMsg := strings.ToLower(err.Error())
+		if !strings.Contains(errMsg, "file not found") && !strings.Contains(errMsg, "cannot find the file specified") && !strings.Contains(errMsg, "no such file or directory") {
+			t.Fatalf("Process() error = %q, want missing cbuild idx error", err)
+		}
+	})
 }
 
 func Test_GetBridgeInfo(t *testing.T) {
