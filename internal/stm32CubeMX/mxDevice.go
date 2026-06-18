@@ -51,6 +51,10 @@ func ReadContexts(iocFile string, params []BridgeParamType) error {
 		return errors.New("main location missing")
 	}
 
+	for i := range params {
+		params[i].MainLocation = mainFolder
+	}
+
 	for _, context := range contexts {
 		for _, parm := range params {
 			if parm.CubeContext == context {
@@ -58,7 +62,7 @@ func ReadContexts(iocFile string, params []BridgeParamType) error {
 
 				var mspName string
 				err = filepath.Walk(srcFolderPath, func(path string, f fs.FileInfo, err error) error {
-					if f.Mode().IsRegular() && strings.HasSuffix(f.Name(), "_hal_msp.c") {
+					if f != nil && f.Mode().IsRegular() && strings.HasSuffix(f.Name(), "_hal_msp.c") {
 						mspName = filepath.Base(path)
 						return nil
 					}

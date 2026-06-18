@@ -886,6 +886,7 @@ func Test_WriteCgenYmlSub(t *testing.T) {
 		CgenName:          filepath.Join(tmpDir, "Cgen.yml"),
 		CubeContext:       "",
 		CubeContextFolder: "",
+		MainLocation:      "Src",
 	}
 
 	if err := WriteCgenYmlSub(base, mx, bp); err != nil {
@@ -941,8 +942,8 @@ func Test_WriteCgenYml(t *testing.T) {
 	all := MxprojectAllType{Mxproject: []MxprojectType{mx1, mx2}}
 
 	params := []BridgeParamType{
-		{CubeContext: "Ctx1", Compiler: "GCC", CgenName: filepath.Join(tmpDir, "cgen1.yml")},
-		{CubeContext: "Ctx2", Compiler: "GCC", CgenName: filepath.Join(tmpDir, "cgen2.yml")},
+		{CubeContext: "Ctx1", Compiler: "GCC", CgenName: filepath.Join(tmpDir, "cgen1.yml"), MainLocation: "Src"},
+		{CubeContext: "Ctx2", Compiler: "GCC", CgenName: filepath.Join(tmpDir, "cgen2.yml"), MainLocation: "Src"},
 	}
 
 	if err := WriteCgenYml(base, all, params); err != nil {
@@ -1090,12 +1091,14 @@ func Test_GetStartupFile(t *testing.T) {
 	infoScGCC.ForProjectPart = ""
 	infoScGCC.CubeContext = ""
 	infoScGCC.CubeContextFolder = ""
+	infoScGCC.MainLocation = "Src"
 	var infoScCLANG BridgeParamType
 	infoScCLANG.Compiler = "CLANG"
 	infoScCLANG.ProjectType = "single-core"
 	infoScCLANG.ForProjectPart = ""
 	infoScCLANG.CubeContext = ""
 	infoScCLANG.CubeContextFolder = ""
+	infoScCLANG.MainLocation = "Src"
 	var infoScIAR BridgeParamType
 	infoScIAR.Compiler = "IAR"
 	infoScIAR.ProjectType = "single-core"
@@ -1117,12 +1120,14 @@ func Test_GetStartupFile(t *testing.T) {
 	infoDcGCC.ForProjectPart = "CM7"
 	infoDcGCC.CubeContext = "CortexM7"
 	infoDcGCC.CubeContextFolder = "CM7"
+	infoDcGCC.MainLocation = "Src"
 	var infoDcCLANG BridgeParamType
 	infoDcCLANG.Compiler = "CLANG"
 	infoDcCLANG.ProjectType = "multi-core"
 	infoDcCLANG.ForProjectPart = "CM4"
 	infoDcCLANG.CubeContext = "CortexM4"
 	infoDcCLANG.CubeContextFolder = "CM4"
+	infoDcCLANG.MainLocation = "Src"
 	var infoDcIAR BridgeParamType
 	infoDcIAR.Compiler = "IAR"
 	infoDcIAR.ProjectType = "multi-core"
@@ -1144,12 +1149,14 @@ func Test_GetStartupFile(t *testing.T) {
 	infoTzGCC.ForProjectPart = "non-secure"
 	infoTzGCC.CubeContext = "CortexM33NS"
 	infoTzGCC.CubeContextFolder = "NonSecure"
+	infoTzGCC.MainLocation = "Src"
 	var infoTzCLANG BridgeParamType
 	infoTzCLANG.Compiler = "CLANG"
 	infoTzCLANG.ProjectType = "trustzone"
 	infoTzCLANG.ForProjectPart = "secure"
 	infoTzCLANG.CubeContext = "CortexM33S"
 	infoTzCLANG.CubeContextFolder = "Secure"
+	infoTzCLANG.MainLocation = "Src"
 	var infoTzIAR BridgeParamType
 	infoTzIAR.Compiler = "IAR"
 	infoTzIAR.ProjectType = "trustzone"
@@ -1171,12 +1178,14 @@ func Test_GetStartupFile(t *testing.T) {
 	infoDcM0PGCC.ForProjectPart = "CM4"
 	infoDcM0PGCC.CubeContext = "CortexM4"
 	infoDcM0PGCC.CubeContextFolder = "CM4"
+	infoDcM0PGCC.MainLocation = "Src"
 	var infoDcM0PCLANG BridgeParamType
 	infoDcM0PCLANG.Compiler = "CLANG"
 	infoDcM0PCLANG.ProjectType = "multi-core"
 	infoDcM0PCLANG.ForProjectPart = "CM0P"
 	infoDcM0PCLANG.CubeContext = "CortexM0Plus"
 	infoDcM0PCLANG.CubeContextFolder = "CM0PLUS"
+	infoDcM0PCLANG.MainLocation = "Src"
 	var infoDcM0PIAR BridgeParamType
 	infoDcM0PIAR.Compiler = "IAR"
 	infoDcM0PIAR.ProjectType = "multi-core"
@@ -1239,6 +1248,38 @@ func Test_GetStartupFile(t *testing.T) {
 	}
 }
 
+func Test_GetStartupFile_ApplicationUserStartupSelectedWhenMainLocationNotSrc(t *testing.T) {
+	t.Parallel()
+
+	outPath := t.TempDir()
+	startupFolder := filepath.Join(outPath, "STM32CubeMX", "STM32CubeIDE", "CM7", "Application", "User", "Startup")
+	if err := os.MkdirAll(startupFolder, 0o755); err != nil {
+		t.Fatalf("failed to create startup folder: %v", err)
+	}
+
+	startupFile := filepath.Join(startupFolder, "startup_stm32f4xx.s")
+	if err := os.WriteFile(startupFile, []byte("dummy"), 0o600); err != nil {
+		t.Fatalf("failed to create startup file: %v", err)
+	}
+
+	info := BridgeParamType{
+		Compiler:          "GCC",
+		ProjectType:       "multi-core",
+		ForProjectPart:    "CM7",
+		CubeContext:       "CortexM7",
+		CubeContextFolder: "CM7",
+		MainLocation:      "Flash",
+	}
+
+	got, err := GetStartupFile(outPath, info)
+	if err != nil {
+		t.Fatalf("GetStartupFile() error = %v", err)
+	}
+	if got != startupFile {
+		t.Errorf("GetStartupFile() = %v, want %v", got, startupFile)
+	}
+}
+
 func Test_GetSystemFile(t *testing.T) {
 	t.Parallel()
 
@@ -1256,12 +1297,14 @@ func Test_GetSystemFile(t *testing.T) {
 	infoScGCC.ForProjectPart = ""
 	infoScGCC.CubeContext = ""
 	infoScGCC.CubeContextFolder = ""
+	infoScGCC.MainLocation = "Src"
 	var infoScCLANG BridgeParamType
 	infoScCLANG.Compiler = "CLANG"
 	infoScCLANG.ProjectType = "single-core"
 	infoScCLANG.ForProjectPart = ""
 	infoScCLANG.CubeContext = ""
 	infoScCLANG.CubeContextFolder = ""
+	infoScCLANG.MainLocation = "Src"
 	var infoScIAR BridgeParamType
 	infoScIAR.Compiler = "IAR"
 	infoScIAR.ProjectType = "single-core"
@@ -1310,12 +1353,14 @@ func Test_GetSystemFile(t *testing.T) {
 	infoTzGCC.ForProjectPart = "non-secure"
 	infoTzGCC.CubeContext = "CortexM33NS"
 	infoTzGCC.CubeContextFolder = "NonSecure"
+	infoTzGCC.MainLocation = "Src"
 	var infoTzCLANG BridgeParamType
 	infoTzCLANG.Compiler = "CLANG"
 	infoTzCLANG.ProjectType = "trustzone"
 	infoTzCLANG.ForProjectPart = "secure"
 	infoTzCLANG.CubeContext = "CortexM33S"
 	infoTzCLANG.CubeContextFolder = "Secure"
+	infoTzCLANG.MainLocation = "Src"
 	var infoTzIAR BridgeParamType
 	infoTzIAR.Compiler = "IAR"
 	infoTzIAR.ProjectType = "trustzone"
@@ -1402,6 +1447,35 @@ func Test_GetSystemFile(t *testing.T) {
 				t.Errorf("GetSystemFile() %s = %v, want %v", tt.name, got, tt.want)
 			}
 		})
+	}
+}
+
+func Test_GetSystemFile_UsesMainLocationFolder(t *testing.T) {
+	t.Parallel()
+
+	outPath := t.TempDir()
+	systemFolder := filepath.Join(outPath, "STM32CubeMX", "Application", "User")
+	if err := os.MkdirAll(systemFolder, 0o755); err != nil {
+		t.Fatalf("failed to create system folder: %v", err)
+	}
+
+	systemFile := filepath.Join(systemFolder, "system_stm32f4xx.c")
+	if err := os.WriteFile(systemFile, []byte("dummy"), 0o600); err != nil {
+		t.Fatalf("failed to create system file: %v", err)
+	}
+
+	info := BridgeParamType{
+		Compiler:     "GCC",
+		ProjectType:  "single-core",
+		MainLocation: filepath.Join("Application", "User"),
+	}
+
+	got, err := GetSystemFile(outPath, info)
+	if err != nil {
+		t.Fatalf("GetSystemFile() error = %v", err)
+	}
+	if got != systemFile {
+		t.Errorf("GetSystemFile() = %v, want %v", got, systemFile)
 	}
 }
 

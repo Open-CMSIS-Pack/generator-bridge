@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023-2024 Arm Limited. All rights reserved.
+ * Copyright (c) 2023-2026 Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -86,7 +86,7 @@ func Test_ReadContexts(t *testing.T) {
 		params  BridgeParamType
 		wantErr bool
 	}{
-		{"STM32H7_SC", "../../testdata/testExamples/STM32H7_SC/STM32CubeMX/device/STM32CubeMX/STM32CubeMX.ioc", BridgeParamType{"device", "", "STM32H743AGIx", "", "test", "single-core", "", "", "AC6", "", "test", "", ""}, false},
+		{"STM32H7_SC", "../../testdata/testExamples/STM32H7_SC/STM32CubeMX/device/STM32CubeMX/STM32CubeMX.ioc", BridgeParamType{BoardName: "device", Device: "STM32H743AGIx", ProjectName: "test", ProjectType: "single-core", Compiler: "AC6", CgenName: "test"}, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -94,7 +94,38 @@ func Test_ReadContexts(t *testing.T) {
 			if err := ReadContexts(tt.iocFile, argsSlice); (err != nil) != tt.wantErr {
 				t.Errorf("ReadContexts() %s error = %v, wantErr %v", tt.name, err, tt.wantErr)
 			}
+			if !tt.wantErr && len(argsSlice) > 0 && argsSlice[0].MainLocation != "Src" {
+				t.Errorf("ReadContexts() %s MainLocation = %v, want Src", tt.name, argsSlice[0].MainLocation)
+			}
 		})
+	}
+}
+
+func Test_ReadContexts_NoPanicOnWalkFileInfoNil(t *testing.T) {
+	t.Parallel()
+
+	tmpDir := t.TempDir()
+	iocFile := filepath.Join(tmpDir, "test.ioc")
+
+	// MainLocation points to a missing folder so filepath.Walk receives nil FileInfo.
+	if err := os.WriteFile(iocFile, []byte("ProjectManager.MainLocation=missing-folder\n"), 0o600); err != nil {
+		t.Fatalf("failed to write ioc file: %v", err)
+	}
+
+	params := []BridgeParamType{{
+		CubeContext:       "",
+		CubeContextFolder: "",
+	}}
+
+	defer func() {
+		if r := recover(); r != nil {
+			t.Fatalf("ReadContexts panicked: %v", r)
+		}
+	}()
+
+	err := ReadContexts(iocFile, params)
+	if err == nil {
+		t.Fatalf("ReadContexts() expected error for missing source folder")
 	}
 }
 
