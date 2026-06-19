@@ -41,6 +41,7 @@ type BridgeParamType struct {
 	CgenName          string
 	CubeContext       string
 	CubeContextFolder string
+	MainLocation      string
 }
 
 var watcher *fsnotify.Watcher
@@ -193,6 +194,12 @@ func Process(cbuildGenIdxYmlPath, outPath, cubeMxPath string, runCubeMx bool, pi
 	var generatorFile string
 	// #nosec G703 -- cRoot is validated via filepath.Clean, filepath.Abs, and DirExists checks
 	err = filepath.Walk(cRoot, func(path string, f fs.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if f == nil {
+			return errors.New("unexpected nil FileInfo for path: " + path)
+		}
 		if f.Mode().IsRegular() && strings.Contains(path, "global.generator.yml") {
 			generatorFile = path
 			return nil
@@ -849,6 +856,7 @@ func WriteCgenYmlSub(outPath string, mxproject MxprojectType, bridgeParam Bridge
 		logCgenError(bridgeParam.CgenName, err)
 		return err
 	}
+	logCgenInfoIfLogExists(bridgeParam.CgenName, "cgen.yml generated successfully")
 
 	return nil
 }
@@ -929,7 +937,11 @@ func GetStartupFile(outPath string, bridgeParams BridgeParamType) (string, error
 	}
 
 	if bridgeParams.Compiler == "GCC" || bridgeParams.Compiler == "CLANG" {
-		startupFolder = filepath.Join(startupFolder, bridgeParams.CubeContextFolder, "Application", "Startup")
+		startupSubFolder := "Application"
+		if bridgeParams.MainLocation != "Src" {
+			startupSubFolder = filepath.Join(startupSubFolder, "User")
+		}
+		startupFolder = filepath.Join(startupFolder, bridgeParams.CubeContextFolder, startupSubFolder, "Startup")
 	}
 
 	if !utils.DirExists(startupFolder) {
@@ -948,6 +960,12 @@ func GetStartupFile(outPath string, bridgeParams BridgeParamType) (string, error
 	}
 
 	err = filepath.Walk(startupFolder, func(path string, f fs.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if f == nil {
+			return errors.New("unexpected nil FileInfo for path: " + path)
+		}
 		if f.Mode().IsRegular() &&
 			strings.HasPrefix(f.Name(), "startup_") &&
 			fExt[filepath.Ext(f.Name())] {
@@ -1012,7 +1030,7 @@ func GetSystemFile(outPath string, bridgeParams BridgeParamType) (string, error)
 			systemFolder = filepath.Join(systemFolder, bridgeParams.CubeContextFolder)
 		}
 
-		systemFolder = filepath.Join(systemFolder, "Src")
+		systemFolder = filepath.Join(systemFolder, bridgeParams.MainLocation)
 	}
 
 	if !utils.DirExists(systemFolder) {
@@ -1023,6 +1041,12 @@ func GetSystemFile(outPath string, bridgeParams BridgeParamType) (string, error)
 
 	var systemFile string
 	err = filepath.Walk(systemFolder, func(path string, f fs.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if f == nil {
+			return errors.New("unexpected nil FileInfo for path: " + path)
+		}
 		if f.Mode().IsRegular() &&
 			strings.HasPrefix(f.Name(), "system_stm32") &&
 			strings.HasSuffix(f.Name(), ".c") {
