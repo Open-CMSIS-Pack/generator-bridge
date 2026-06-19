@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023-2025 Arm Limited. All rights reserved.
+ * Copyright (c) 2023-2026 Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -75,6 +75,97 @@ func procWait(proc *os.Process) {
 	}
 }
 
+func cgenPathsFromBridgeParams(bridgeParams []BridgeParamType) []string {
+	cgenPaths := make([]string, 0, len(bridgeParams))
+	for _, bp := range bridgeParams {
+		cgenPaths = append(cgenPaths, bp.CgenName)
+	}
+	return cgenPaths
+}
+
+func resetDebounceTimer(timer *time.Timer, interval time.Duration) {
+	if !timer.Stop() {
+		select {
+		case <-timer.C:
+		default:
+		}
+	}
+	timer.Reset(interval)
+}
+
+func handleCubeMxWatchEvent(event fsnotify.Event, cubeIocPath, iocprojectPath, mxprojectPath string, cgenPaths []string, addWatch func(string) error) bool {
+	if filepath.Clean(event.Name) == filepath.Clean(cubeIocPath) && (event.Op&fsnotify.Create) != 0 {
+		if err := addWatch(cubeIocPath); err != nil {
+			log.Debugf("failed to watch CubeMX dir after creation '%s': %v", cubeIocPath, err)
+		}
+	}
+
+	return isRelevantCubeMxEvent(event, cubeIocPath, iocprojectPath, mxprojectPath, cgenPaths)
+}
+
+func isRelevantCubeMxEvent(event fsnotify.Event, cubeIocPath, iocprojectPath, mxprojectPath string, cgenPaths []string) bool {
+	eventName := filepath.Clean(event.Name)
+	iocprojectPath = filepath.Clean(iocprojectPath)
+	mxprojectPath = filepath.Clean(mxprojectPath)
+	cubeIocPath = filepath.Clean(cubeIocPath)
+
+	// Check for Create/Write/Rename on CubeMX project files
+	if event.Op&(fsnotify.Create|fsnotify.Write|fsnotify.Rename) != 0 {
+		if eventName == iocprojectPath || eventName == mxprojectPath || eventName == cubeIocPath {
+			return true
+		}
+
+		if eventName != "." && eventName != "" {
+			if strings.HasPrefix(eventName, cubeIocPath+string(os.PathSeparator)) {
+				return true
+			}
+		}
+	}
+
+	// Check for removal or rename of any cgen.yml file (triggers regeneration)
+	if event.Op&(fsnotify.Remove|fsnotify.Rename) != 0 {
+		for _, cgenPath := range cgenPaths {
+			if eventName == filepath.Clean(cgenPath) {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
+func processCubeMxUpdate(workDir, iocprojectPath, mxprojectPath string, bridgeParams []BridgeParamType) error {
+	if !utils.FileExists(iocprojectPath) {
+		return errors.New("project file not available yet")
+	}
+	if !utils.FileExists(mxprojectPath) {
+		return errors.New(".mxproject file not available yet")
+	}
+
+	mxproject, err := IniReader(mxprojectPath, bridgeParams)
+	if err != nil {
+		// Log to all cgen files since this is a blocking error
+		for _, bp := range bridgeParams {
+			logCgenError(bp.CgenName, err)
+		}
+		return err
+	}
+	if err = ReadContexts(iocprojectPath, bridgeParams); err != nil {
+		// Log to all cgen files since this is a blocking error
+		for _, bp := range bridgeParams {
+			logCgenError(bp.CgenName, err)
+		}
+		return err
+	}
+
+	log.Debugln("Writing Cgen.yml file")
+	return WriteCgenYml(workDir, mxproject, bridgeParams)
+}
+
+// Process handles setup, launch, and daemon monitoring for CubeMX integration.
+// The live daemon loop in the pid >= 0 branch is intentionally out of scope for
+// unit testing because it depends on live OS processes via procWait, live
+// filesystem watchers, and goroutine synchronization with real-time delays.
 func Process(cbuildGenIdxYmlPath, outPath, cubeMxPath string, runCubeMx bool, pid int) error {
 	var projectFile string
 
@@ -163,125 +254,88 @@ func Process(cbuildGenIdxYmlPath, outPath, cubeMxPath string, runCubeMx bool, pi
 		}
 		iocprojectPath := filepath.Join(cubeIocPath, "STM32CubeMX.ioc")
 		mxprojectPath := filepath.Join(cubeIocPath, ".mxproject")
-		log.Debugf("pid of CubeMX in daemon: %d", pid)
-		running = true
-		first := true
-		iocProjectWait := false
-		for {
-			proc, err := os.FindProcess(pid) // this only works for windows as it is now
-			if err == nil {                  // cubeMX already runs
-				if runtime.GOOS != "windows" {
-					err = proc.Signal(syscall.Signal(0))
-					if err != nil {
-						break // out of loop if CubeMX does not run anymore
-					}
+
+		cgenPaths := cgenPathsFromBridgeParams(bridgeParams)
+
+		proc, err := os.FindProcess(pid) // this only works for windows as it is now
+		if err == nil {                  // cubeMX already runs
+			if runtime.GOOS != "windows" {
+				err = proc.Signal(syscall.Signal(0))
+				if err != nil {
+					return nil // CubeMX does not run anymore
 				}
-				if first { // only start wait thread once
-					go procWait(proc)
-					first = false
-				}
-				if !running {
-					break // out of loop if CubeMX does not run anymore
-				}
-				stIOC, err := os.Stat(iocprojectPath)
-				if err != nil { // .ioc file not (yet) there
-					iocProjectWait = true
-					time.Sleep(time.Second)
-					continue // stay in loop waiting for CubeMX end or change of .mxproject
-				}
-				if iocProjectWait { // .ioc file was created new, there will not be multiple changes
-					log.Debugln("new project file:", iocprojectPath)
-					i := 1
-					for ; i < 100; i++ { // wait for .mxproject coming
-						_, err := os.Stat(mxprojectPath)
-						if err == nil {
-							break // .mxproject appeared
-						}
-						time.Sleep(time.Second)
-					}
-					if i < 100 {
-						mxproject, err := IniReader(mxprojectPath, bridgeParams)
-						if err != nil {
-							continue // stay in loop waiting for CubeMX end or change of .mxproject
-						}
-						err = ReadContexts(iocprojectPath, bridgeParams)
-						if err != nil {
-							continue // stay in loop waiting for CubeMX end or change of .mxproject
-						}
-						err = WriteCgenYml(workDir, mxproject, bridgeParams)
-						if err != nil {
-							continue // stay in loop waiting for CubeMX end or change of .mxproject
-						}
-						iocProjectWait = false // reset wait for iocProject flag
-					}
-				} else {
-					st, err := os.Stat(mxprojectPath)
-					if err != nil {
-						continue // stay in loop waiting for CubeMX end or change of .mxproject
-					}
-					fIoc, err := os.Open(mxprojectPath)
-					if err != nil {
-						continue // stay in loop waiting for CubeMX end or change of .mxproject
-					}
-					mxprojectBuf := make([]byte, st.Size())
-					_, err = fIoc.Read(mxprojectBuf)
-					if err != nil {
-						log.Fatal(err)
-					}
-					fIoc.Close()
-					for { // wait for .mxproject change
-						//nolint:staticcheck // intentional logic for clarity
-						if !running {
-							break // out of loop if CubeMX does not run anymore
-						}
-						time.Sleep(time.Second)
-						stIOC1, err := os.Stat(iocprojectPath)
-						if err != nil { // .ioc file not (yet) there
-							break // continue loop waiting for CubeMX end or change of .mxproject
-						}
-						st1, err := os.Stat(mxprojectPath)
-						if err != nil {
-							break // continue loop waiting for CubeMX end or change of .mxproject
-						}
-						if stIOC.ModTime() != stIOC1.ModTime() && st.ModTime() != st1.ModTime() { // time changed
-							// it seems to me that the compare is superfluous because there are only in rare cases changes but the time always changes
-							if st.Size() == st1.Size() { // no change in length, compare content
-								fIoc, err := os.Open(mxprojectPath)
-								if err != nil {
-									break // continue loop waiting for CubeMX end or change of .mxproject
-								}
-								mxprojectBuf1 := make([]byte, st1.Size())
-								_, err = fIoc.Read(mxprojectBuf1)
-								if err != nil {
-									log.Fatal(err)
-								}
-								fIoc.Close()
-								// if bytes.Equal(mxprojectBuf, mxprojectBuf1) {
-								//	continue // wait for .mxproject change
-								// }
-							}
-							mxproject, err := IniReader(mxprojectPath, bridgeParams)
-							if err != nil {
-								break // continue loop waiting for CubeMX end or change of .mxproject
-							}
-							err = ReadContexts(iocprojectPath, bridgeParams)
-							if err != nil {
-								break // continue loop waiting for CubeMX end or change of .mxproject
-							}
-							log.Debugln("Writing Cgen.yml file")
-							err = WriteCgenYml(workDir, mxproject, bridgeParams)
-							if err != nil {
-								break // continue loop waiting for CubeMX end or change of .mxproject
-							}
-							break // leave inner loop reload all
-						}
-					}
-				}
-			} else {
-				break // CubeMX does not run anymore
 			}
+
+			running = true
+			go procWait(proc)
+
+			watcher, err = fsnotify.NewWatcher()
+			if err != nil {
+				return err
+			}
+			defer func() {
+				if watcher != nil {
+					_ = watcher.Close()
+					watcher = nil
+				}
+			}()
+
+			if utils.DirExists(workDir) {
+				if err = watcher.Add(workDir); err != nil {
+					log.Debugf("failed to watch work dir '%s': %v", workDir, err)
+				}
+			}
+			if utils.DirExists(cubeIocPath) {
+				if err = watcher.Add(cubeIocPath); err != nil {
+					log.Debugf("failed to watch CubeMX dir '%s': %v", cubeIocPath, err)
+				}
+			}
+
+			// Delete old cgen.log files at daemon startup
+			deleteAllCgenLogs(bridgeParams)
+
+			if err = processCubeMxUpdate(workDir, iocprojectPath, mxprojectPath, bridgeParams); err != nil {
+				log.Debugf("initial CubeMX generation attempt skipped: %v", err)
+			}
+
+			const debounceInterval = time.Second
+			debounceTimer := time.NewTimer(debounceInterval)
+			debounceTimer.Stop() // start inactive
+			hasRelevantEvent := false
+
+			for running {
+				select {
+				case event, ok := <-watcher.Events:
+					if !ok {
+						running = false
+						break
+					}
+
+					if !handleCubeMxWatchEvent(event, cubeIocPath, iocprojectPath, mxprojectPath, cgenPaths, watcher.Add) {
+						continue
+					}
+
+					hasRelevantEvent = true
+					resetDebounceTimer(debounceTimer, debounceInterval)
+
+				case <-debounceTimer.C:
+					if hasRelevantEvent {
+						if err = processCubeMxUpdate(workDir, iocprojectPath, mxprojectPath, bridgeParams); err != nil {
+							log.Debugf("CubeMX generation attempt skipped: %v", err)
+						}
+						hasRelevantEvent = false
+					}
+
+				case err, ok := <-watcher.Errors:
+					if !ok {
+						running = false
+						break
+					}
+					log.Debugf("watcher error: %v", err)
+				}
+			}
+			debounceTimer.Stop()
 		}
-		// should only come here if CubeMX does not run anymore
 	}
 
 	if runCubeMx {
@@ -659,6 +713,7 @@ func WriteCgenYmlSub(outPath string, mxproject MxprojectType, bridgeParam Bridge
 
 	relativePathAdd, err := GetRelativePathAdd(outPath, bridgeParam.Compiler)
 	if err != nil {
+		logCgenError(bridgeParam.CgenName, err)
 		return err
 	}
 
@@ -714,10 +769,12 @@ func WriteCgenYmlSub(outPath string, mxproject MxprojectType, bridgeParam Bridge
 	var cgenFile cbuild.CgenFilesType
 	startupFile, err := GetStartupFile(outPath, bridgeParam)
 	if err != nil {
+		logCgenError(bridgeParam.CgenName, err)
 		return err
 	}
 	startupFile, err = utils.ConvertFilenameRel(outPath, startupFile)
 	if err != nil {
+		logCgenError(bridgeParam.CgenName, err)
 		return err
 	}
 	cgenFile.File = startupFile
@@ -725,10 +782,12 @@ func WriteCgenYmlSub(outPath string, mxproject MxprojectType, bridgeParam Bridge
 
 	systemFile, err := GetSystemFile(outPath, bridgeParam)
 	if err != nil {
+		logCgenError(bridgeParam.CgenName, err)
 		return err
 	}
 	systemFile, err = utils.ConvertFilenameRel(outPath, systemFile)
 	if err != nil {
+		logCgenError(bridgeParam.CgenName, err)
 		return err
 	}
 	cgenFile.File = systemFile
@@ -785,7 +844,13 @@ func WriteCgenYmlSub(outPath string, mxproject MxprojectType, bridgeParam Bridge
 		cgen.GeneratorImport.Groups = append(cgen.GeneratorImport.Groups, groupTz)
 	}
 
-	return common.WriteYml(bridgeParam.CgenName, &cgen)
+	err = common.WriteYml(bridgeParam.CgenName, &cgen)
+	if err != nil {
+		logCgenError(bridgeParam.CgenName, err)
+		return err
+	}
+
+	return nil
 }
 
 func GetToolchain(compiler string) (string, error) {
