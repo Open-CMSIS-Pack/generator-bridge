@@ -17,9 +17,13 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+func getCgenLogPath(cgenPath string) string {
+	return strings.TrimSuffix(cgenPath, ".yml") + ".log"
+}
+
 // deleteCgenLog deletes the *.cgen.log file for a given cgen path.
 func deleteCgenLog(cgenPath string) error {
-	logPath := strings.TrimSuffix(cgenPath, ".yml") + ".log"
+	logPath := getCgenLogPath(cgenPath)
 	if utils.FileExists(logPath) {
 		return os.Remove(logPath)
 	}
@@ -28,7 +32,7 @@ func deleteCgenLog(cgenPath string) error {
 
 // logCgenError appends an error message with timestamp and function name to the *.cgen.log file.
 func logCgenError(cgenPath string, err error) {
-	logPath := strings.TrimSuffix(cgenPath, ".yml") + ".log"
+	logPath := getCgenLogPath(cgenPath)
 
 	// Get caller's function name.
 	pc, _, _, _ := runtime.Caller(1)
@@ -53,6 +57,30 @@ func logCgenError(cgenPath string, err error) {
 
 	_, writeErr := file.WriteString(message)
 	if writeErr != nil {
+		log.Warnf("failed to write cgen log '%s': %v", logPath, writeErr)
+	}
+}
+
+// logCgenInfoIfLogExists appends an info message only when the cgen log already
+// exists. This is used in daemon mode to acknowledge recovery after prior
+// errors/warnings in the same session.
+func logCgenInfoIfLogExists(cgenPath, message string) {
+	logPath := getCgenLogPath(cgenPath)
+	if !utils.FileExists(logPath) {
+		return
+	}
+
+	timestamp := time.Now().Format("2006-01-02 15:04:05.000")
+	entry := fmt.Sprintf("[%s] info: %s\n", timestamp, message)
+
+	file, openErr := os.OpenFile(logPath, os.O_APPEND|os.O_WRONLY, 0600)
+	if openErr != nil {
+		log.Warnf("failed to open cgen log '%s': %v", logPath, openErr)
+		return
+	}
+	defer file.Close()
+
+	if _, writeErr := file.WriteString(entry); writeErr != nil {
 		log.Warnf("failed to write cgen log '%s': %v", logPath, writeErr)
 	}
 }

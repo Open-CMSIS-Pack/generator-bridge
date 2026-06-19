@@ -856,6 +856,7 @@ func WriteCgenYmlSub(outPath string, mxproject MxprojectType, bridgeParam Bridge
 		logCgenError(bridgeParam.CgenName, err)
 		return err
 	}
+	logCgenInfoIfLogExists(bridgeParam.CgenName, "cgen.yml generated successfully")
 
 	return nil
 }

@@ -128,3 +128,34 @@ func Test_deleteAllCgenLogs(t *testing.T) {
 		t.Errorf("expected log file 2 to be deleted")
 	}
 }
+
+func Test_logCgenInfoIfLogExists(t *testing.T) {
+	t.Parallel()
+
+	tmpDir := t.TempDir()
+	cgenPath := filepath.Join(tmpDir, "test.cgen.yml")
+	logPath := strings.TrimSuffix(cgenPath, ".yml") + ".log"
+
+	// No existing log: no file should be created.
+	logCgenInfoIfLogExists(cgenPath, "cgen.yml generated successfully")
+	if utils.FileExists(logPath) {
+		t.Fatalf("expected no log file to be created when none exists")
+	}
+
+	// Existing log: info should be appended.
+	logCgenError(cgenPath, errors.New("prior warning"))
+	logCgenInfoIfLogExists(cgenPath, "cgen.yml generated successfully")
+
+	data, err := os.ReadFile(logPath)
+	if err != nil {
+		t.Fatalf("failed to read log file: %v", err)
+	}
+
+	content := string(data)
+	if !strings.Contains(content, "prior warning") {
+		t.Errorf("expected prior error/warning in log, got: %s", content)
+	}
+	if !strings.Contains(content, "info: cgen.yml generated successfully") {
+		t.Errorf("expected success info in log, got: %s", content)
+	}
+}
