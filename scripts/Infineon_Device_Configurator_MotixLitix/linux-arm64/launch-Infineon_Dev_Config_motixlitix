@@ -1,0 +1,5 @@
+#!/bin/bash
+# Script launch Infineon Device Configurator.
+
+echo Platform is not supported for Infineon Device Configurator!
+exit 1
