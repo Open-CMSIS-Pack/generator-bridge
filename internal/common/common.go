@@ -31,15 +31,18 @@ func ReadYml(path string, out interface{}) error {
 	return nil
 }
 
-// WriteYml writes YAML to path when its content has changed.
+// WriteYml serializes out as YAML and writes it to path only when the on-disk content differs.
+// It returns true if a write occurred, or false if the existing file was already up-to-date.
 // Callers must not concurrently modify the destination file.
 func WriteYml(path string, out interface{}) (bool, error) {
 	var data bytes.Buffer
 	yamlEncoder := yaml.NewEncoder(&data)
 	yamlEncoder.SetIndent(2)
-	err := yamlEncoder.Encode(&out)
-	if err != nil {
-		return false, err
+	if err := yamlEncoder.Encode(&out); err != nil {
+		return false, fmt.Errorf("encode YAML %q: %w", path, err)
+	}
+	if err := yamlEncoder.Close(); err != nil {
+		return false, fmt.Errorf("close YAML encoder for %q: %w", path, err)
 	}
 
 	// If the existing file cannot be read, attempt the write because content
