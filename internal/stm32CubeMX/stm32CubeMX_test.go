@@ -7,6 +7,7 @@
 package stm32cubemx
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -910,6 +911,18 @@ func Test_WriteCgenYmlSub(t *testing.T) {
 	}
 	if strings.Contains(content, "Templates") {
 		t.Errorf("filtered header path Templates should not appear")
+	}
+
+	logCgenError(bp.CgenName, errors.New("prior warning"))
+	if err := WriteCgenYmlSub(base, mx, bp); err != nil {
+		t.Fatalf("second WriteCgenYmlSub error: %v", err)
+	}
+	logData, err := os.ReadFile(getCgenLogPath(bp.CgenName))
+	if err != nil {
+		t.Fatalf("read cgen log: %v", err)
+	}
+	if !strings.Contains(string(logData), "info: cgen.yml is already up-to-date") {
+		t.Errorf("expected up-to-date info in log, got: %s", logData)
 	}
 }
 

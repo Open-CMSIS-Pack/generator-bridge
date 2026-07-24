@@ -851,12 +851,16 @@ func WriteCgenYmlSub(outPath string, mxproject MxprojectType, bridgeParam Bridge
 		cgen.GeneratorImport.Groups = append(cgen.GeneratorImport.Groups, groupTz)
 	}
 
-	err = common.WriteYml(bridgeParam.CgenName, &cgen)
+	changed, err := common.WriteYml(bridgeParam.CgenName, &cgen)
 	if err != nil {
 		logCgenError(bridgeParam.CgenName, err)
 		return err
 	}
-	logCgenInfoIfLogExists(bridgeParam.CgenName, "cgen.yml generated successfully")
+	message := "cgen.yml is already up-to-date"
+	if changed {
+		message = "cgen.yml generated successfully"
+	}
+	logCgenInfoIfLogExists(bridgeParam.CgenName, message)
 
 	return nil
 }
