@@ -8,6 +8,7 @@ package common
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 
 	log "github.com/sirupsen/logrus"
@@ -30,19 +31,30 @@ func ReadYml(path string, out interface{}) error {
 	return nil
 }
 
-func WriteYml(path string, out interface{}) error {
+// WriteYml serializes out as YAML and writes it to path only when the on-disk content differs.
+// It returns true if a write occurred, or false if the existing file was already up-to-date.
+// Callers must not concurrently modify the destination file.
+func WriteYml(path string, out interface{}) (bool, error) {
 	var data bytes.Buffer
 	yamlEncoder := yaml.NewEncoder(&data)
 	yamlEncoder.SetIndent(2)
-	err := yamlEncoder.Encode(&out)
-	if err != nil {
-		return err
+	if err := yamlEncoder.Encode(&out); err != nil {
+		return false, fmt.Errorf("encode YAML %q: %w", path, err)
+	}
+	if err := yamlEncoder.Close(); err != nil {
+		return false, fmt.Errorf("close YAML encoder for %q: %w", path, err)
 	}
 
-	err = os.WriteFile(path, data.Bytes(), 0600)
-	if err != nil {
-		log.Fatal(err)
+	// If the existing file cannot be read, attempt the write because content
+	// comparison is an optimization and writing the generated YAML is primary.
+	existingData, err := os.ReadFile(path)
+	if err == nil && bytes.Equal(existingData, data.Bytes()) {
+		return false, nil
 	}
 
-	return nil
+	if err := os.WriteFile(path, data.Bytes(), 0600); err != nil {
+		return false, fmt.Errorf("write YAML %q: %w", path, err)
+	}
+
+	return true, nil
 }
