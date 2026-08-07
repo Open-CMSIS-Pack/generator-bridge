@@ -20,6 +20,10 @@ archives:
         strip_parent: true
       - src: scripts/Infineon_Device_Configurator/{{.Os}}-{{.Arch}}/launch-Infineon_Dev_Config*
         strip_parent: true
+      - src: scripts/Infineon_Device_Configurator_MotixLitix/{{.Os}}-{{.Arch}}/launch-Infineon_Dev_Config_motixlitix*
+        strip_parent: true
+      - src: scripts/InfineonMcuConfigWizard/{{.Os}}-{{.Arch}}/launch-Infineon_MCU_Config_Wizard*
+        strip_parent: true
 
     format_overrides:
       - goos: windows
