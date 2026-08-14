@@ -56,7 +56,7 @@ for /f "usebackq delims=" %%F in (`reg query "HKCU\Software\Infineon Technologie
 if defined TOOL_BASE_PATH echo Found: !TOOL_BASE_PATH!
 
 if not defined TOOL_BASE_PATH (
-    echo Error: MCU Config Wizard not found, please download and install from https://softwaretools.infineon.com/tools/com.ifx.tb.tool.mcuconfigwizard
+    echo Error: MCU Config Wizard not found, please download and install from https://softwaretools.infineon.com/assets/com.ifx.tb.tool.ifxconfigwizardforembeddedpowerics
     exit /b 2
 )
 
