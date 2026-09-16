@@ -1,8 +1,9 @@
 module github.com/open-cmsis-pack/generator-bridge
 
-go 1.26
+go 1.27
 
 require (
+	github.com/fsnotify/fsnotify v1.7.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/pflag v1.0.5
@@ -14,7 +15,6 @@ require (
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/fsnotify/fsnotify v1.7.0
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
