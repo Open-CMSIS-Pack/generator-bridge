@@ -1,0 +1,5 @@
+#!/bin/bash
+# Script launch Renesas RA Smart Configurator (RASC).
+
+echo Platform is not supported for Renesas RA Smart Configurator (RASC)!
+exit 1
