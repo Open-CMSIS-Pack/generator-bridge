@@ -24,6 +24,8 @@ archives:
         strip_parent: true
       - src: scripts/InfineonMcuConfigWizard/{{.Os}}-{{.Arch}}/launch-Infineon_MCU_Config_Wizard*
         strip_parent: true
+      - src: scripts/Renesas_RASC/{{.Os}}-{{.Arch}}/launch-Renesas_RASC*
+        strip_parent: true
 
     format_overrides:
       - goos: windows
