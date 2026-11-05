@@ -1,5 +1,228 @@
-#!/bin/bash
-# Script launch Infineon Device Configurator.
+#!/usr/bin/env python3
+"""Run device-configurator for the generator(s) listed in a cbuild-gen-idx.yml.
 
-echo Platform is not supported for Infineon Device Configurator!
-exit 1
+For each generator entry it takes:
+  - 'output'                     from the idx file
+  - 'cbuild-gens[].cbuild-gen'   from the idx file -> opened to find 'device-pack'
+  - the path of that pack        from the 'packs:' list of the cbuild-gen file
+and invokes (then writes <output>/<project>.cgen.yml, see write_cgen()):
+  device-configurator --library <pack>/Libraries/mtb-pdl-cat1/props.json,<pack>/device-info/device-db/props.json
+                      --design <output>/design.modus [--output-dir <dir>]
+--output-dir is only passed when requested (see --output-dir below).
+"""
+import argparse
+import os
+import re
+import subprocess
+import sys
+from pathlib import Path
+
+try:
+    import yaml
+except ImportError:
+    sys.exit(
+        "error: the PyYAML module is required but not installed.\n"
+        "  install it with:  pip install pyyaml\n"
+        "  (or, in a venv:   python3 -m venv .venv && .venv/bin/pip install pyyaml)\n"
+        "  (or on Debian/Ubuntu: sudo apt install python3-yaml)"
+    )
+
+
+AUTO = object()  # --output-dir given without a value
+TOOL_NAME = "device-configurator"
+ENV_VAR = "DEVICE_CONFIGURATOR_PATH"
+GENERATED_LIST = ".hardware-config-server.generated-files"
+
+
+def resolve_tool(cli_value):
+    """Tool to run: --tool, else $DEVICE_CONFIGURATOR_PATH (executable or the
+    directory containing it), else 'device-configurator' from PATH."""
+    if cli_value:
+        return cli_value
+    env = os.environ.get(ENV_VAR)
+    if env:
+        p = Path(env).expanduser()
+        if p.is_dir():
+            for name in (TOOL_NAME, TOOL_NAME + ".exe"):
+                if (p / name).is_file():
+                    return str(p / name)
+            sys.exit(f"{ENV_VAR} is a directory but contains no '{TOOL_NAME}': {p}")
+        return str(p)
+    return TOOL_NAME
+
+
+def load_yaml(path: Path):
+    try:
+        with path.open("r", encoding="utf-8") as f:
+            return yaml.safe_load(f)
+    except (OSError, yaml.YAMLError) as e:
+        sys.exit(f"Error reading {path}: {e}")
+
+
+def find_pack_path(packs, device_pack):
+    """Path of device_pack in the 'packs' list (exact match, then ignoring @version)."""
+    for p in packs:
+        if p.get("pack") == device_pack:
+            return p.get("path")
+    name = device_pack.split("@")[0]
+    for p in packs:
+        if p.get("pack", "").split("@")[0] == name:
+            return p.get("path")
+    return None
+
+
+def build_command(tool, pack_path, output, output_dir=None):
+    pack, out = Path(pack_path), Path(output)
+    libs = [pack / "Libraries/mtb-pdl-cat1/props.json",
+            pack / "device-info/device-db/props.json"]
+    design = out / "design.modus"
+    cmd = [tool,
+           "--library", ",".join(str(p) for p in libs),
+           "--design", str(design)]
+    gen_dir = out / "GeneratedSource"  # where the tool writes by default
+    if output_dir is not None:
+        if output_dir != AUTO:
+            gen_dir = Path(output_dir)
+        cmd += ["--output-dir", str(gen_dir)]
+    missing = [p for p in libs + [design] if not p.exists()]
+    return cmd, missing, gen_dir
+
+
+def yaml_scalar(text):
+    """Plain scalar when safe, otherwise single-quoted."""
+    if re.fullmatch(r"[A-Za-z0-9_./+-]+", text):
+        return text
+    return "'" + text.replace("'", "''") + "'"
+
+
+def write_cgen(output, project, gen_dir):
+    """Create <output>/<project>.cgen.yml from <gen_dir>/.hardware-config-server.generated-files.
+
+    Only entries whose file actually exists in <gen_dir> are listed. Names are
+    relative to <output> (the cgen.yml location), sources (.c) first, then
+    headers (.h), each group sorted by name."""
+    list_file = Path(gen_dir) / GENERATED_LIST
+    try:
+        names = [l.strip() for l in list_file.read_text(encoding="utf-8").splitlines() if l.strip()]
+    except OSError as e:
+        print(f"error: cannot read {list_file}: {e}", file=sys.stderr)
+        return None
+    if not names:
+        print(f"error: {list_file} is empty", file=sys.stderr)
+        return None
+
+    present = [n for n in names if (Path(gen_dir) / n).is_file()]
+    for n in names:
+        if n not in present:
+            print(f"warning: listed but not found in {gen_dir}, skipped: {n}", file=sys.stderr)
+    names = present
+    if not names:
+        print(f"error: none of the files listed in {list_file} exist; {project}.cgen.yml not written",
+              file=sys.stderr)
+        return None
+
+    rel_dir = Path(os.path.relpath(gen_dir, output)).as_posix()
+    names.sort(key=lambda n: (Path(n).suffix.lower(), n))
+    lines = ["generator-import:",
+             "  generated-by: 'Infineon Device configurator'",
+             "  groups:",
+             "    - group: ConfigTools",
+             "      files:"]
+    lines += [f"        - file: {yaml_scalar(f'{rel_dir}/{n}')}" for n in names]
+
+    cgen = Path(output) / f"{project}.cgen.yml"
+    cgen.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return cgen
+
+
+def main():
+    ap = argparse.ArgumentParser(
+        description="Invoke device-configurator using the data in a cbuild-gen-idx.yml file."
+    )
+    ap.add_argument("idx_file", type=Path, help="path to the .cbuild-gen-idx.yml file")
+    ap.add_argument("--id", default="InfineonDeviceConfigurator",
+                    help="generator id to process (default: %(default)s)")
+    ap.add_argument("--tool",
+                    help=f"executable to run (default: ${ENV_VAR} if set, else '{TOOL_NAME}' from PATH)")
+    ap.add_argument("--output-dir", nargs="?", const=AUTO, default=None, metavar="DIR",
+                    help="pass --output-dir to the tool. Without a value: <output>/GeneratedSource "
+                         "from the idx file; with DIR: that directory. Omitted: flag not passed.")
+    ap.add_argument("-n", "--dry-run", action="store_true",
+                    help="print the command(s) instead of running them")
+    args = ap.parse_args()
+
+    tool = resolve_tool(args.tool)
+    idx = load_yaml(args.idx_file)
+    try:
+        generators = idx["build-gen-idx"]["generators"]
+    except (KeyError, TypeError):
+        sys.exit("Unexpected structure: 'build-gen-idx' -> 'generators' not found")
+
+    commands = []  # (cmd, missing, output, project, gen_dir), de-duplicated
+    for gen in generators:
+        if gen.get("id") != args.id:
+            continue
+        output, device = gen.get("output"), gen.get("device")
+        if not output:
+            print(f"generator {gen.get('id')}: no 'output' key", file=sys.stderr)
+            continue
+
+        for entry in gen.get("cbuild-gens", []):
+            gen_file = Path(entry["cbuild-gen"])
+            if not gen_file.is_absolute():
+                gen_file = args.idx_file.parent / gen_file
+            bg = (load_yaml(gen_file) or {}).get("build-gen")
+            if not bg:
+                print(f"{gen_file}: no 'build-gen' section", file=sys.stderr)
+                continue
+            if bg.get("device") != device:
+                print(f"warning: device mismatch: idx has {device!r}, "
+                      f"{gen_file.name} has {bg.get('device')!r}", file=sys.stderr)
+
+            device_pack = bg.get("device-pack")
+            pack_path = device_pack and find_pack_path(bg.get("packs", []), device_pack)
+            if not pack_path:
+                print(f"{gen_file}: device-pack {device_pack!r} not found in 'packs'",
+                      file=sys.stderr)
+                continue
+
+            cmd, missing, gen_dir = build_command(tool, pack_path, output, args.output_dir)
+            item = (cmd, missing, output, entry.get("project"), gen_dir)
+            if item not in commands:
+                commands.append(item)
+
+    if not commands:
+        sys.exit(f"Nothing to run for generator id {args.id!r}")
+
+    rc = 0
+    for cmd, missing, output, project, gen_dir in commands:
+        for p in missing:
+            print(f"warning: not found: {p}", file=sys.stderr)
+        cgen_path = Path(output) / f"{project}.cgen.yml"
+        if args.dry_run:
+            print(" ".join(f'"{a}"' if " " in a else a for a in cmd))
+            print(f"(would then write {cgen_path} from {Path(gen_dir) / GENERATED_LIST})")
+            continue
+        print("Running:", " ".join(cmd), flush=True)
+        try:
+            r = subprocess.run(cmd)
+        except FileNotFoundError:
+            sys.exit(f"Tool not found: {tool} (set {ENV_VAR}, use --tool, or put it on PATH)")
+        if r.returncode != 0:
+            print(f"error: tool exited with code {r.returncode}; {cgen_path.name} not written",
+                  file=sys.stderr)
+            rc = rc or r.returncode
+            continue
+        if not project:
+            print("error: no 'project' in idx entry; cannot name the .cgen.yml", file=sys.stderr)
+            rc = rc or 1
+            continue
+        written = write_cgen(output, project, gen_dir)
+        if written:
+            print(f"Wrote {written}")
+        else:
+            rc = rc or 1
+    sys.exit(rc)
+
+if __name__ == "__main__":
+    main()
