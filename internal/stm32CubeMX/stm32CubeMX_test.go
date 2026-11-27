@@ -17,6 +17,7 @@ import (
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/open-cmsis-pack/generator-bridge/internal/cbuild"
+	"github.com/open-cmsis-pack/generator-bridge/internal/common"
 )
 
 // Test_WriteProjectFile verifies generation of project.script for both board and device cases
@@ -923,6 +924,69 @@ func Test_WriteCgenYmlSub(t *testing.T) {
 	}
 	if !strings.Contains(string(logData), "info: cgen.yml is already up-to-date") {
 		t.Errorf("expected up-to-date info in log, got: %s", logData)
+	}
+}
+
+// Test_preserveCgenUserOptions verifies that manually added keys survive regeneration.
+func Test_preserveCgenUserOptions(t *testing.T) {
+	t.Parallel()
+
+	cgenPath := filepath.Join(t.TempDir(), "Cgen.yml")
+	prev := `generator-import:
+  for-device: OldDevice
+  define:
+    - OLD_DEFINE
+  misc:
+    - for-compiler: GCC
+      C:
+        - -w
+  groups:
+    - group: CubeMX
+      misc:
+        - C:
+            - -Wno-unused
+      files:
+        - file: ./main.c
+          misc:
+            - C:
+                - -O0
+        - file: ./removed.c
+    - group: Removed Group
+      misc:
+        - C:
+            - -w
+`
+	if err := os.WriteFile(cgenPath, []byte(prev), 0o600); err != nil {
+		t.Fatalf("write cgen: %v", err)
+	}
+
+	var cgen cbuild.CgenType
+	cgen.GeneratorImport.ForDevice = "NewDevice"
+	cgen.GeneratorImport.Define = []string{"NEW_DEFINE"}
+	cgen.GeneratorImport.Groups = []cbuild.CgenGroupsType{{
+		Group: "CubeMX",
+		Files: []cbuild.CgenFilesType{{File: "./main.c"}, {File: "./new.c"}},
+	}}
+
+	preserveCgenUserOptions(cgenPath, &cgen)
+	if _, err := common.WriteYml(cgenPath, &cgen); err != nil {
+		t.Fatalf("WriteYml: %v", err)
+	}
+	data, err := os.ReadFile(cgenPath)
+	if err != nil {
+		t.Fatalf("read cgen: %v", err)
+	}
+	content := string(data)
+
+	for _, want := range []string{"NewDevice", "NEW_DEFINE", "./new.c", "for-compiler: GCC", "- -w", "-Wno-unused", "-O0"} {
+		if !strings.Contains(content, want) {
+			t.Errorf("expected %q in output:\n%s", want, content)
+		}
+	}
+	for _, unwanted := range []string{"OldDevice", "OLD_DEFINE", "removed.c", "Removed Group"} {
+		if strings.Contains(content, unwanted) {
+			t.Errorf("unexpected %q in output:\n%s", unwanted, content)
+		}
 	}
 }
 
