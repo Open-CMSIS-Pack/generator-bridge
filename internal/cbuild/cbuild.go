@@ -150,11 +150,13 @@ type CgenPacksType struct {
 	Pack string `yaml:"pack,omitempty"`
 }
 type CgenFilesType struct {
-	File string `yaml:"file,omitempty"`
+	File  string                 `yaml:"file,omitempty"`
+	Extra map[string]interface{} `yaml:",inline"` // user-added keys (e.g. misc), preserved on regeneration
 }
 type CgenGroupsType struct {
-	Group string          `yaml:"group,omitempty"`
-	Files []CgenFilesType `yaml:"files,omitempty"`
+	Group string                 `yaml:"group,omitempty"`
+	Files []CgenFilesType        `yaml:"files,omitempty"`
+	Extra map[string]interface{} `yaml:",inline"` // user-added keys (e.g. misc), preserved on regeneration
 }
 type GeneratorImportType struct {
 	ForDevice string           `yaml:"for-device,omitempty"`
@@ -163,6 +165,8 @@ type GeneratorImportType struct {
 	Define    []string         `yaml:"define,omitempty"`
 	AddPath   []string         `yaml:"add-path,omitempty"`
 	Groups    []CgenGroupsType `yaml:"groups,omitempty"`
+	// user-added keys (e.g. misc, undefine, del-path), preserved on regeneration
+	Extra map[string]interface{} `yaml:",inline"`
 }
 
 func (d *DefineElement) UnmarshalYAML(unmarshal func(interface{}) error) error {
